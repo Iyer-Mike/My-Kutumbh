@@ -1,5 +1,6 @@
 interface KutumbhLogoProps {
   size?: number;
+  color?: string;
 }
 
 export default function KutumbhLogo({ size = 40 }: KutumbhLogoProps) {

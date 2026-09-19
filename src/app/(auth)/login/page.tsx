@@ -64,9 +64,14 @@ function LoginForm() {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-1" style={{ color: "#5A6055" }}>
-            Password
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="password" className="block text-sm font-medium" style={{ color: "#5A6055" }}>
+              Password
+            </label>
+            <Link href="/forgot-password" className="text-xs font-medium" style={{ color: "#4A7C44" }}>
+              Forgot password?
+            </Link>
+          </div>
           <input
             id="password"
             type="password"

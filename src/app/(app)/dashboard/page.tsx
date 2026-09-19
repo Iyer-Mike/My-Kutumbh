@@ -44,6 +44,13 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
+  const { data: membership } = await supabase
+    .from("kutumbh_members")
+    .select("kutumbhs(name)")
+    .eq("user_id", user!.id)
+    .maybeSingle();
+
+  const kutumbhName = (membership?.kutumbhs as { name: string } | null)?.name ?? "My Kutumbh";
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
 
   // No .order() — avoids silent failure if created_at doesn't exist
@@ -77,7 +84,7 @@ export default async function DashboardPage() {
             <KutumbhLogo size={38} color="#ffffff" />
             <div>
               <p className="text-xl leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
-                My Kutumbh
+                {kutumbhName}
               </p>
               <p className="text-xs leading-tight" style={{ color: "#8FBF88" }}>मेरा कुटुम्ब</p>
             </div>

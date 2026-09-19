@@ -49,13 +49,20 @@ export default async function ProfilePage() {
         style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 70%, #3D6638 100%)" }}
       >
         <PageNav />
-        <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>My Kutumbh</p>
-        <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
-          {profile?.full_name ?? "My Profile"}
-        </h1>
+        <div className="flex items-start justify-between mt-1">
+          <div>
+            <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
+              {profile?.full_name ?? "My Profile"}
+            </h1>
+            <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>
+              {user?.email}
+            </p>
+          </div>
+          <SignOutButton compact />
+        </div>
         {doshaLabel && (
           <span
-            className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold text-white"
+            className="inline-block mt-3 px-3 py-1 rounded-full text-xs font-semibold text-white"
             style={{ background: doshaColor }}
           >
             {doshaLabel} Prakriti
@@ -107,8 +114,6 @@ export default async function ProfilePage() {
           </div>
         )}
 
-        {/* Sign out */}
-        <SignOutButton />
 
       </main>
     </div>

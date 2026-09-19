@@ -41,7 +41,7 @@ function SignupForm() {
     }
 
     if (data.session) {
-      window.location.href = "/onboarding";
+      window.location.href = redirectTo ?? "/onboarding";
       return;
     }
 

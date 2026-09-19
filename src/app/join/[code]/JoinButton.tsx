@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function JoinButton({ code }: { code: string }) {
   const router  = useRouter();
@@ -19,7 +20,20 @@ export default function JoinButton({ code }: { code: string }) {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Failed to join"); return; }
-      router.push("/family");
+
+      // Check if this user has completed onboarding yet
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_complete")
+          .eq("id", user.id)
+          .single();
+        router.push(profile?.onboarding_complete ? "/family" : "/onboarding");
+      } else {
+        router.push("/family");
+      }
     } catch {
       setError("Network error — please try again");
     } finally {

@@ -33,9 +33,10 @@ type Props = {
   totalKcal: number;
   initialPlans: MealPlan[];
   userId: string;
+  kutumbhId: string | null;
 };
 
-export default function DashboardTabs({ logs, totalKcal, initialPlans, userId }: Props) {
+export default function DashboardTabs({ logs, totalKcal, initialPlans, userId, kutumbhId }: Props) {
   const [tab, setTab] = useState<"plan" | "log">("log");
 
   const slotLogs: Record<string, MealLog[]>   = {};
@@ -118,6 +119,7 @@ export default function DashboardTabs({ logs, totalKcal, initialPlans, userId }:
               icon={icon}
               time={time}
               userId={userId}
+              kutumbhId={kutumbhId}
               initialItems={slotPlans[key] ?? []}
             />
           ))}

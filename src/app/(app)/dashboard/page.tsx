@@ -46,10 +46,11 @@ export default async function DashboardPage() {
 
   const { data: membership } = await supabase
     .from("kutumbh_members")
-    .select("kutumbhs(name)")
+    .select("kutumbh_id, kutumbhs(name)")
     .eq("user_id", user!.id)
     .maybeSingle();
 
+  const kutumbhId = membership?.kutumbh_id ?? null;
   const rawKutumbh = membership?.kutumbhs;
   const kutumbhName: string = (Array.isArray(rawKutumbh)
     ? (rawKutumbh[0] as { name: string } | undefined)?.name
@@ -63,11 +64,14 @@ export default async function DashboardPage() {
     .eq("user_id", user!.id)
     .eq("logged_date", todayISO());
 
-  const { data: plans } = await supabase
+  const plansQuery = supabase
     .from("meal_plans")
     .select("id, food_name, meal_slot, quantity_g, quantity_unit")
-    .eq("user_id", user!.id)
     .eq("planned_date", todayISO());
+
+  const { data: plans } = await (kutumbhId
+    ? plansQuery.eq("kutumbh_id", kutumbhId)
+    : plansQuery.eq("user_id", user!.id));
 
   const totalKcal = ((logs ?? []) as MealLog[]).reduce((s, l) => s + (l.calories ?? 0), 0);
 
@@ -113,6 +117,7 @@ export default async function DashboardPage() {
           totalKcal={totalKcal}
           initialPlans={(plans ?? []) as MealPlan[]}
           userId={user!.id}
+          kutumbhId={kutumbhId}
         />
       </main>
 

@@ -22,6 +22,7 @@ type Props = {
   icon: string;
   time: string;
   userId: string;
+  kutumbhId: string | null;
   initialItems: PlanItem[];
 };
 
@@ -31,7 +32,7 @@ function todayISO() {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function PlanSlotCard({ slotKey, name, icon, time, userId, initialItems }: Props) {
+export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumbhId, initialItems }: Props) {
   const supabase = createClient();
   const [items, setItems]           = useState<PlanItem[]>(initialItems);
   const [adding, setAdding]         = useState(false);
@@ -91,6 +92,7 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, initia
       .from("meal_plans")
       .insert({
         user_id:      userId,
+        kutumbh_id:   kutumbhId ?? null,
         planned_date: todayISO(),
         meal_slot:    slotKey,
         food_name:    foodName.trim(),

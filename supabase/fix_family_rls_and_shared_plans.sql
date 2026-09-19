@@ -1,4 +1,21 @@
 -- ══════════════════════════════════════════════════════════════════
+-- Fix 0: kutumbhs — let invitees read the family name before joining
+-- ══════════════════════════════════════════════════════════════════
+DROP POLICY IF EXISTS "Anyone can view kutumbh via active invite" ON kutumbhs;
+CREATE POLICY "Anyone can view kutumbh via active invite"
+  ON kutumbhs FOR SELECT
+  USING (
+    -- already a member
+    id IN (SELECT kutumbh_id FROM kutumbh_members WHERE user_id = auth.uid())
+    OR
+    -- or the kutumbh has an active, non-expired invite (so join page can show the name)
+    id IN (
+      SELECT kutumbh_id FROM kutumbh_invites
+      WHERE is_active = true AND expires_at > now()
+    )
+  );
+
+-- ══════════════════════════════════════════════════════════════════
 -- Fix 1: kutumbh_members — let members see the full family roster
 -- ══════════════════════════════════════════════════════════════════
 DROP POLICY IF EXISTS "Members can view kutumbh roster" ON kutumbh_members;

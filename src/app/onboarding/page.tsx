@@ -227,6 +227,49 @@ export default function OnboardingPage() {
     setStep(4);
   }
 
+  async function handleSkipPrakriti() {
+    setSaving(true);
+    setError(null);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/login"); return; }
+
+    if (!alreadyMember) {
+      const { data: existing } = await supabase
+        .from("kutumbh_members")
+        .select("kutumbh_id")
+        .eq("user_id", user.id)
+        .limit(1);
+      if (!existing?.[0]) {
+        const { data: kutumbh, error: ke } = await supabase
+          .from("kutumbhs")
+          .insert({ name: kutumbhName, created_by: user.id })
+          .select()
+          .single();
+        if (ke) { setError(ke.message); setSaving(false); return; }
+        await supabase.from("kutumbh_members").insert({
+          kutumbh_id: kutumbh.id,
+          user_id: user.id,
+          role: "owner",
+        });
+      }
+    }
+
+    await supabase.from("profiles").upsert({
+      id: user.id,
+      full_name: user.user_metadata?.full_name,
+      date_of_birth: dob || null,
+      gender: gender || null,
+      height_cm: height ? parseFloat(height) : null,
+      weight_kg: weight ? parseFloat(weight) : null,
+      activity_level: activity || null,
+      onboarding_complete: true,
+      updated_at: new Date().toISOString(),
+    });
+
+    router.push("/dashboard");
+  }
+
   async function handleSave() {
     if (!result) return;
     setSaving(true);
@@ -495,6 +538,15 @@ export default function OnboardingPage() {
             }}
           >
             See my Prakriti →
+          </button>
+          <button
+            type="button"
+            onClick={handleSkipPrakriti}
+            disabled={saving}
+            className="w-full py-2 text-sm mt-2"
+            style={{ color: "#8A9085" }}
+          >
+            {saving ? "Saving…" : "Skip for now"}
           </button>
         </div>
       </div>

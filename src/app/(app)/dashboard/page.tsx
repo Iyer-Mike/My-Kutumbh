@@ -50,7 +50,10 @@ export default async function DashboardPage() {
     .eq("user_id", user!.id)
     .maybeSingle();
 
-  const kutumbhName = (membership?.kutumbhs as { name: string } | null)?.name ?? "My Kutumbh";
+  const rawKutumbh = membership?.kutumbhs;
+  const kutumbhName: string = (Array.isArray(rawKutumbh)
+    ? (rawKutumbh[0] as { name: string } | undefined)?.name
+    : (rawKutumbh as { name: string } | null)?.name) ?? "My Kutumbh";
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
 
   // No .order() — avoids silent failure if created_at doesn't exist

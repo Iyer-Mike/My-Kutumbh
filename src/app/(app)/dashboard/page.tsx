@@ -1,14 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import KutumbhLogo from "@/components/KutumbhLogo";
-import DashboardSlotCard from "@/components/DashboardSlotCard";
+import DashboardTabs from "@/components/DashboardTabs";
 import { redirect } from "next/navigation";
-
-const SLOTS = [
-  { key: "breakfast", name: "Breakfast", icon: "☀️", time: "7 – 9 am" },
-  { key: "lunch",     name: "Lunch",     icon: "🌤️", time: "12 – 2 pm" },
-  { key: "dinner",   name: "Dinner",    icon: "🌙", time: "7 – 9 pm" },
-  { key: "other",    name: "Other",     icon: "＋", time: "Any time" },
-];
 
 function todayLabel() {
   return new Date().toLocaleDateString("en-IN", {
@@ -16,7 +9,6 @@ function todayLabel() {
   });
 }
 
-// Match the format used when saving: toISOString().split("T")[0] (UTC date)
 function todayISO() {
   return new Date().toISOString().split("T")[0];
 }
@@ -28,6 +20,14 @@ type MealLog = {
   quantity_g: number;
   quantity_unit: string | null;
   calories: number | null;
+};
+
+type MealPlan = {
+  id: string;
+  food_name: string;
+  meal_slot: string;
+  quantity_g: number;
+  quantity_unit: string | null;
 };
 
 export default async function DashboardPage() {
@@ -54,25 +54,22 @@ export default async function DashboardPage() {
   const kutumbhName: string = (Array.isArray(rawKutumbh)
     ? (rawKutumbh[0] as { name: string } | undefined)?.name
     : (rawKutumbh as { name: string } | null | undefined)?.name) ?? "My Kutumbh";
+
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
 
-  // No .order() — avoids silent failure if created_at doesn't exist
   const { data: logs } = await supabase
     .from("meal_logs")
     .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories")
     .eq("user_id", user!.id)
     .eq("logged_date", todayISO());
 
-  // Group items by slot
-  const slotItems: Record<string, MealLog[]> = {};
-  let totalKcal = 0;
+  const { data: plans } = await supabase
+    .from("meal_plans")
+    .select("id, food_name, meal_slot, quantity_g, quantity_unit")
+    .eq("user_id", user!.id)
+    .eq("planned_date", todayISO());
 
-  for (const log of (logs ?? []) as MealLog[]) {
-    const s = log.meal_slot;
-    if (!slotItems[s]) slotItems[s] = [];
-    slotItems[s].push(log);
-    totalKcal += log.calories ?? 0;
-  }
+  const totalKcal = ((logs ?? []) as MealLog[]).reduce((s, l) => s + (l.calories ?? 0), 0);
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
@@ -109,43 +106,14 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      {/* ── Meal slots ── */}
-      <main className="flex-1 px-4 py-5 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#8A9085" }}>
-          Today&apos;s Meals
-        </p>
-
-        {SLOTS.map(({ key, name, icon, time }) => (
-          <DashboardSlotCard
-            key={key}
-            slotKey={key}
-            name={name}
-            icon={icon}
-            time={time}
-            items={slotItems[key] ?? []}
-          />
-        ))}
-
-        {/* Summary strip */}
-        <div
-          className="rounded-2xl px-4 py-3 flex items-center justify-between mt-2"
-          style={{ background: "#1C2B1C" }}
-        >
-          <div>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Today&apos;s total</p>
-            <p className="text-lg font-semibold text-white mt-0.5">
-              {totalKcal > 0 ? `${Math.round(totalKcal)} kcal` : "0 kcal"}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Items logged</p>
-            <p className="text-sm font-medium mt-0.5" style={{ color: "#8FBF88" }}>
-              {(logs ?? []).length > 0
-                ? `${(logs ?? []).length} item${(logs ?? []).length > 1 ? "s" : ""}`
-                : "— log to start"}
-            </p>
-          </div>
-        </div>
+      {/* ── Tabs + content ── */}
+      <main className="flex-1 px-4 py-5">
+        <DashboardTabs
+          logs={(logs ?? []) as MealLog[]}
+          totalKcal={totalKcal}
+          initialPlans={(plans ?? []) as MealPlan[]}
+          userId={user!.id}
+        />
       </main>
 
     </div>

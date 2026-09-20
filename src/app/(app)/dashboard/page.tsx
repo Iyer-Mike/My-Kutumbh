@@ -28,6 +28,7 @@ type MealPlan = {
   meal_slot: string;
   quantity_g: number;
   quantity_unit: string | null;
+  calories: number | null;
 };
 
 export default async function DashboardPage() {
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("onboarding_complete, full_name")
+    .select("onboarding_complete, full_name, daily_kcal_goal")
     .eq("id", user!.id)
     .maybeSingle();
 
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
 
   const plansQuery = supabase
     .from("meal_plans")
-    .select("id, food_name, meal_slot, quantity_g, quantity_unit")
+    .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories")
     .eq("planned_date", todayISO());
 
   const { data: plans } = await (kutumbhId
@@ -115,6 +116,7 @@ export default async function DashboardPage() {
         <DashboardTabs
           logs={(logs ?? []) as MealLog[]}
           totalKcal={totalKcal}
+          dailyKcalGoal={profile?.daily_kcal_goal ?? null}
           initialPlans={(plans ?? []) as MealPlan[]}
           userId={user!.id}
           kutumbhId={kutumbhId}

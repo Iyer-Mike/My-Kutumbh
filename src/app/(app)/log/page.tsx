@@ -10,6 +10,16 @@ type FoodItem = {
   id: string; name: string; name_ta: string | null; category: string;
   calories: number | null; protein_g: number | null;
   serving_unit: string; serving_weight_g: number;
+  ingredients: string | null; preparation: string | null;
+};
+type PoolPlanItem = {
+  planId: string;
+  foodItemId: string | null;
+  foodName: string;
+  caloriesPerServing: number | null;
+  servingWeightG: number;
+  servingUnit: string;
+  calsPer100g: number | null;
 };
 type MealLog = {
   id: string; food_name: string; meal_slot: string;
@@ -78,8 +88,10 @@ export default function LogPage() {
   const today        = new Date().toISOString().split("T")[0];
 
   const [userId, setUserId]         = useState<string | null>(null);
+  const [kutumbhId, setKutumbhId]   = useState<string | null>(null);
   const [logs, setLogs]             = useState<MealLog[]>([]);
   const [activeSlot, setActiveSlot] = useState<Slot | null>(null);
+  const [poolItems, setPoolItems]   = useState<PoolPlanItem[]>([]);
 
   // Step 1 — select
   const [query, setQuery]         = useState("");
@@ -109,17 +121,16 @@ export default function LogPage() {
   const [manualNote, setManualNote] = useState("");
   const [manualSlot, setManualSlot] = useState<Slot>("other");
 
-  // Photo capture
-  const [photoFile, setPhotoFile]       = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [uploading, setUploading]       = useState(false);
-  const [analyzing, setAnalyzing]       = useState(false);
+  // Photo capture + AI identification (outside food)
+  const [photoFile, setPhotoFile]         = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview]   = useState<string | null>(null);
+  const [analyzing, setAnalyzing]         = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[] | null>(null);
-  const [aiChecked, setAiChecked]        = useState<Set<string>>(new Set());
-  const [aiEdits, setAiEdits]            = useState<Record<string, string>>({});
-  const [aiQtys, setAiQtys]             = useState<Record<string, number>>({});
-  const [aiUnits, setAiUnits]           = useState<Record<string, string>>({});
-  const [aiCals, setAiCals]             = useState<Record<string, string>>({});;
+  const [aiChecked, setAiChecked]         = useState<Set<string>>(new Set());
+  const [aiEdits, setAiEdits]             = useState<Record<string, string>>({});
+  const [aiQtys, setAiQtys]              = useState<Record<string, number>>({});
+  const [aiUnits, setAiUnits]            = useState<Record<string, string>>({});
+  const [aiCals, setAiCals]              = useState<Record<string, string>>({});
   const cameraRef  = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
@@ -139,11 +150,7 @@ export default function LogPage() {
     try {
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          // Strip the data URL prefix to get raw base64
-          resolve(result.split(",")[1]);
-        };
+        reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
@@ -155,12 +162,10 @@ export default function LogPage() {
       if (res.ok) {
         const { items } = await res.json();
         if (Array.isArray(items) && items.length > 0) {
-          // Support both old format (string[]) and new format ({name,quantity,unit,calories}[])
           const edits: Record<string, string> = {};
           const qtys:  Record<string, number> = {};
           const units: Record<string, string> = {};
           const cals:  Record<string, string> = {};
-
           const names: string[] = items.map((it: unknown) => {
             if (typeof it === "string") {
               edits[it] = it; qtys[it] = 1; units[it] = "serving"; cals[it] = "";
@@ -174,7 +179,6 @@ export default function LogPage() {
             cals[name]  = typeof obj.calories === "number" ? String(Math.round(obj.calories)) : "";
             return name;
           });
-
           setAiSuggestions(names);
           setAiChecked(new Set(names));
           setAiEdits(edits);
@@ -184,7 +188,7 @@ export default function LogPage() {
         }
       }
     } catch {
-      // Silently ignore — user can still type manually
+      // silent — user can still enter manually
     } finally {
       setAnalyzing(false);
     }
@@ -205,22 +209,48 @@ export default function LogPage() {
     setPhotoPreview(null);
     setAiSuggestions(null);
     setAiChecked(new Set());
-    setAiEdits({});
-    setAiQtys({});
-    setAiUnits({});
-    setAiCals({});
+    setAiEdits({}); setAiQtys({}); setAiUnits({}); setAiCals({});
     setAnalyzing(false);
     if (cameraRef.current)  cameraRef.current.value  = "";
     if (galleryRef.current) galleryRef.current.value = "";
   }
 
-  // ── Data ──────────────────────────────────────────────────────
-  // Fetch user id once on mount
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUserId(data.user.id);
+  async function saveAiItems() {
+    if (!aiChecked.size || !userId || !activeSlot) return;
+    setSaving(true);
+    const rows = Array.from(aiChecked).map(name => {
+      const calStr   = aiCals[name];
+      const calories = calStr && calStr.trim() !== "" ? parseFloat(calStr) : null;
+      return {
+        user_id:       userId,
+        food_name:     (aiEdits[name] ?? name).trim() || name,
+        meal_slot:     activeSlot,
+        quantity_g:    aiQtys[name] ?? 1,
+        quantity_unit: aiUnits[name] ?? "serving",
+        calories:      calories != null && !isNaN(calories) ? Math.round(calories) : null,
+        logged_date:   today,
+      };
     });
-  }, []);
+    await supabase.from("meal_logs").insert(rows);
+    setSaving(false);
+    closePanel();
+    loadLogs();
+  }
+
+  // ── Data ──────────────────────────────────────────────────────
+  // Fetch user id + kutumbh membership once on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      setUserId(data.user.id);
+      const { data: mem } = await supabase
+        .from("kutumbh_members")
+        .select("kutumbh_id")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      setKutumbhId(mem?.kutumbh_id ?? null);
+    });
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadLogs = useCallback(async () => {
     const { data } = await supabase
@@ -232,6 +262,53 @@ export default function LogPage() {
   }, [today]);
 
   useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  async function loadPoolForSlot(slot: Slot, kid: string | null) {
+    if (!kid || slot === "other") { setPoolItems([]); return; }
+    const { data } = await supabase
+      .from("meal_plans")
+      .select("id, food_name, food_item_id, calories, food_items(serving_weight_g, serving_unit, calories)")
+      .eq("kutumbh_id", kid)
+      .eq("meal_slot", slot)
+      .eq("planned_date", today);
+
+    const items: PoolPlanItem[] = (data ?? []).map(p => {
+      const fi = Array.isArray(p.food_items) ? (p.food_items as Record<string,unknown>[])[0] : p.food_items as Record<string,unknown> | null;
+      return {
+        planId: p.id as string,
+        foodItemId: p.food_item_id as string | null ?? null,
+        foodName: p.food_name as string,
+        caloriesPerServing: p.calories as number | null ?? null,
+        servingWeightG: (fi?.serving_weight_g as number) ?? 100,
+        servingUnit: (fi?.serving_unit as string) ?? "serving",
+        calsPer100g: (fi?.calories as number) ?? null,
+      };
+    });
+
+    setPoolItems(items);
+
+    // Pre-check all pool items and seed foodMap with synthetic FoodItem entries
+    const newFoodMap: Record<string, FoodItem> = {};
+    const newIds = new Set<string>();
+    items.forEach(item => {
+      const id = item.foodItemId ?? `pool-${item.planId}`;
+      newFoodMap[id] = {
+        id,
+        name: item.foodName,
+        name_ta: null,
+        category: "other",
+        calories: item.calsPer100g,
+        protein_g: null,
+        serving_unit: item.servingUnit,
+        serving_weight_g: item.servingWeightG,
+        ingredients: null,
+        preparation: null,
+      };
+      newIds.add(id);
+    });
+    setFoodMap(prev => ({ ...prev, ...newFoodMap }));
+    setChecked(newIds);
+  }
 
   // Auto-open a slot when arriving from the Dashboard ?slot= param
   useEffect(() => {
@@ -248,7 +325,7 @@ export default function LogPage() {
       setSearching(true);
       let q = supabase
         .from("food_items")
-        .select("id,name,name_ta,category,calories,protein_g,serving_unit,serving_weight_g")
+        .select("id,name,name_ta,category,calories,protein_g,serving_unit,serving_weight_g,ingredients,preparation")
         .limit(40);
       if (query.trim().length >= 2) {
         q = q.ilike("name", `%${query.trim()}%`);
@@ -311,10 +388,12 @@ export default function LogPage() {
     setStep("select");
     setQuery(""); setCatFilter("");
     setChecked(new Set()); setQties({});
+    setPoolItems([]);
     setManualName(""); setManualCal("");
     setManualQty("1"); setManualUnit("serving"); setManualNote("");
     setManualSlot(slot === "other" ? "other" : slot);
     clearPhoto();
+    loadPoolForSlot(slot, kutumbhId);
   }
 
   function closePanel() {
@@ -349,24 +428,6 @@ export default function LogPage() {
     if (!manualName.trim() || !userId) return;
     setSaving(true);
 
-    // Upload photo if one was taken
-    let imageUrl: string | null = null;
-    if (photoFile) {
-      setUploading(true);
-      const ext  = photoFile.name.split(".").pop() ?? "jpg";
-      const path = `${userId}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("food-photos")
-        .upload(path, photoFile, { contentType: photoFile.type });
-      if (!upErr) {
-        const { data: urlData } = supabase.storage
-          .from("food-photos")
-          .getPublicUrl(path);
-        imageUrl = urlData.publicUrl;
-      }
-      setUploading(false);
-    }
-
     await supabase.from("meal_logs").insert({
       user_id:       userId,
       food_name:     manualName.trim(),
@@ -375,53 +436,8 @@ export default function LogPage() {
       quantity_unit: manualUnit,
       calories:      manualCal ? parseFloat(manualCal) : null,
       notes:         manualNote || null,
-      image_url:     imageUrl,
       logged_date:   today,
     });
-    setSaving(false);
-    closePanel();
-    loadLogs();
-  }
-
-  // Save all AI-identified items that the user left checked
-  async function saveAiItems() {
-    if (!aiChecked.size || !userId) return;
-    setSaving(true);
-
-    // Upload photo once, share the URL across all items
-    let imageUrl: string | null = null;
-    if (photoFile) {
-      setUploading(true);
-      const ext  = photoFile.name.split(".").pop() ?? "jpg";
-      const path = `${userId}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("food-photos")
-        .upload(path, photoFile, { contentType: photoFile.type });
-      if (!upErr) {
-        const { data: urlData } = supabase.storage
-          .from("food-photos")
-          .getPublicUrl(path);
-        imageUrl = urlData.publicUrl;
-      }
-      setUploading(false);
-    }
-
-    const rows = Array.from(aiChecked).map(name => {
-      const calStr = aiCals[name];
-      const calories = calStr && calStr.trim() !== "" ? parseFloat(calStr) : null;
-      return {
-        user_id:       userId,
-        food_name:     (aiEdits[name] ?? name).trim() || name,
-        meal_slot:     manualSlot,
-        quantity_g:    aiQtys[name] ?? 1,
-        quantity_unit: aiUnits[name] ?? "serving",
-        calories:      calories != null && !isNaN(calories) ? Math.round(calories) : null,
-        notes:         null,
-        image_url:     imageUrl,
-        logged_date:   today,
-      };
-    });
-    await supabase.from("meal_logs").insert(rows);
     setSaving(false);
     closePanel();
     loadLogs();
@@ -646,12 +662,6 @@ export default function LogPage() {
             {activeSlot === "other" ? (
               <div className="overflow-y-auto px-5 py-4 space-y-4">
 
-                {/* Hidden file inputs */}
-                <input ref={cameraRef}  type="file" accept="image/*" capture="environment"
-                  onChange={handlePhotoChange} className="hidden" />
-                <input ref={galleryRef} type="file" accept="image/*"
-                  onChange={handlePhotoChange} className="hidden" />
-
                 {/* ── Meal time selector ── */}
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8A9085" }}>
@@ -679,198 +689,6 @@ export default function LogPage() {
                       </button>
                     ))}
                   </div>
-                </div>
-
-                {/* ── Photo capture / preview ── */}
-                {photoPreview ? (
-                  <div>
-                    {/* Full photo — object-contain so nothing is hidden */}
-                    <div className="relative rounded-2xl overflow-hidden"
-                      style={{ background: "#1C201C", minHeight: "180px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={photoPreview} alt="Food photo"
-                        style={{ width: "100%", maxHeight: "260px", objectFit: "contain", display: "block" }} />
-                      <button onClick={clearPhoto}
-                        className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                        style={{ background: "rgba(0,0,0,0.65)", color: "#fff" }}>
-                        ✕
-                      </button>
-                    </div>
-                    {/* Retake / Gallery swap links */}
-                    <div className="flex gap-4 justify-center mt-2">
-                      <button onClick={() => cameraRef.current?.click()}
-                        className="text-xs font-medium" style={{ color: "#4A7C44" }}>
-                        📷 Retake
-                      </button>
-                      <button onClick={() => galleryRef.current?.click()}
-                        className="text-xs font-medium" style={{ color: "#4A7C44" }}>
-                        🖼️ Change photo
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8A9085" }}>
-                      Capture food photo
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button onClick={() => cameraRef.current?.click()}
-                        className="flex flex-col items-center gap-2 py-6 rounded-2xl"
-                        style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
-                        <span className="text-3xl">📷</span>
-                        <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>Take Photo</span>
-                      </button>
-                      <button onClick={() => galleryRef.current?.click()}
-                        className="flex flex-col items-center gap-2 py-6 rounded-2xl"
-                        style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
-                        <span className="text-3xl">🖼️</span>
-                        <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>From Gallery</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── AI analysis: loading ── */}
-                {analyzing && (
-                  <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
-                    style={{ background: "#EAF2E8", border: "1px solid #C5DFC2" }}>
-                    <span className="text-base animate-spin" style={{ display: "inline-block" }}>🔄</span>
-                    <span className="text-sm font-medium" style={{ color: "#4A7C44" }}>
-                      Identifying dishes in your photo…
-                    </span>
-                  </div>
-                )}
-
-                {/* ── AI analysis: checkbox list ── */}
-                {aiSuggestions && aiSuggestions.length > 0 && !analyzing && (
-                  <div className="rounded-2xl overflow-hidden"
-                    style={{ border: "1.5px solid #C5DFC2", background: "#F0F7EF" }}>
-                    <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#4A7C44" }}>
-                        ✨ AI identified {aiSuggestions.length} item{aiSuggestions.length > 1 ? "s" : ""}
-                      </p>
-                      <p className="text-xs" style={{ color: "#8A9085" }}>uncheck to remove</p>
-                    </div>
-                    {aiSuggestions.map((item, i) => {
-                      const isOn = aiChecked.has(item);
-                      return (
-                        <div key={item} style={{ borderTop: i > 0 ? "1px solid #D5EBD2" : undefined }}>
-                        <div
-                          className="flex items-center gap-3 px-4 py-2.5"
-                          style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
-                          {/* Checkbox tap target */}
-                          <button
-                            onClick={() => {
-                              const next = new Set(aiChecked);
-                              isOn ? next.delete(item) : next.add(item);
-                              setAiChecked(next);
-                            }}
-                            className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center"
-                            style={{
-                              background: isOn ? "#4A7C44" : "#fff",
-                              border: `2px solid ${isOn ? "#4A7C44" : "#B0C4AE"}`,
-                            }}>
-                            {isOn && (
-                              <svg width="11" height="8" viewBox="0 0 11 8" fill="none">
-                                <path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            )}
-                          </button>
-                          {/* Editable name */}
-                          <input
-                            id={`ai-item-${i}`}
-                            type="text"
-                            value={aiEdits[item] ?? item}
-                            onChange={e => setAiEdits(prev => ({ ...prev, [item]: e.target.value }))}
-                            className="flex-1 text-sm font-medium bg-transparent rounded-lg px-2 py-1"
-                            style={{
-                              color: isOn ? "#1C2B1C" : "#8A9085",
-                              border: "1.5px solid transparent",
-                              outline: "none",
-                              minWidth: 0,
-                            }}
-                            onFocus={e => (e.target.style.border = "1.5px solid #4A7C44")}
-                            onBlur={e => (e.target.style.border = "1.5px solid transparent")}
-                          />
-                          {/* Pencil — label so tapping it focuses the input */}
-                          <label
-                            htmlFor={`ai-item-${i}`}
-                            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer"
-                            style={{ background: "#EAF2E8" }}>
-                            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                              <path d="M9 1.5L11.5 4L4.5 11H2v-2.5L9 1.5Z" stroke="#4A7C44" strokeWidth="1.5" strokeLinejoin="round"/>
-                              <path d="M7.5 3L10 5.5" stroke="#4A7C44" strokeWidth="1.5"/>
-                            </svg>
-                          </label>
-                        </div>
-
-                        <div className="flex items-center gap-2 px-4 pb-3"
-                          style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
-                          {/* − / qty / + stepper */}
-                          <button
-                            onClick={() => setAiQtys(p => ({ ...p, [item]: Math.max(0.5, (p[item] ?? 1) - 0.5) }))}
-                            className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
-                            style={{ background: "#D5EBD2", color: "#1C2B1C" }}>−</button>
-                          <span className="text-sm font-semibold w-8 text-center" style={{ color: "#1C2B1C" }}>
-                            {aiQtys[item] ?? 1}
-                          </span>
-                          <button
-                            onClick={() => setAiQtys(p => ({ ...p, [item]: (p[item] ?? 1) + 0.5 }))}
-                            className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
-                            style={{ background: "#D5EBD2", color: "#1C2B1C" }}>+</button>
-                          {/* Unit selector */}
-                          <select
-                            value={aiUnits[item] ?? "serving"}
-                            onChange={e => setAiUnits(p => ({ ...p, [item]: e.target.value }))}
-                            className="rounded-lg px-2 py-1.5 text-xs"
-                            style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none", appearance: "none" as const, width: "5.5rem" }}>
-                            <option value="serving">serving</option>
-                            <option value="piece">piece(s)</option>
-                            <option value="bowl">bowl</option>
-                            <option value="cup">cup</option>
-                            <option value="glass">glass</option>
-                            <option value="tbsp">tbsp</option>
-                            <option value="g">grams</option>
-                          </select>
-                          {/* Calorie estimate — pre-filled by AI, editable */}
-                          <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-                            <input
-                              type="number"
-                              min="0"
-                              value={aiCals[item] ?? ""}
-                              onChange={e => setAiCals(p => ({ ...p, [item]: e.target.value }))}
-                              placeholder="kcal"
-                              className="w-14 rounded-lg px-2 py-1.5 text-xs text-center"
-                              style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none" }}
-                            />
-                            <span className="text-xs" style={{ color: "#8A9085" }}>kcal</span>
-                          </div>
-                        </div>
-                        </div>
-                      );
-                    })}
-                    {/* Log all checked button */}
-                    <div className="px-4 py-3" style={{ borderTop: "1px solid #D5EBD2" }}>
-                      <button
-                        onClick={saveAiItems}
-                        disabled={saving || uploading || aiChecked.size === 0}
-                        className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
-                        style={{ background: "#1C2B1C" }}>
-                        {uploading ? "Uploading photo…" : saving ? "Saving…"
-                          : aiChecked.size === 0 ? "Select at least one item"
-                          : `Log ${aiChecked.size} item${aiChecked.size > 1 ? "s" : ""} ✓`}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Divider: manual entry ── */}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
-                  <span className="text-xs" style={{ color: "#8A9085" }}>
-                    {aiSuggestions ? "Add unlisted item" : "Enter manually"}
-                  </span>
-                  <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
                 </div>
 
                 {/* Food name */}
@@ -931,10 +749,10 @@ export default function LogPage() {
                     style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
                 </div>
 
-                <button onClick={saveManual} disabled={saving || uploading || !manualName.trim()}
+                <button onClick={saveManual} disabled={saving || !manualName.trim()}
                   className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
                   style={{ background: "#4A7C44" }}>
-                  {uploading ? "Uploading photo…" : saving ? "Saving…" : "Log this item ✓"}
+                  {saving ? "Saving…" : "Log this item ✓"}
                 </button>
 
                 {/* Bottom padding so last button clears the nav */}
@@ -944,6 +762,60 @@ export default function LogPage() {
             ) : step === "select" ? (
               /* ── STEP 1: CHECKBOX SELECTION ── */
               <div className="flex flex-col overflow-hidden">
+
+                {/* ── Pool items from today's plan ── */}
+                {poolItems.length > 0 && (
+                  <div className="shrink-0 px-4 pt-3 pb-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#4A7C44" }}>
+                      From today&apos;s plan
+                    </p>
+                    <div className="space-y-1.5">
+                      {poolItems.map(item => {
+                        const fakeId = item.foodItemId ?? `pool-${item.planId}`;
+                        const isChecked = checked.has(fakeId);
+                        const food = foodMap[fakeId];
+                        return (
+                          <button
+                            key={item.planId}
+                            onClick={() => food && toggle(food)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left"
+                            style={{
+                              background: isChecked ? "#EAF2E8" : "#fff",
+                              border: `1.5px solid ${isChecked ? "#4A7C44" : "#E2E1D8"}`,
+                            }}
+                          >
+                            <div className="shrink-0 w-5 h-5 rounded flex items-center justify-center"
+                              style={{
+                                background: isChecked ? "#4A7C44" : "#fff",
+                                border: `2px solid ${isChecked ? "#4A7C44" : "#C8C5BA"}`,
+                              }}>
+                              {isChecked && (
+                                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                                  <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate" style={{ color: isChecked ? "#1C201C" : "#5A6055" }}>
+                                {item.foodName}
+                              </p>
+                              {item.caloriesPerServing != null && (
+                                <p className="text-xs" style={{ color: "#4A7C44" }}>
+                                  ~{item.caloriesPerServing} kcal · {item.servingWeightG}g per serving
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-3 mt-3">
+                      <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
+                      <span className="text-xs" style={{ color: "#8A9085" }}>or search for more</span>
+                      <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
+                    </div>
+                  </div>
+                )}
 
                 {/* Category tabs */}
                 <div className="shrink-0 px-4 pt-3 pb-2">
@@ -1008,6 +880,146 @@ export default function LogPage() {
                       </button>
                     );
                   })}
+                  {/* ── Ate outside? Photo section ── */}
+                  <div className="pt-2 pb-4">
+                    {/* Hidden file inputs */}
+                    <input ref={cameraRef}  type="file" accept="image/*" capture="environment"
+                      onChange={handlePhotoChange} className="hidden" />
+                    <input ref={galleryRef} type="file" accept="image/*"
+                      onChange={handlePhotoChange} className="hidden" />
+
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
+                      <span className="text-xs" style={{ color: "#8A9085" }}>ate outside?</span>
+                      <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
+                    </div>
+
+                    {/* Photo preview */}
+                    {photoPreview && (
+                      <div className="mb-3">
+                        <div className="relative rounded-2xl overflow-hidden"
+                          style={{ background: "#1C201C", minHeight: "160px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={photoPreview} alt="Food photo"
+                            style={{ width: "100%", maxHeight: "220px", objectFit: "contain", display: "block" }} />
+                          <button onClick={clearPhoto}
+                            className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                            style={{ background: "rgba(0,0,0,0.65)", color: "#fff" }}>✕</button>
+                        </div>
+                        <div className="flex gap-4 justify-center mt-2">
+                          <button onClick={() => cameraRef.current?.click()}
+                            className="text-xs font-medium" style={{ color: "#4A7C44" }}>📷 Retake</button>
+                          <button onClick={() => galleryRef.current?.click()}
+                            className="text-xs font-medium" style={{ color: "#4A7C44" }}>🖼️ Change</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Capture buttons — shown when no photo yet */}
+                    {!photoPreview && !analyzing && !aiSuggestions && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <button onClick={() => cameraRef.current?.click()}
+                          className="flex flex-col items-center gap-2 py-5 rounded-2xl"
+                          style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
+                          <span className="text-2xl">📷</span>
+                          <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>Take Photo</span>
+                        </button>
+                        <button onClick={() => galleryRef.current?.click()}
+                          className="flex flex-col items-center gap-2 py-5 rounded-2xl"
+                          style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
+                          <span className="text-2xl">🖼️</span>
+                          <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>From Gallery</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Analysing spinner */}
+                    {analyzing && (
+                      <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
+                        style={{ background: "#EAF2E8", border: "1px solid #C5DFC2" }}>
+                        <span className="text-base animate-spin" style={{ display: "inline-block" }}>🔄</span>
+                        <span className="text-sm font-medium" style={{ color: "#4A7C44" }}>Identifying dishes…</span>
+                      </div>
+                    )}
+
+                    {/* AI identified items */}
+                    {aiSuggestions && aiSuggestions.length > 0 && !analyzing && (
+                      <div className="rounded-2xl overflow-hidden"
+                        style={{ border: "1.5px solid #C5DFC2", background: "#F0F7EF" }}>
+                        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+                          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#4A7C44" }}>
+                            ✨ {aiSuggestions.length} item{aiSuggestions.length > 1 ? "s" : ""} identified
+                          </p>
+                          <p className="text-xs" style={{ color: "#8A9085" }}>uncheck to remove</p>
+                        </div>
+                        {aiSuggestions.map((item, i) => {
+                          const isOn = aiChecked.has(item);
+                          return (
+                            <div key={item} style={{ borderTop: i > 0 ? "1px solid #D5EBD2" : undefined }}>
+                              <div className="flex items-center gap-3 px-4 py-2.5"
+                                style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
+                                <button
+                                  onClick={() => { const n = new Set(aiChecked); isOn ? n.delete(item) : n.add(item); setAiChecked(n); }}
+                                  className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center"
+                                  style={{ background: isOn ? "#4A7C44" : "#fff", border: `2px solid ${isOn ? "#4A7C44" : "#B0C4AE"}` }}>
+                                  {isOn && <svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                </button>
+                                <input id={`ai-${i}`} type="text" value={aiEdits[item] ?? item}
+                                  onChange={e => setAiEdits(p => ({ ...p, [item]: e.target.value }))}
+                                  className="flex-1 text-sm font-medium bg-transparent rounded-lg px-2 py-1"
+                                  style={{ color: isOn ? "#1C2B1C" : "#8A9085", border: "1.5px solid transparent", outline: "none", minWidth: 0 }}
+                                  onFocus={e => (e.target.style.border = "1.5px solid #4A7C44")}
+                                  onBlur={e  => (e.target.style.border = "1.5px solid transparent")} />
+                                <label htmlFor={`ai-${i}`}
+                                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer"
+                                  style={{ background: "#EAF2E8" }}>
+                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                    <path d="M9 1.5L11.5 4L4.5 11H2v-2.5L9 1.5Z" stroke="#4A7C44" strokeWidth="1.5" strokeLinejoin="round"/>
+                                    <path d="M7.5 3L10 5.5" stroke="#4A7C44" strokeWidth="1.5"/>
+                                  </svg>
+                                </label>
+                              </div>
+                              <div className="flex items-center gap-2 px-4 pb-3"
+                                style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
+                                <button onClick={() => setAiQtys(p => ({ ...p, [item]: Math.max(0.5, (p[item] ?? 1) - 0.5) }))}
+                                  className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
+                                  style={{ background: "#D5EBD2", color: "#1C2B1C" }}>−</button>
+                                <span className="text-sm font-semibold w-8 text-center" style={{ color: "#1C2B1C" }}>
+                                  {aiQtys[item] ?? 1}
+                                </span>
+                                <button onClick={() => setAiQtys(p => ({ ...p, [item]: (p[item] ?? 1) + 0.5 }))}
+                                  className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
+                                  style={{ background: "#D5EBD2", color: "#1C2B1C" }}>+</button>
+                                <select value={aiUnits[item] ?? "serving"}
+                                  onChange={e => setAiUnits(p => ({ ...p, [item]: e.target.value }))}
+                                  className="rounded-lg px-2 py-1.5 text-xs"
+                                  style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none", width: "5.5rem" }}>
+                                  {["serving","piece","bowl","cup","glass","tbsp","g"].map(u => <option key={u} value={u}>{u}</option>)}
+                                </select>
+                                <div className="flex items-center gap-1 ml-auto">
+                                  <input type="number" min="0" value={aiCals[item] ?? ""}
+                                    onChange={e => setAiCals(p => ({ ...p, [item]: e.target.value }))}
+                                    placeholder="kcal"
+                                    className="w-14 rounded-lg px-2 py-1.5 text-xs text-center"
+                                    style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none" }} />
+                                  <span className="text-xs" style={{ color: "#8A9085" }}>kcal</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div className="px-4 py-3" style={{ borderTop: "1px solid #D5EBD2" }}>
+                          <button onClick={saveAiItems}
+                            disabled={saving || aiChecked.size === 0}
+                            className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
+                            style={{ background: "#1C2B1C" }}>
+                            {saving ? "Saving…" : aiChecked.size === 0 ? "Select at least one item"
+                              : `Log ${aiChecked.size} item${aiChecked.size > 1 ? "s" : ""} ✓`}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Sticky bottom bar when items are selected */}
@@ -1038,7 +1050,7 @@ export default function LogPage() {
                       <div key={food.id} className="rounded-2xl px-4 py-3"
                         style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
                         {/* Food name row */}
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 mb-2">
                           <span className="text-lg">{CAT_ICON[food.category] ?? "🍽️"}</span>
                           <div className="flex-1">
                             <p className="text-sm font-semibold" style={{ color: "#1C201C" }}>{food.name}</p>
@@ -1052,6 +1064,24 @@ export default function LogPage() {
                             className="text-xs w-5 h-5 flex items-center justify-center"
                             style={{ color: "#8A9085" }}>✕</button>
                         </div>
+                        {/* Ingredients / Preparation reference */}
+                        {(food.ingredients || food.preparation) && (
+                          <div className="rounded-xl px-3 py-2 mb-3 space-y-1"
+                            style={{ background: "#F6F5EE", border: "1px solid #E2E1D8" }}>
+                            {food.ingredients && (
+                              <p className="text-xs leading-snug" style={{ color: "#5A6055" }}>
+                                <span className="font-semibold" style={{ color: "#8A9085" }}>Ingredients: </span>
+                                {food.ingredients}
+                              </p>
+                            )}
+                            {food.preparation && (
+                              <p className="text-xs leading-snug" style={{ color: "#5A6055" }}>
+                                <span className="font-semibold" style={{ color: "#8A9085" }}>Prep: </span>
+                                {food.preparation}
+                              </p>
+                            )}
+                          </div>
+                        )}
                         {/* Stepper + quick-pick */}
                         <div className="flex items-center gap-3">
                           <button onClick={() => adjustQty(food.id, -1)}

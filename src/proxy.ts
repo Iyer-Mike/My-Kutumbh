@@ -35,7 +35,7 @@ export async function proxy(request: NextRequest) {
     isAuthRoute ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/auth/callback");
+    pathname.startsWith("/auth/");
 
   if (!user && !isPublicRoute && !isOnboarding) {
     return NextResponse.redirect(new URL("/login", request.url));

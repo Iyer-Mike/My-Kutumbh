@@ -7,45 +7,44 @@ import AuthHeader from "@/components/AuthHeader";
 
 const FAILED = "Reset link is invalid or has expired. Please request a new one.";
 
-// The PKCE code_verifier lives in browser storage, so the exchange has to run
-// client-side. Doing it on the server fails with "code verifier not found".
+// createBrowserClient sets detectSessionInUrl, so the SDK exchanges the ?code=
+// itself on creation. Calling exchangeCodeForSession manually races that and
+// fails with "PKCE code verifier not found" - so just wait for the session.
 export default function AuthCodeHandler() {
   const router = useRouter();
   const [stalled, setStalled] = useState(false);
 
   useEffect(() => {
-    const params    = new URLSearchParams(window.location.search);
-    const code      = params.get("code");
-    const tokenHash = params.get("token_hash");
-    const type      = params.get("type") ?? "recovery";
-
     const supabase = createClient();
+    let done = false;
 
-    (async () => {
-      let errMsg: string | null = null;
+    const finish = (path: string) => {
+      if (done) return;
+      done = true;
+      router.replace(path);
+    };
 
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        errMsg = error?.message ?? null;
-      } else if (tokenHash) {
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: type as "recovery",
-        });
-        errMsg = error?.message ?? null;
-      } else {
-        errMsg = "no code in link";
-      }
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) finish("/reset-password");
+    });
 
-      if (errMsg) {
-        router.replace(`/forgot-password?error=${encodeURIComponent(`${FAILED} [${errMsg}]`)}`);
-      } else {
-        router.replace("/reset-password");
-      }
-    })();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) finish("/reset-password");
+    });
 
-    const t = setTimeout(() => setStalled(true), 6000);
-    return () => clearTimeout(t);
+    const stallTimer = setTimeout(() => setStalled(true), 5000);
+
+    const giveUp = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) finish("/reset-password");
+      else finish(`/forgot-password?error=${encodeURIComponent(FAILED)}`);
+    }, 12000);
+
+    return () => {
+      sub.subscription.unsubscribe();
+      clearTimeout(stallTimer);
+      clearTimeout(giveUp);
+    };
   }, [router]);
 
   return (
@@ -58,7 +57,7 @@ export default function AuthCodeHandler() {
         </p>
         <p className="text-sm mt-1" style={{ color: "#5A6055" }}>
           {stalled
-            ? "This is taking longer than expected. If nothing happens, request a fresh reset link."
+            ? "Taking longer than usual. If nothing happens, request a fresh reset link."
             : "One moment while we check your reset link."}
         </p>
       </div>

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import AuthCodeHandler from "@/components/AuthCodeHandler";
 
 type Search = {
   code?: string;
@@ -15,15 +16,15 @@ export default async function HomePage({
 }) {
   const params = await searchParams;
 
-  // Supabase falls back to Site URL (this route) whenever its redirect
-  // allow-list rejects the requested redirectTo, so auth codes can land here
-  // instead of on /auth/reset. Forward them rather than dropping them.
+  // Supabase falls back to Site URL (this route) when its redirect allow-list
+  // rejects the requested redirectTo, so auth codes land here. The PKCE
+  // verifier is in browser storage, so the exchange must run client-side.
   if (params.code || params.token_hash) {
-    const qs = new URLSearchParams();
-    if (params.code)       qs.set("code", params.code);
-    if (params.token_hash) qs.set("token_hash", params.token_hash);
-    qs.set("type", params.type ?? "recovery");
-    redirect(`/auth/reset?${qs.toString()}`);
+    return (
+      <main className="flex-1 flex flex-col items-center justify-center min-h-screen px-4 py-safe">
+        <AuthCodeHandler />
+      </main>
+    );
   }
 
   if (params.error_description) {

@@ -15,20 +15,24 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
   let ok = false;
+  let detail = "no code or token_hash in link";
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     ok = !error;
+    if (error) detail = error.message;
   } else if (tokenHash) {
     const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: type ?? "recovery",
     });
     ok = !error;
+    if (error) detail = error.message;
   }
 
+  if (ok) return NextResponse.redirect(`${origin}/reset-password`);
+
   return NextResponse.redirect(
-    ok ? `${origin}/reset-password`
-       : `${origin}/forgot-password?error=${encodeURIComponent(FAILED)}`
+    `${origin}/forgot-password?error=${encodeURIComponent(`${FAILED} [${detail}]`)}`
   );
 }

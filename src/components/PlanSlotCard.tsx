@@ -2,21 +2,30 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { defaultPoolName } from "@/lib/meal-slots";
+import { DISH_CATEGORIES, categoryDefaults, type DishCategory } from "@/lib/dish-categories";
 
-type PlanItem = {
+// The Plan is the family menu: dish names only. Each member sets their own
+// portion when logging, and nutrition is worked out from that.
+export type PlanItem = {
   id: string;
+  user_id: string;
   food_name: string;
-  quantity_g: number;
-  quantity_unit: string | null;
-  calories: number | null;
+  needs_review: boolean;
+  category: string | null;
+  serving_unit: string | null;
+  kcal_per_serving: number | null;
 };
 
 type FoodSuggestion = {
   id: string;
   name: string;
+  category: string | null;
   calories: number | null;
   serving_weight_g: number | null;
   serving_unit: string | null;
+  kutumbh_id: string | null;
+  needs_review: boolean | null;
 };
 
 type Props = {
@@ -27,125 +36,161 @@ type Props = {
   userId: string;
   kutumbhId: string | null;
   initialItems: PlanItem[];
+  initialPoolName: string | null;
+  memberNames: Record<string, string>;
 };
-
-const UNITS = ["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"];
 
 function todayISO() {
   return new Date().toISOString().split("T")[0];
 }
 
-function calcKcal(food: FoodSuggestion, qty: number, unit: string): number | null {
-  if (!food.calories) return null;
-  if (unit === "g") {
-    return Math.round((qty * food.calories) / 100);
-  }
-  // For serving/piece/bowl/cup etc — use serving_weight_g to convert to grams
-  const gPerServing = food.serving_weight_g ?? 100;
-  return Math.round((qty * gPerServing * food.calories) / 100);
+function perServingKcal(f: { calories: number | null; serving_weight_g: number | null; serving_unit: string | null }) {
+  if (f.calories == null) return null;
+  const w = f.serving_unit === "g" ? 100 : (f.serving_weight_g ?? 100);
+  return Math.round((f.calories * w) / 100);
 }
 
-export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumbhId, initialItems }: Props) {
-  const supabase = createClient();
-  const [items, setItems]             = useState<PlanItem[]>(initialItems);
-  const [adding, setAdding]           = useState(false);
-  const [query, setQuery]             = useState("");
-  const [suggestions, setSuggestions] = useState<FoodSuggestion[]>([]);
-  const [selectedFood, setSelectedFood] = useState<FoodSuggestion | null>(null);
-  const [qty, setQty]                 = useState("1");
-  const [unit, setUnit]               = useState("serving");
-  const [saving, setSaving]           = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+export function servingHint(item: Pick<PlanItem, "needs_review" | "category" | "serving_unit" | "kcal_per_serving">) {
+  const unit = item.serving_unit === "g" ? "100 g" : (item.serving_unit ?? "serving");
+  if (item.kcal_per_serving != null) return `${item.kcal_per_serving} kcal / ${unit}`;
+  if (item.needs_review) return `~${categoryDefaults(item.category).kcalPerServing} kcal / ${unit} est.`;
+  return null;
+}
 
-  // Debounced food search
+export default function PlanSlotCard({
+  slotKey, name, icon, time, userId, kutumbhId, initialItems, initialPoolName, memberNames,
+}: Props) {
+  const supabase = createClient();
+  const [items, setItems]               = useState<PlanItem[]>(initialItems);
+  const [adding, setAdding]             = useState(false);
+  const [query, setQuery]               = useState("");
+  const [suggestions, setSuggestions]   = useState<FoodSuggestion[]>([]);
+  const [searched, setSearched]         = useState("");
+  const [selectedFood, setSelectedFood] = useState<FoodSuggestion | null>(null);
+  const [newCategory, setNewCategory]   = useState<DishCategory | null>(null);
+  const [saving, setSaving]             = useState(false);
+
+  const [poolName, setPoolName]   = useState(initialPoolName ?? defaultPoolName(slotKey));
+  const [renaming, setRenaming]   = useState(false);
+  const [draftName, setDraftName] = useState(poolName);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Debounced search: shared catalogue + this family's dishes (via RLS)
   useEffect(() => {
-    if (!query.trim()) { setSuggestions([]); return; }
+    if (!query.trim()) return;
+    const q = query.trim();
     const t = setTimeout(async () => {
       const { data } = await supabase
         .from("food_items")
-        .select("id, name, calories, serving_weight_g, serving_unit")
-        .ilike("name", `%${query.trim()}%`)
+        .select("id, name, category, calories, serving_weight_g, serving_unit, kutumbh_id, needs_review")
+        .ilike("name", `%${q}%`)
         .limit(6);
       setSuggestions(data ?? []);
+      setSearched(q);
     }, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    function onOutside(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setSuggestions([]);
-      }
-    }
-    document.addEventListener("mousedown", onOutside);
-    return () => document.removeEventListener("mousedown", onOutside);
-  }, []);
-
   function openAdd() {
     setAdding(true);
-    setQuery("");
-    setSuggestions([]);
-    setSelectedFood(null);
-    setQty("1");
-    setUnit("serving");
+    setQuery(""); setSuggestions([]); setSearched("");
+    setSelectedFood(null); setNewCategory(null);
     setTimeout(() => inputRef.current?.focus(), 60);
   }
 
   function cancelAdd() {
     setAdding(false);
-    setQuery("");
-    setSuggestions([]);
-    setSelectedFood(null);
+    setQuery(""); setSuggestions([]); setSearched("");
+    setSelectedFood(null); setNewCategory(null);
   }
 
-  // Picking from dropdown fills the query and stores food data — does NOT insert yet
-  function pickSuggestion(s: FoodSuggestion) {
-    setQuery(s.name);
-    setSelectedFood(s);
-    // Use the food's own serving unit as default if available
-    if (s.serving_unit) setUnit(s.serving_unit);
-    setSuggestions([]);
-    setTimeout(() => inputRef.current?.focus(), 60);
-  }
+  const typed         = query.trim();
+  const exactMatch    = suggestions.find(s => s.name.toLowerCase() === typed.toLowerCase()) ?? null;
+  const isNewDish     = !!typed && !selectedFood && !exactMatch && searched === typed;
+  const canAdd        = !!typed && (!!selectedFood || !!exactMatch || (isNewDish && (!kutumbhId || !!newCategory)));
 
-  const estimatedKcal = selectedFood ? calcKcal(selectedFood, parseFloat(qty) || 0, unit) : null;
+  // New dish → a Family Dish (family-only), awaiting the Prime Member's details
+  async function createFamilyDish(dishName: string, category: DishCategory) {
+    const d = categoryDefaults(category);
+    const { data, error } = await supabase
+      .from("food_items")
+      .insert({
+        name: dishName, kutumbh_id: kutumbhId, created_by: userId, needs_review: true,
+        category, serving_unit: d.unit, serving_weight_g: d.servingG, is_south_indian: true,
+      })
+      .select("id, name, category, calories, serving_weight_g, serving_unit, kutumbh_id, needs_review")
+      .single();
+    if (error) { alert(`Couldn't add the dish: ${error.message}`); return null; }
+    return data as FoodSuggestion;
+  }
 
   async function addItem() {
-    const foodName = query.trim();
-    if (!foodName || saving) return;
+    if (!canAdd || saving) return;
     setSaving(true);
-    const kcal = estimatedKcal;
+
+    let food = selectedFood ?? exactMatch;
+    if (!food && kutumbhId && newCategory) {
+      food = await createFamilyDish(typed, newCategory);
+      if (!food) { setSaving(false); return; }
+    }
+
     const { data, error } = await supabase
       .from("meal_plans")
       .insert({
-        user_id:      userId,
-        kutumbh_id:   kutumbhId ?? null,
-        planned_date: todayISO(),
-        meal_slot:    slotKey,
-        food_name:    foodName,
-        quantity_g:   parseFloat(qty) || 1,
-        quantity_unit: unit,
-        food_item_id: selectedFood?.id ?? null,
-        calories:     kcal ?? null,
+        user_id:       userId,
+        kutumbh_id:    kutumbhId ?? null,
+        planned_date:  todayISO(),
+        meal_slot:     slotKey,
+        food_name:     food?.name ?? typed,
+        quantity_g:    1,
+        quantity_unit: food?.serving_unit ?? "serving",
+        food_item_id:  food?.id ?? null,
       })
-      .select("id, food_name, quantity_g, quantity_unit, calories")
+      .select("id, user_id, food_name")
       .single();
     setSaving(false);
-    if (error || !data) return;
-    setItems(prev => [...prev, data as PlanItem]);
-    cancelAdd();
+    if (error || !data) { alert(`Couldn't add to the menu: ${error?.message ?? "unknown error"}`); return; }
+
+    setItems(prev => [...prev, {
+      id: data.id, user_id: data.user_id, food_name: data.food_name,
+      needs_review:     !!food?.needs_review,
+      category:         food?.category ?? null,
+      serving_unit:     food?.serving_unit ?? null,
+      kcal_per_serving: food ? perServingKcal(food) : null,
+    }]);
+    // Stay open so the next dish can be added straight away
+    setQuery(""); setSuggestions([]); setSearched("");
+    setSelectedFood(null); setNewCategory(null);
+    setTimeout(() => inputRef.current?.focus(), 60);
   }
 
   async function removeItem(id: string) {
-    await supabase.from("meal_plans").delete().eq("id", id);
+    const { error } = await supabase.from("meal_plans").delete().eq("id", id);
+    if (error) { alert(`Couldn't remove: ${error.message}`); return; }
     setItems(prev => prev.filter(i => i.id !== id));
   }
 
+  async function savePoolName() {
+    const next = draftName.trim();
+    if (!next || !kutumbhId) { setRenaming(false); return; }
+    const { error } = await supabase
+      .from("meal_pools")
+      .upsert(
+        {
+          kutumbh_id: kutumbhId, planned_date: todayISO(), meal_slot: slotKey,
+          name: next, updated_by: userId, updated_at: new Date().toISOString(),
+        },
+        { onConflict: "kutumbh_id,planned_date,meal_slot" },
+      );
+    if (error) { alert(`Couldn't rename: ${error.message}`); return; }
+    setPoolName(next);
+    setRenaming(false);
+  }
+
   const hasItems = items.length > 0;
-  const totalPlanKcal = items.reduce((s, i) => s + (i.calories ?? 0), 0);
+  const planners = [...new Set(items.map(i => memberNames[i.user_id] ?? "Family"))];
 
   return (
     <div
@@ -161,174 +206,179 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
           >
             {icon}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm" style={{ color: "#1C201C" }}>{name}</p>
             <p className="text-xs mt-0.5" style={{ color: hasItems ? "#4A7C44" : "#8A9085" }}>
-              {hasItems
-                ? `${items.length} item${items.length > 1 ? "s" : ""}${totalPlanKcal > 0 ? ` · ~${totalPlanKcal} kcal` : ""}`
-                : `${time} · Nothing planned`}
+              {hasItems ? `${items.length} dish${items.length > 1 ? "es" : ""} on the menu` : `${time} · Nothing planned`}
             </p>
           </div>
         </div>
         <button
-          onClick={openAdd}
+          onClick={adding ? cancelAdd : openAdd}
           className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0"
-          style={{ background: "#EAF2E8", color: "#4A7C44" }}
-          aria-label="Add dish"
+          style={{ background: adding ? "#1C2B1C" : "#EAF2E8", color: adding ? "#fff" : "#4A7C44" }}
+          aria-label={adding ? "Done adding" : "Add dish"}
         >
-          +
+          {adding ? "✓" : "+"}
         </button>
       </div>
 
-      {/* Planned items */}
+      {/* Menu name + who planned it */}
+      {hasItems && kutumbhId && (
+        <div className="px-4 pb-2 -mt-1">
+          {renaming ? (
+            <div className="flex items-center gap-2">
+              <input
+                value={draftName}
+                onChange={e => setDraftName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") savePoolName(); if (e.key === "Escape") setRenaming(false); }}
+                autoFocus
+                maxLength={40}
+                aria-label="Menu name"
+                className="flex-1 rounded-lg px-2 py-1 text-xs"
+                style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
+              />
+              <button onClick={savePoolName} className="text-xs font-semibold" style={{ color: "#4A7C44" }}>Save</button>
+              <button onClick={() => setRenaming(false)} className="text-xs" style={{ color: "#8A9085" }}>Cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => { setDraftName(poolName); setRenaming(true); }} className="text-left" aria-label="Rename this menu">
+              <span className="text-xs font-semibold" style={{ color: "#1C2B1C" }}>{poolName}</span>
+              <span className="text-xs" style={{ color: "#8A9085" }}> · planned by {planners.join(", ")} </span>
+              <span className="text-xs" style={{ color: "#4A7C44" }}>✎</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Menu items */}
       {hasItems && (
         <div style={{ borderTop: "1px solid #EAF2E8" }}>
-          {items.map((item, i) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between px-4 py-2.5"
-              style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, background: "#FAFAF8" }}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#4A7C44" }} />
-                <p className="text-sm truncate" style={{ color: "#1C201C" }}>{item.food_name}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                <div className="text-right">
-                  <p className="text-xs" style={{ color: "#8A9085" }}>
-                    {item.quantity_g} {item.quantity_unit ?? "serving"}
-                  </p>
-                  {item.calories != null && (
-                    <p className="text-xs font-medium" style={{ color: "#4A7C44" }}>
-                      {item.calories} kcal
-                    </p>
-                  )}
+          {items.map((item, i) => {
+            const mine = item.user_id === userId;
+            const hint = servingHint(item);
+            return (
+              <div
+                key={item.id}
+                className="flex items-center justify-between px-4 py-2.5"
+                style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, background: "#FAFAF8" }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#4A7C44" }} />
+                  <div className="min-w-0">
+                    <p className="text-sm truncate" style={{ color: "#1C201C" }}>{item.food_name}</p>
+                    {item.needs_review ? (
+                      <p className="text-[10px] font-medium" style={{ color: "#A5661A" }}>
+                        Family dish · awaiting Prime Member&apos;s details{hint ? ` · ${hint}` : ""}
+                      </p>
+                    ) : hint ? (
+                      <p className="text-[10px]" style={{ color: "#8A9085" }}>{hint}</p>
+                    ) : null}
+                  </div>
                 </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-xs"
-                  style={{ background: "#FEF2F2", color: "#DC2626" }}
-                  aria-label="Remove"
-                >
-                  ✕
-                </button>
+                {mine ? (
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-xs flex-shrink-0 ml-3"
+                    style={{ background: "#FEF2F2", color: "#DC2626" }}
+                    aria-label={`Remove ${item.food_name}`}
+                  >
+                    ✕
+                  </button>
+                ) : (
+                  <span className="text-[10px] flex-shrink-0 ml-3" style={{ color: "#B5B0A8" }}>
+                    {memberNames[item.user_id] ?? ""}
+                  </span>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* Add dish panel */}
       {adding && (
-        <div
-          className="px-4 py-3 space-y-2"
-          style={{ borderTop: "1px solid #EAF2E8", background: "#FAFAF8" }}
-        >
-          {/* Search input + dropdown */}
-          <div className="relative" ref={panelRef}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={e => { setQuery(e.target.value); setSelectedFood(null); }}
-              onKeyDown={e => {
-                if (e.key === "Escape") cancelAdd();
-              }}
-              placeholder="Search or type a dish name…"
-              className="w-full rounded-xl px-3 py-2 text-sm"
-              style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
-            />
+        <div className="px-4 py-3 space-y-2" style={{ borderTop: "1px solid #EAF2E8", background: "#FAFAF8" }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={e => {
+              setQuery(e.target.value);
+              setSelectedFood(null);
+              setNewCategory(null);
+              if (!e.target.value.trim()) { setSuggestions([]); setSearched(""); }
+            }}
+            onKeyDown={e => { if (e.key === "Enter" && canAdd) addItem(); if (e.key === "Escape") cancelAdd(); }}
+            placeholder="Dish name, e.g. Sambar"
+            aria-label="Dish name"
+            className="w-full rounded-xl px-3 py-2 text-sm"
+            style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
+          />
 
-            {/* Suggestions dropdown */}
-            {(suggestions.length > 0 || query.trim()) && !selectedFood && (
-              <div
-                className="absolute z-20 left-0 right-0 top-full mt-1 rounded-xl overflow-hidden"
-                style={{ background: "#fff", border: "1px solid #E2E1D8", boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}
-              >
-                {suggestions.map((s, i) => (
+          {/* Matches */}
+          {suggestions.length > 0 && !selectedFood && (
+            <div className="rounded-xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
+              {suggestions.map((s, i) => {
+                const k = perServingKcal(s);
+                return (
                   <button
                     key={s.id}
-                    onClick={() => pickSuggestion(s)}
-                    className="w-full text-left px-3 py-2.5 text-sm flex items-center justify-between"
-                    style={{ borderBottom: i < suggestions.length - 1 ? "1px solid #F3F2EB" : undefined, color: "#1C201C" }}
+                    onClick={() => { setSelectedFood(s); setQuery(s.name); setSuggestions([]); }}
+                    className="w-full text-left px-3 py-2.5 text-sm flex items-center justify-between gap-2"
+                    style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, color: "#1C201C" }}
                   >
-                    <span>{s.name}</span>
-                    {s.calories != null && s.serving_weight_g != null && (
-                      <span className="text-xs ml-2" style={{ color: "#8A9085" }}>
-                        {Math.round(s.serving_weight_g * s.calories / 100)} kcal/serving
+                    <span className="truncate">
+                      {s.name}
+                      {s.kutumbh_id && (
+                        <span className="ml-1.5 text-[10px] font-semibold" style={{ color: "#A5661A" }}>FAMILY DISH</span>
+                      )}
+                    </span>
+                    {k != null && (
+                      <span className="text-xs flex-shrink-0" style={{ color: "#8A9085" }}>
+                        {k} kcal / {s.serving_unit === "g" ? "100 g" : (s.serving_unit ?? "serving")}
                       </span>
                     )}
                   </button>
-                ))}
-                {query.trim() && suggestions.length === 0 && (
-                  <div
-                    className="px-3 py-2.5 text-sm"
-                    style={{ color: "#8A9085" }}
-                  >
-                    No matches — will save as custom item
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Qty + unit row with live kcal */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setQty(q => String(Math.max(0.5, parseFloat(q) - 0.5)))}
-              className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
-              style={{ background: "#EAF2E8", color: "#1C2B1C" }}
-            >−</button>
-            <input
-              type="number" min="0.5" step="0.5" value={qty}
-              onChange={e => setQty(e.target.value)}
-              className="w-16 text-center rounded-lg px-2 py-1.5 text-sm font-semibold"
-              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
-            />
-            <button
-              onClick={() => setQty(q => String(parseFloat(q) + 0.5))}
-              className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
-              style={{ background: "#EAF2E8", color: "#1C2B1C" }}
-            >+</button>
-            <select
-              value={unit} onChange={e => setUnit(e.target.value)}
-              className="flex-1 rounded-lg px-2 py-1.5 text-xs"
-              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
-            >
-              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
-          </div>
-
-          {/* Live kcal estimate */}
-          {estimatedKcal != null && (
-            <div
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
-              style={{ background: "#EAF2E8", color: "#2E5A28" }}
-            >
-              <span>≈</span>
-              <span>{estimatedKcal} kcal</span>
-              <span style={{ color: "#6A9A65", fontWeight: 400 }}>for {qty} {unit}</span>
+                );
+              })}
             </div>
           )}
 
-          {/* Confirm / cancel */}
-          <div className="flex gap-2 pt-1">
-            <button
-              onClick={addItem}
-              disabled={saving || !query.trim()}
-              className="flex-1 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40"
-              style={{ background: "#1C2B1C" }}
-            >
-              {saving ? "Adding…" : "Add to plan ✓"}
-            </button>
-            <button
-              onClick={cancelAdd}
-              className="px-4 py-2 rounded-xl text-xs font-semibold"
-              style={{ background: "#F0EFE8", color: "#5A6055" }}
-            >
-              Cancel
-            </button>
-          </div>
+          {/* New dish → what kind is it? */}
+          {isNewDish && kutumbhId && (
+            <div>
+              <p className="text-xs mb-1.5" style={{ color: "#5A6055" }}>
+                New dish — what kind is <b>{typed}</b>?
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {DISH_CATEGORIES.map(c => (
+                  <button
+                    key={c.key}
+                    onClick={() => setNewCategory(c.key)}
+                    className="px-2.5 py-1.5 rounded-full text-xs font-medium"
+                    style={newCategory === c.key
+                      ? { background: "#1C2B1C", color: "#fff" }
+                      : { background: "#fff", color: "#5A6055", border: "1px solid #E2E1D8" }}
+                  >
+                    {c.icon} {c.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] mt-1.5" style={{ color: "#A5661A" }}>
+                Saved as a Family Dish. The Prime Member will add its exact nutrition, ingredients and preparation.
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={addItem}
+            disabled={saving || !canAdd}
+            className="w-full py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40"
+            style={{ background: "#1C2B1C" }}
+          >
+            {saving ? "Adding…" : isNewDish && kutumbhId && !newCategory ? "Pick what kind of dish it is" : "Add to menu ✓"}
+          </button>
         </div>
       )}
     </div>

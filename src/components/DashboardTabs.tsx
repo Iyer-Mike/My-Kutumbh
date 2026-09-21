@@ -2,14 +2,8 @@
 
 import { useState } from "react";
 import DashboardSlotCard from "./DashboardSlotCard";
-import PlanSlotCard from "./PlanSlotCard";
-
-const SLOTS = [
-  { key: "breakfast", name: "Breakfast", icon: "☀️",  time: "7 – 9 am" },
-  { key: "lunch",     name: "Lunch",     icon: "🌤️", time: "12 – 2 pm" },
-  { key: "dinner",   name: "Dinner",    icon: "🌙",  time: "7 – 9 pm" },
-  { key: "other",    name: "Other",     icon: "＋",  time: "Any time" },
-];
+import PlanSlotCard, { type PlanItem } from "./PlanSlotCard";
+import { SLOTS } from "@/lib/meal-slots";
 
 type MealLog = {
   id: string;
@@ -18,27 +12,25 @@ type MealLog = {
   quantity_g: number;
   quantity_unit: string | null;
   calories: number | null;
+  nutrition_estimated: boolean | null;
 };
 
-type MealPlan = {
-  id: string;
-  food_name: string;
-  meal_slot: string;
-  quantity_g: number;
-  quantity_unit: string | null;
-  calories: number | null;
-};
+type MealPlan = PlanItem & { meal_slot: string };
 
 type Props = {
   logs: MealLog[];
   totalKcal: number;
   dailyKcalGoal: number | null;
   initialPlans: MealPlan[];
+  poolNames: Record<string, string>;
+  memberNames: Record<string, string>;
   userId: string;
   kutumbhId: string | null;
 };
 
-export default function DashboardTabs({ logs, totalKcal, dailyKcalGoal, initialPlans, userId, kutumbhId }: Props) {
+export default function DashboardTabs({
+  logs, totalKcal, dailyKcalGoal, initialPlans, poolNames, memberNames, userId, kutumbhId,
+}: Props) {
   const [tab, setTab] = useState<"plan" | "log">("log");
 
   const slotLogs: Record<string, MealLog[]>   = {};
@@ -76,11 +68,11 @@ export default function DashboardTabs({ logs, totalKcal, dailyKcalGoal, initialP
           </p>
 
           <div className="space-y-3">
-            {SLOTS.map(({ key, name, icon, time }) => (
+            {SLOTS.map(({ key, label, icon, time }) => (
               <DashboardSlotCard
                 key={key}
                 slotKey={key}
-                name={name}
+                name={label}
                 icon={icon}
                 time={time}
                 items={slotLogs[key] ?? []}
@@ -141,16 +133,18 @@ export default function DashboardTabs({ logs, totalKcal, dailyKcalGoal, initialP
             Today&apos;s Plan
           </p>
 
-          {SLOTS.map(({ key, name, icon, time }) => (
+          {SLOTS.map(({ key, label, icon, time }) => (
             <PlanSlotCard
               key={key}
               slotKey={key}
-              name={name}
+              name={label}
               icon={icon}
               time={time}
               userId={userId}
               kutumbhId={kutumbhId}
               initialItems={slotPlans[key] ?? []}
+              initialPoolName={poolNames[key] ?? null}
+              memberNames={memberNames}
             />
           ))}
         </>

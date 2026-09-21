@@ -101,6 +101,17 @@ export default async function FamilyPage() {
 
   const primeName = members.find((m) => m.role === "owner")?.full_name ?? null;
 
+  let dishTotal = 0;
+  let dishPending = 0;
+  if (isOwner && kutumbhId) {
+    const { data: dishes } = await supabase
+      .from("food_items")
+      .select("needs_review")
+      .eq("kutumbh_id", kutumbhId);
+    dishTotal   = dishes?.length ?? 0;
+    dishPending = (dishes ?? []).filter((d) => d.needs_review).length;
+  }
+
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
       {/* Header */}
@@ -162,6 +173,29 @@ export default async function FamilyPage() {
               </div>
             )}
 
+            {/* ── Family Dishes (Prime Member only) ── */}
+            {isOwner && (
+              <Link
+                href="/family/dishes"
+                className="flex items-center justify-between gap-3 rounded-2xl px-5 py-4"
+                style={{ background: "#fff", border: `1.5px solid ${dishPending ? "#E4B774" : "#E2E1D8"}` }}
+              >
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8A9085" }}>
+                    Family Dishes
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: dishPending ? "#A5661A" : "#5A6055" }}>
+                    {dishPending
+                      ? `${dishPending} dish${dishPending > 1 ? "es" : ""} need your details`
+                      : dishTotal
+                        ? `${dishTotal} dish${dishTotal > 1 ? "es" : ""} · all complete`
+                        : "Dishes your family adds will appear here"}
+                  </p>
+                </div>
+                <span className="text-lg" style={{ color: "#4A7C44" }}>›</span>
+              </Link>
+            )}
+
             {/* ── Member cards ── */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#8A9085" }}>
@@ -173,15 +207,14 @@ export default async function FamilyPage() {
                   const dColor = m.primary_dosha ? DOSHA_COLORS[m.primary_dosha.toLowerCase()] ?? "#8A9085" : "#C5DFC2";
                   const initial = m.full_name?.[0]?.toUpperCase() ?? "?";
 
-                  return (
-                    <div
-                      key={m.user_id}
-                      className="rounded-2xl px-4 py-3.5 flex items-center gap-4"
-                      style={{
-                        background: "#fff",
-                        border: m.isMe ? "1.5px solid #4A7C44" : "1px solid #E2E1D8",
-                      }}
-                    >
+                  const cardClass = "rounded-2xl px-4 py-3.5 flex items-center gap-4";
+                  const cardStyle = {
+                    background: "#fff",
+                    border: m.isMe ? "1.5px solid #4A7C44" : "1px solid #E2E1D8",
+                  };
+
+                  const inner = (
+                    <>
                       {/* Avatar */}
                       <div
                         className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-semibold flex-shrink-0"
@@ -241,6 +274,18 @@ export default async function FamilyPage() {
                           <span className="font-normal text-[10px]" style={{ color: "#8A9085" }}>kcal</span>
                         </div>
                       )}
+                    </>
+                  );
+
+                  // The Prime Member can open any member's 7-day consumption
+                  return isOwner ? (
+                    <Link key={m.user_id} href={`/family/member/${m.user_id}`} className={cardClass} style={cardStyle}>
+                      {inner}
+                      <span className="text-lg flex-shrink-0" style={{ color: "#8A9085" }}>›</span>
+                    </Link>
+                  ) : (
+                    <div key={m.user_id} className={cardClass} style={cardStyle}>
+                      {inner}
                     </div>
                   );
                 })}

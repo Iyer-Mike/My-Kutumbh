@@ -20,15 +20,23 @@ type MealLog = {
   quantity_g: number;
   quantity_unit: string | null;
   calories: number | null;
+  nutrition_estimated: boolean | null;
 };
 
-type MealPlan = {
+type PlanFood = {
+  needs_review: boolean | null;
+  category: string | null;
+  serving_unit: string | null;
+  serving_weight_g: number | null;
+  calories: number | null;
+};
+
+type MealPlanRow = {
   id: string;
+  user_id: string;
   food_name: string;
   meal_slot: string;
-  quantity_g: number;
-  quantity_unit: string | null;
-  calories: number | null;
+  food_items: PlanFood | PlanFood[] | null;
 };
 
 export default async function DashboardPage() {
@@ -62,18 +70,53 @@ export default async function DashboardPage() {
 
   const { data: logs } = await supabase
     .from("meal_logs")
-    .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories")
+    .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated")
     .eq("user_id", user!.id)
     .eq("logged_date", todayISO());
 
   const plansQuery = supabase
     .from("meal_plans")
-    .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories")
-    .eq("planned_date", todayISO());
+    .select("id, user_id, food_name, meal_slot, food_items(needs_review, category, serving_unit, serving_weight_g, calories)")
+    .eq("planned_date", todayISO())
+    .order("created_at", { ascending: true });
 
-  const { data: plans } = await (kutumbhId
+  const { data: planRows } = await (kutumbhId
     ? plansQuery.eq("kutumbh_id", kutumbhId)
     : plansQuery.eq("user_id", user!.id));
+
+  const plans = ((planRows ?? []) as MealPlanRow[]).map(({ food_items, ...p }) => {
+    const fi = Array.isArray(food_items) ? food_items[0] : food_items;
+    const w  = fi?.serving_unit === "g" ? 100 : (fi?.serving_weight_g ?? 100);
+    return {
+      ...p,
+      needs_review:     !!fi?.needs_review,
+      category:         fi?.category ?? null,
+      serving_unit:     fi?.serving_unit ?? null,
+      kcal_per_serving: fi?.calories != null ? Math.round((fi.calories * w) / 100) : null,
+    };
+  });
+
+  // Custom pool names for today (only present when someone renamed one)
+  const poolNames: Record<string, string> = {};
+  if (kutumbhId) {
+    const { data: pools } = await supabase
+      .from("meal_pools")
+      .select("meal_slot, name")
+      .eq("kutumbh_id", kutumbhId)
+      .eq("planned_date", todayISO());
+    for (const p of pools ?? []) poolNames[p.meal_slot] = p.name;
+  }
+
+  // First names of whoever planned today's items ("planned by …")
+  const plannerIds = [...new Set(plans.map((p) => p.user_id))];
+  const memberNames: Record<string, string> = {};
+  if (plannerIds.length) {
+    const { data: people } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", plannerIds);
+    for (const p of people ?? []) memberNames[p.id] = p.full_name?.split(" ")[0] ?? "Family";
+  }
 
   const totalKcal = ((logs ?? []) as MealLog[]).reduce((s, l) => s + (l.calories ?? 0), 0);
 
@@ -130,7 +173,9 @@ export default async function DashboardPage() {
           logs={(logs ?? []) as MealLog[]}
           totalKcal={totalKcal}
           dailyKcalGoal={profile?.daily_kcal_goal ?? null}
-          initialPlans={(plans ?? []) as MealPlan[]}
+          initialPlans={plans}
+          poolNames={poolNames}
+          memberNames={memberNames}
           userId={user!.id}
           kutumbhId={kutumbhId}
         />

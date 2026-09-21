@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import PageNav from "@/components/PageNav";
+import { SLOTS, isSlot, slotLabel, defaultPoolName, type Slot } from "@/lib/meal-slots";
+import { DISH_CATEGORIES, categoryDefaults, type DishCategory } from "@/lib/dish-categories";
 
 // ── Types ─────────────────────────────────────────────────────────
 type FoodItem = {
@@ -11,35 +13,17 @@ type FoodItem = {
   calories: number | null; protein_g: number | null;
   serving_unit: string; serving_weight_g: number;
   ingredients: string | null; preparation: string | null;
+  needs_review?: boolean | null;
 };
-type PoolPlanItem = {
-  planId: string;
-  foodItemId: string | null;
-  foodName: string;
-  caloriesPerServing: number | null;
-  servingWeightG: number;
-  servingUnit: string;
-  calsPer100g: number | null;
-  category: string;
-  proteinPer100g: number | null;
-  ingredients: string | null;
-  preparation: string | null;
-};
+type PoolRow = { key: string; food: FoodItem; plannerId: string };
 type MealLog = {
   id: string; food_name: string; meal_slot: string;
   quantity_g: number; quantity_unit: string | null;
   calories: number | null; protein_g: number | null;
+  nutrition_estimated: boolean | null;
 };
-type Slot = "breakfast" | "lunch" | "dinner" | "other";
 
 // ── Constants ─────────────────────────────────────────────────────
-const SLOTS: { key: Slot; label: string; icon: string; time: string }[] = [
-  { key: "breakfast", label: "Breakfast", icon: "☀️",  time: "7 – 9 am"  },
-  { key: "lunch",     label: "Lunch",     icon: "🌤️", time: "12 – 2 pm" },
-  { key: "dinner",   label: "Dinner",    icon: "🌙",  time: "7 – 9 pm"  },
-  { key: "other",    label: "Other",     icon: "＋",  time: "Any time"  },
-];
-
 const CAT_TABS = [
   { key: "",          label: "All"     },
   { key: "grain",     label: "Grains"  },
@@ -59,30 +43,56 @@ const CAT_ICON: Record<string, string> = {
 };
 
 const UNIT_LABEL: Record<string, string> = {
-  piece: "pcs", cup: "cup", bowl: "bowl",
+  piece: "pcs", cup: "cup", bowl: "bowl", serving: "serving",
   glass: "glass", tbsp: "tbsp", g: "g",
 };
 
-const STEP: Record<string, number> = {
-  piece: 0.5, cup: 0.5, bowl: 0.5, glass: 0.5, tbsp: 1, g: 25,
-};
+const FOOD_COLS =
+  "id,name,name_ta,category,calories,protein_g,serving_unit,serving_weight_g,ingredients,preparation,needs_review";
 
-const MIN_QTY: Record<string, number> = {
-  piece: 0.5, cup: 0.5, bowl: 0.5, glass: 0.5, tbsp: 1, g: 25,
-};
+function stepFor(unit: string) { return unit === "g" ? 25 : unit === "tbsp" ? 1 : 0.5; }
+function defaultQty(unit: string) { return unit === "g" ? 100 : 1; }
+function quickPicks(unit: string) { return unit === "g" ? [50, 100, 150, 200] : [0.5, 1, 1.5, 2]; }
+function fmtQty(q: number) { return q === 0.5 ? "½" : q === 1.5 ? "1½" : String(q); }
 
 function toGrams(qty: number, food: FoodItem) {
-  return food.serving_unit === "g" ? qty : Math.round(qty * food.serving_weight_g);
+  return food.serving_unit === "g" ? qty : Math.round(qty * (food.serving_weight_g || 100));
 }
 
-function calcCal(food: FoodItem, grams: number) {
-  if (!food.calories) return null;
-  return Math.round((food.calories * grams) / 100);
+// Real values when the dish has them; otherwise its category's average
+// per serving, flagged as an estimate until the Prime Member completes it.
+function nutrition(food: FoodItem, qty: number) {
+  if (food.calories != null) {
+    const g = toGrams(qty, food);
+    return {
+      kcal: Math.round((food.calories * g) / 100),
+      protein: food.protein_g != null ? Math.round((food.protein_g * g) / 100 * 10) / 10 : null,
+      estimated: false,
+    };
+  }
+  const d = categoryDefaults(food.category);
+  const servings = food.serving_unit === "g" ? qty / d.servingG : qty;
+  return { kcal: Math.round(servings * d.kcalPerServing), protein: null, estimated: true };
 }
 
-function qtyLabel(qty: number, unit: string) {
-  if (unit === "piece") return qty === 0.5 ? "½ pc" : `${qty} pc${qty !== 1 ? "s" : ""}`;
-  return `${qty} ${UNIT_LABEL[unit] ?? unit}`;
+// Editing a logged portion scales its kcal/protein in proportion. A unit
+// change can't be converted without the dish data, so nutrition is left as is.
+function rescaleNutrition(
+  log: Pick<MealLog, "quantity_g" | "quantity_unit" | "calories" | "protein_g"> | undefined,
+  newQty: number, newUnit: string,
+) {
+  if (!log || !log.quantity_g || (log.quantity_unit ?? "serving") !== newUnit) return {};
+  const f = newQty / log.quantity_g;
+  return {
+    calories:  log.calories  != null ? Math.round(log.calories * f) : null,
+    protein_g: log.protein_g != null ? Math.round(log.protein_g * f * 10) / 10 : null,
+  };
+}
+
+function perServingText(food: FoodItem) {
+  const unit = food.serving_unit === "g" ? "100 g" : (UNIT_LABEL[food.serving_unit] ?? food.serving_unit);
+  const n = nutrition(food, food.serving_unit === "g" ? 100 : 1);
+  return n.estimated ? `~${n.kcal} kcal / ${unit} est.` : `${n.kcal} kcal / ${unit}`;
 }
 
 // ── Main component ────────────────────────────────────────────────
@@ -95,21 +105,25 @@ export default function LogPage() {
   const [kutumbhId, setKutumbhId]   = useState<string | null>(null);
   const [logs, setLogs]             = useState<MealLog[]>([]);
   const [activeSlot, setActiveSlot] = useState<Slot | null>(null);
-  const [poolItems, setPoolItems]   = useState<PoolPlanItem[]>([]);
 
-  // Step 1 — select
+  // Family pool for the open slot
+  const [poolRows, setPoolRows]       = useState<PoolRow[]>([]);
+  const [poolName, setPoolName]       = useState("");
+  const [plannerNames, setPlannerNames] = useState<Record<string, string>>({});
+
+  // Search
   const [query, setQuery]         = useState("");
   const [catFilter, setCatFilter] = useState("");
   const [results, setResults]     = useState<FoodItem[]>([]);
   const [searching, setSearching] = useState(false);
-  const [checked, setChecked]     = useState<Set<string>>(new Set());
-  const [foodMap, setFoodMap]     = useState<Record<string, FoodItem>>({});
 
-  // Step 2 — set quantities
-  const [step, setStep]           = useState<"select" | "qty">("select");
-  const [quantities, setQties]    = useState<Record<string, number>>({});
+  // Selection — everything ticked, with its own quantity
+  const [picked, setPicked] = useState<Record<string, FoodItem>>({});
+  const [qtys, setQtys]     = useState<Record<string, number>>({});
 
-  const [saving, setSaving]       = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [addingDish, setAddingDish] = useState(false);
+  const [dishPicker, setDishPicker] = useState(false);
 
   // Inline edit for logged items
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -117,28 +131,18 @@ export default function LogPage() {
   const [editQty, setEditQty]     = useState("1");
   const [editUnit, setEditUnit]   = useState("serving");
 
-  // Manual entry (Other slot)
-  const [manualName, setManualName] = useState("");
-  const [manualCal, setManualCal]   = useState("");
-  const [manualQty, setManualQty]   = useState("1");
-  const [manualUnit, setManualUnit] = useState("serving");
-  const [manualNote, setManualNote] = useState("");
-  const [manualSlot, setManualSlot] = useState<Slot>("other");
-
   // Photo capture + AI identification (outside food)
-  const [photoFile, setPhotoFile]         = useState<File | null>(null);
   const [photoPreview, setPhotoPreview]   = useState<string | null>(null);
   const [analyzing, setAnalyzing]         = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[] | null>(null);
   const [aiChecked, setAiChecked]         = useState<Set<string>>(new Set());
   const [aiEdits, setAiEdits]             = useState<Record<string, string>>({});
-  const [aiQtys, setAiQtys]              = useState<Record<string, number>>({});
-  const [aiUnits, setAiUnits]            = useState<Record<string, string>>({});
-  const [aiCals, setAiCals]              = useState<Record<string, string>>({});
+  const [aiQtys, setAiQtys]               = useState<Record<string, number>>({});
+  const [aiUnits, setAiUnits]             = useState<Record<string, string>>({});
+  const [aiCals, setAiCals]               = useState<Record<string, string>>({});
   const cameraRef  = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
-  // Collapsed state for slot item lists
   const [collapsedSlots, setCollapsedSlots] = useState<Set<Slot>>(new Set());
   function toggleSlotCollapse(slot: Slot) {
     setCollapsedSlots(prev => {
@@ -148,6 +152,7 @@ export default function LogPage() {
     });
   }
 
+  // ── Photo / AI ────────────────────────────────────────────────
   async function analyzePhoto(file: File) {
     setAnalyzing(true);
     setAiSuggestions(null);
@@ -167,32 +172,29 @@ export default function LogPage() {
         const { items } = await res.json();
         if (Array.isArray(items) && items.length > 0) {
           const edits: Record<string, string> = {};
-          const qtys:  Record<string, number> = {};
+          const qs:    Record<string, number> = {};
           const units: Record<string, string> = {};
           const cals:  Record<string, string> = {};
           const names: string[] = items.map((it: unknown) => {
             if (typeof it === "string") {
-              edits[it] = it; qtys[it] = 1; units[it] = "serving"; cals[it] = "";
+              edits[it] = it; qs[it] = 1; units[it] = "serving"; cals[it] = "";
               return it;
             }
             const obj = it as { name?: unknown; quantity?: unknown; unit?: unknown; calories?: unknown };
             const name = typeof obj.name === "string" && obj.name.trim() ? obj.name.trim() : "Unknown food";
             edits[name] = name;
-            qtys[name]  = typeof obj.quantity === "number" ? obj.quantity : 1;
+            qs[name]    = typeof obj.quantity === "number" ? obj.quantity : 1;
             units[name] = typeof obj.unit     === "string" ? obj.unit     : "serving";
             cals[name]  = typeof obj.calories === "number" ? String(Math.round(obj.calories)) : "";
             return name;
           });
           setAiSuggestions(names);
           setAiChecked(new Set(names));
-          setAiEdits(edits);
-          setAiQtys(qtys);
-          setAiUnits(units);
-          setAiCals(cals);
+          setAiEdits(edits); setAiQtys(qs); setAiUnits(units); setAiCals(cals);
         }
       }
     } catch {
-      // silent — user can still enter manually
+      // silent — user can still search or add manually
     } finally {
       setAnalyzing(false);
     }
@@ -201,7 +203,6 @@ export default function LogPage() {
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPhotoFile(file);
     const reader = new FileReader();
     reader.onloadend = () => setPhotoPreview(reader.result as string);
     reader.readAsDataURL(file);
@@ -209,7 +210,6 @@ export default function LogPage() {
   }
 
   function clearPhoto() {
-    setPhotoFile(null);
     setPhotoPreview(null);
     setAiSuggestions(null);
     setAiChecked(new Set());
@@ -232,6 +232,7 @@ export default function LogPage() {
         quantity_g:    aiQtys[name] ?? 1,
         quantity_unit: aiUnits[name] ?? "serving",
         calories:      calories != null && !isNaN(calories) ? Math.round(calories) : null,
+        nutrition_estimated: calories != null && !isNaN(calories),
         logged_date:   today,
       };
     });
@@ -243,7 +244,78 @@ export default function LogPage() {
   }
 
   // ── Data ──────────────────────────────────────────────────────
-  // Fetch user id + kutumbh membership once on mount
+  // RLS lets members read each other's logs (for the Kutumbh tab), so this
+  // must filter to the current user or family entries appear as your own.
+  const loadLogs = useCallback(async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("meal_logs")
+      .select("id,food_name,meal_slot,quantity_g,quantity_unit,calories,protein_g,nutrition_estimated")
+      .eq("user_id", userId)
+      .eq("logged_date", today)
+      .order("logged_at", { ascending: true });
+    if (data) setLogs(data);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [today, userId]);
+
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  async function loadPool(slot: Slot, kid: string | null) {
+    setPoolRows([]);
+    setPoolName(defaultPoolName(slot));
+    if (!kid) return;
+
+    const [{ data: plans }, { data: pool }] = await Promise.all([
+      supabase
+        .from("meal_plans")
+        .select(`id, user_id, food_name, food_item_id, food_items(${FOOD_COLS})`)
+        .eq("kutumbh_id", kid)
+        .eq("meal_slot", slot)
+        .eq("planned_date", today)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("meal_pools")
+        .select("name")
+        .eq("kutumbh_id", kid)
+        .eq("meal_slot", slot)
+        .eq("planned_date", today)
+        .maybeSingle(),
+    ]);
+
+    if (pool?.name) setPoolName(pool.name);
+
+    // One row per dish; planned items without a catalogue link get a
+    // synthetic key and are logged by name only.
+    const seen = new Set<string>();
+    const rows: PoolRow[] = [];
+    for (const p of plans ?? []) {
+      const fi = (Array.isArray(p.food_items) ? p.food_items[0] : p.food_items) as FoodItem | null;
+      const key = p.food_item_id ?? `pool-${p.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({
+        key,
+        plannerId: p.user_id,
+        food: fi ?? {
+          id: key, name: p.food_name, name_ta: null, category: "other",
+          calories: null, protein_g: null, serving_unit: "serving", serving_weight_g: 100,
+          ingredients: null, preparation: null, needs_review: false,
+        },
+      });
+    }
+    setPoolRows(rows);
+
+    const ids = [...new Set(rows.map(r => r.plannerId))];
+    if (ids.length) {
+      const { data: people } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const names: Record<string, string> = {};
+      for (const pp of people ?? []) names[pp.id] = pp.full_name?.split(" ")[0] ?? "Family";
+      setPlannerNames(names);
+    }
+  }
+
+  // Resolve membership first, then honour a Dashboard ?slot= link, so the
+  // family pool is available on the very first open.
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
@@ -256,89 +328,17 @@ export default function LogPage() {
       const kid = mem?.kutumbh_id ?? null;
       setKutumbhId(kid);
 
-      // Auto-open a slot arriving from the Dashboard (?slot=). Done here, after
-      // membership resolves, so the family pool can load on first open.
-      const slot = searchParams.get("slot") as Slot | null;
-      if (slot && ["breakfast", "lunch", "dinner", "other"].includes(slot)) {
-        openSlot(slot, kid);
-      }
+      const slot = searchParams.get("slot");
+      if (isSlot(slot)) openSlot(slot, kid);
     });
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
-  // RLS lets members read each other's logs (for the Family tab), so this
-  // must filter to the current user or family entries appear as your own.
-  const loadLogs = useCallback(async () => {
-    if (!userId) return;
-    const { data } = await supabase
-      .from("meal_logs")
-      .select("id,food_name,meal_slot,quantity_g,quantity_unit,calories,protein_g")
-      .eq("user_id", userId)
-      .eq("logged_date", today)
-      .order("logged_at", { ascending: true });
-    if (data) setLogs(data);
-  }, [today, userId]);
-
-  useEffect(() => { loadLogs(); }, [loadLogs]);
-
-  async function loadPoolForSlot(slot: Slot, kid: string | null) {
-    if (!kid || slot === "other") { setPoolItems([]); return; }
-    const { data } = await supabase
-      .from("meal_plans")
-      .select("id, food_name, food_item_id, calories, food_items(serving_weight_g, serving_unit, calories, category, protein_g, ingredients, preparation)")
-      .eq("kutumbh_id", kid)
-      .eq("meal_slot", slot)
-      .eq("planned_date", today);
-
-    const items: PoolPlanItem[] = (data ?? []).map(p => {
-      const fi = Array.isArray(p.food_items) ? (p.food_items as Record<string,unknown>[])[0] : p.food_items as Record<string,unknown> | null;
-      return {
-        planId: p.id as string,
-        foodItemId: p.food_item_id as string | null ?? null,
-        foodName: p.food_name as string,
-        caloriesPerServing: p.calories as number | null ?? null,
-        servingWeightG: (fi?.serving_weight_g as number) ?? 100,
-        servingUnit: (fi?.serving_unit as string) ?? "serving",
-        calsPer100g: (fi?.calories as number) ?? null,
-        category: (fi?.category as string) ?? "other",
-        proteinPer100g: (fi?.protein_g as number) ?? null,
-        ingredients: (fi?.ingredients as string) ?? null,
-        preparation: (fi?.preparation as string) ?? null,
-      };
-    });
-
-    setPoolItems(items);
-
-    // Pre-check all pool items and seed foodMap with synthetic FoodItem entries
-    const newFoodMap: Record<string, FoodItem> = {};
-    const newIds = new Set<string>();
-    items.forEach(item => {
-      const id = item.foodItemId ?? `pool-${item.planId}`;
-      newFoodMap[id] = {
-        id,
-        name: item.foodName,
-        name_ta: null,
-        category: item.category,
-        calories: item.calsPer100g,
-        protein_g: item.proteinPer100g,
-        serving_unit: item.servingUnit,
-        serving_weight_g: item.servingWeightG,
-        ingredients: item.ingredients,
-        preparation: item.preparation,
-      };
-      newIds.add(id);
-    });
-    setFoodMap(prev => ({ ...prev, ...newFoodMap }));
-    setChecked(prev => new Set([...prev, ...newIds]));
-  }
-
+  // Search / browse the catalogue (+ this family's dishes, via RLS)
   useEffect(() => {
-    if (!activeSlot || activeSlot === "other") return;
+    if (!activeSlot) return;
     const t = setTimeout(async () => {
       setSearching(true);
-      let q = supabase
-        .from("food_items")
-        .select("id,name,name_ta,category,calories,protein_g,serving_unit,serving_weight_g,ingredients,preparation")
-        .limit(40);
+      let q = supabase.from("food_items").select(FOOD_COLS).limit(40);
       if (query.trim().length >= 2) {
         q = q.ilike("name", `%${query.trim()}%`);
       } else {
@@ -346,90 +346,102 @@ export default function LogPage() {
         if (catFilter) q = q.eq("category", catFilter);
       }
       const { data } = await q;
-      const items = data ?? [];
-      setResults(items);
-      // keep foodMap updated so we can look up checked items by id
-      setFoodMap(prev => {
-        const next = { ...prev };
-        items.forEach(f => { next[f.id] = f; });
-        return next;
-      });
+      setResults((data ?? []) as FoodItem[]);
       setSearching(false);
     }, 250);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, catFilter, activeSlot]);
 
-  // ── Checkbox toggle ───────────────────────────────────────────
-  function toggle(food: FoodItem) {
-    setFoodMap(prev => ({ ...prev, [food.id]: food }));
-    setChecked(prev => {
-      const next = new Set(prev);
-      if (next.has(food.id)) { next.delete(food.id); }
-      else { next.add(food.id); }
-      return next;
-    });
+  // ── Selection ─────────────────────────────────────────────────
+  function toggle(key: string, food: FoodItem) {
+    if (picked[key]) {
+      setPicked(prev => { const n = { ...prev }; delete n[key]; return n; });
+    } else {
+      setPicked(prev => ({ ...prev, [key]: food }));
+      setQtys(prev => ({ ...prev, [key]: prev[key] ?? defaultQty(food.serving_unit) }));
+    }
   }
 
-  // ── Proceed to qty step ───────────────────────────────────────
-  function goToQty() {
-    // initialise quantities for newly checked items
-    const init: Record<string, number> = {};
-    checked.forEach(id => {
-      const food = foodMap[id];
-      if (!food) return;
-      init[id] = quantities[id] ?? (MIN_QTY[food.serving_unit] ?? 1);
-    });
-    setQties(init);
-    setStep("qty");
+  function setQty(key: string, qty: number) {
+    setQtys(prev => ({ ...prev, [key]: qty }));
   }
 
-  function adjustQty(id: string, delta: number) {
-    const food = foodMap[id];
+  function adjustQty(key: string, dir: 1 | -1) {
+    const food = picked[key];
     if (!food) return;
-    const s = STEP[food.serving_unit] ?? 1;
-    const min = MIN_QTY[food.serving_unit] ?? s;
-    setQties(prev => ({
+    const s = stepFor(food.serving_unit);
+    setQtys(prev => ({
       ...prev,
-      [id]: Math.max(min, Math.round(((prev[id] ?? min) + delta * s) * 10) / 10),
+      [key]: Math.max(s, Math.round(((prev[key] ?? defaultQty(food.serving_unit)) + dir * s) * 10) / 10),
     }));
+  }
+
+  // Unknown dish → a Family Dish awaiting the Prime Member's details. Its
+  // category sets the natural unit and the estimate used until then.
+  async function addFamilyDish(category: DishCategory) {
+    const name = query.trim();
+    if (!name || !kutumbhId || !userId) return;
+    setAddingDish(true);
+    const { data: existing } = await supabase
+      .from("food_items").select(FOOD_COLS)
+      .eq("kutumbh_id", kutumbhId).ilike("name", name).limit(1).maybeSingle();
+    let dish = existing as FoodItem | null;
+    if (!dish) {
+      const d = categoryDefaults(category);
+      const { data, error } = await supabase
+        .from("food_items")
+        .insert({
+          name, kutumbh_id: kutumbhId, created_by: userId, needs_review: true,
+          category, serving_unit: d.unit, serving_weight_g: d.servingG, is_south_indian: true,
+        })
+        .select(FOOD_COLS)
+        .single();
+      if (error) { setAddingDish(false); alert(`Couldn't add the dish: ${error.message}`); return; }
+      dish = data as FoodItem;
+    }
+    setAddingDish(false);
+    setDishPicker(false);
+    setResults(prev => [dish!, ...prev.filter(r => r.id !== dish!.id)]);
+    if (!picked[dish.id]) toggle(dish.id, dish);
   }
 
   // ── Panel open/close ──────────────────────────────────────────
   function openSlot(slot: Slot, kid: string | null = kutumbhId) {
     setActiveSlot(slot);
-    setStep("select");
-    setQuery(""); setCatFilter("");
-    setChecked(new Set()); setQties({});
-    setPoolItems([]);
-    setManualName(""); setManualCal("");
-    setManualQty("1"); setManualUnit("serving"); setManualNote("");
-    setManualSlot(slot === "other" ? "other" : slot);
+    setQuery(""); setCatFilter(""); setDishPicker(false);
+    setPicked({}); setQtys({});
     clearPhoto();
-    loadPoolForSlot(slot, kid);
+    loadPool(slot, kid);
   }
 
   function closePanel() {
     setActiveSlot(null);
-    setStep("select");
-    setChecked(new Set());
+    setPicked({}); setQtys({});
   }
 
   // ── Save ──────────────────────────────────────────────────────
   async function saveItems() {
-    if (!checked.size || !activeSlot || !userId) return;
+    const keys = Object.keys(picked);
+    if (!keys.length || !activeSlot || !userId) return;
     setSaving(true);
-    const rows = Array.from(checked).map(id => {
-      const food = foodMap[id];
-      const qty  = quantities[id] ?? (MIN_QTY[food.serving_unit] ?? 1);
-      const g    = toGrams(qty, food);
+    const rows = keys.map(key => {
+      const food = picked[key];
+      const qty  = qtys[key] ?? defaultQty(food.serving_unit);
+      const n    = nutrition(food, qty);
       return {
-        // Custom pool items carry a synthetic "pool-…" id that isn't a real
-        // food_items uuid; sending it fails the FK and rejects the whole batch.
-        user_id: userId, food_item_id: id.startsWith("pool-") ? null : food.id, food_name: food.name,
-        meal_slot: activeSlot, quantity_g: qty, quantity_unit: food.serving_unit,
-        calories:  calcCal(food, g),
-        protein_g: food.protein_g != null ? Math.round((food.protein_g * g) / 100 * 10) / 10 : null,
-        logged_date: today,
+        // Synthetic "pool-…" keys aren't real food_items ids; sending one
+        // fails the foreign key and rejects the whole batch.
+        user_id:       userId,
+        food_item_id:  key.startsWith("pool-") ? null : food.id,
+        food_name:     food.name,
+        meal_slot:     activeSlot,
+        quantity_g:    qty,
+        quantity_unit: food.serving_unit,
+        calories:      n.kcal,
+        protein_g:     n.protein,
+        nutrition_estimated: n.estimated,
+        logged_date:   today,
       };
     });
     const { error } = await supabase.from("meal_logs").insert(rows);
@@ -439,28 +451,9 @@ export default function LogPage() {
     loadLogs();
   }
 
-  async function saveManual() {
-    if (!manualName.trim() || !userId) return;
-    setSaving(true);
-
-    const { error } = await supabase.from("meal_logs").insert({
-      user_id:       userId,
-      food_name:     manualName.trim(),
-      meal_slot:     manualSlot,
-      quantity_g:    parseFloat(manualQty) || 1,
-      quantity_unit: manualUnit,
-      calories:      manualCal ? parseFloat(manualCal) : null,
-      notes:         manualNote || null,
-      logged_date:   today,
-    });
-    setSaving(false);
-    if (error) { alert(`Couldn't save your log: ${error.message}`); return; }
-    closePanel();
-    loadLogs();
-  }
-
   async function deleteLog(id: string) {
-    await supabase.from("meal_logs").delete().eq("id", id);
+    const { error } = await supabase.from("meal_logs").delete().eq("id", id);
+    if (error) { alert(`Couldn't delete: ${error.message}`); return; }
     loadLogs();
   }
 
@@ -471,38 +464,117 @@ export default function LogPage() {
     setEditUnit(log.quantity_unit ?? "serving");
   }
 
-  function cancelEdit() { setEditingId(null); }
-
   async function saveEdit() {
     if (!editingId || !editName.trim()) return;
     setSaving(true);
+    const newQty = parseFloat(editQty) || 1;
     const { error } = await supabase.from("meal_logs")
       .update({
         food_name:     editName.trim(),
-        quantity_g:    parseFloat(editQty) || 1,
+        quantity_g:    newQty,
         quantity_unit: editUnit,
+        ...rescaleNutrition(logs.find(l => l.id === editingId), newQty, editUnit),
       })
       .eq("id", editingId);
     setSaving(false);
-    if (error) {
-      alert(`Save failed: ${error.message}`);
-      return;
-    }
+    if (error) { alert(`Save failed: ${error.message}`); return; }
     setEditingId(null);
     loadLogs();
   }
 
+  // ── Derived ───────────────────────────────────────────────────
   const totalCal = logs.reduce((s, l) => s + (l.calories ?? 0), 0);
   const logsFor  = (slot: Slot) => logs.filter(l => l.meal_slot === slot);
 
-  const checkedList = Array.from(checked)
-    .map(id => foodMap[id])
-    .filter(Boolean) as FoodItem[];
+  const pickedKeys  = Object.keys(picked);
+  const pickedCount = pickedKeys.length;
+  const pickedNutri = pickedKeys.map(key => nutrition(picked[key], qtys[key] ?? defaultQty(picked[key].serving_unit)));
+  const pickedCal   = pickedNutri.reduce((s, n) => s + n.kcal, 0);
+  const pickedEst   = pickedNutri.some(n => n.estimated);
+  const typed       = query.trim();
+  const exactMatch  = results.some(r => r.name.toLowerCase() === typed.toLowerCase());
 
-  const qtyPreviewCal = checkedList.reduce((s, food) => {
-    const qty = quantities[food.id] ?? (MIN_QTY[food.serving_unit] ?? 1);
-    return s + (calcCal(food, toGrams(qty, food)) ?? 0);
-  }, 0);
+  const poolKeys    = new Set(poolRows.map(r => r.key));
+  const resultKeys  = new Set(results.map(r => r.id));
+  // Ticked items no longer visible (e.g. the search changed) stay reachable here
+  const offscreen   = pickedKeys.filter(k => !poolKeys.has(k) && !resultKeys.has(k));
+  const planners    = [...new Set(poolRows.map(r => plannerNames[r.plannerId]).filter(Boolean))];
+
+  // ── A selectable food row with inline quantity when ticked ─────
+  function foodRow(rowKey: string, food: FoodItem) {
+    const isOn = !!picked[rowKey];
+    const qty  = qtys[rowKey] ?? defaultQty(food.serving_unit);
+    const n    = nutrition(food, qty);
+    const unitLabel = UNIT_LABEL[food.serving_unit] ?? food.serving_unit;
+    return (
+      <div key={rowKey} className="rounded-xl overflow-hidden"
+        style={{ background: isOn ? "#EAF2E8" : "#fff", border: `1.5px solid ${isOn ? "#4A7C44" : "#E2E1D8"}` }}>
+        <button onClick={() => toggle(rowKey, food)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
+          <div className="shrink-0 w-5 h-5 rounded flex items-center justify-center"
+            style={{ background: isOn ? "#4A7C44" : "#fff", border: `2px solid ${isOn ? "#4A7C44" : "#C8C5BA"}` }}>
+            {isOn && (
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </div>
+          <span className="text-lg shrink-0">{CAT_ICON[food.category] ?? "🍽️"}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate" style={{ color: "#1C201C" }}>{food.name}</p>
+            <p className="text-xs truncate" style={{ color: food.needs_review ? "#A5661A" : "#8A9085" }}>
+              {food.needs_review ? `Family dish · ${perServingText(food)}` : perServingText(food)}
+            </p>
+          </div>
+        </button>
+
+        {isOn && (
+          <div className="px-3 pb-3 space-y-2">
+            {(food.ingredients || food.preparation) && (
+              <div className="rounded-lg px-2.5 py-1.5 space-y-0.5" style={{ background: "#F6F5EE" }}>
+                {food.ingredients && (
+                  <p className="text-xs leading-snug" style={{ color: "#5A6055" }}>
+                    <span className="font-semibold" style={{ color: "#8A9085" }}>Ingredients: </span>{food.ingredients}
+                  </p>
+                )}
+                {food.preparation && (
+                  <p className="text-xs leading-snug" style={{ color: "#5A6055" }}>
+                    <span className="font-semibold" style={{ color: "#8A9085" }}>Prep: </span>{food.preparation}
+                  </p>
+                )}
+              </div>
+            )}
+            {/* Quick portions */}
+            <div className="flex gap-1.5">
+              {quickPicks(food.serving_unit).map(q => (
+                <button key={q} onClick={() => setQty(rowKey, q)}
+                  className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
+                  style={qty === q
+                    ? { background: "#1C2B1C", color: "#fff" }
+                    : { background: "#fff", color: "#2E5C28", border: "1px solid #C5DFC2" }}>
+                  {fmtQty(q)}{food.serving_unit === "g" ? " g" : ""}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <button onClick={() => adjustQty(rowKey, -1)} aria-label="Less"
+                className="w-8 h-8 rounded-full text-lg font-bold flex items-center justify-center"
+                style={{ background: "#fff", color: "#2E5C28", border: "1px solid #C5DFC2" }}>−</button>
+              <p className="text-sm font-semibold min-w-[4.5rem] text-center" style={{ color: "#1C201C" }}>
+                {fmtQty(qty)} {unitLabel}
+              </p>
+              <button onClick={() => adjustQty(rowKey, 1)} aria-label="More"
+                className="w-8 h-8 rounded-full text-lg font-bold flex items-center justify-center"
+                style={{ background: "#fff", color: "#2E5C28", border: "1px solid #C5DFC2" }}>+</button>
+              <p className="ml-auto text-xs font-semibold text-right" style={{ color: n.estimated ? "#A5661A" : "#4A7C44" }}>
+                {n.estimated ? `~${n.kcal} kcal est.` : `${n.kcal} kcal`}
+                {n.protein != null && <span className="block font-normal" style={{ color: "#8A9085" }}>{n.protein} g protein</span>}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // ── Render ────────────────────────────────────────────────────
   return (
@@ -525,8 +597,8 @@ export default function LogPage() {
       {/* Slot cards */}
       <main className="flex-1 px-4 py-5 space-y-3">
         {SLOTS.map(({ key, label, icon, time }) => {
-          const slotLogs  = logsFor(key);
-          const slotCal   = slotLogs.reduce((s, l) => s + (l.calories ?? 0), 0);
+          const slotLogs    = logsFor(key);
+          const slotCal     = slotLogs.reduce((s, l) => s + (l.calories ?? 0), 0);
           const isCollapsed = collapsedSlots.has(key);
           return (
             <div key={key} className="rounded-2xl overflow-hidden"
@@ -551,11 +623,12 @@ export default function LogPage() {
                       onClick={() => toggleSlotCollapse(key)}
                       className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-semibold"
                       style={{ background: isCollapsed ? "#EAF2E8" : "#1C2B1C", color: isCollapsed ? "#4A7C44" : "#fff" }}
+                      aria-label={isCollapsed ? "Expand" : "Collapse"}
                     >
                       {isCollapsed ? "+" : "−"}
                     </button>
                   )}
-                  <button onClick={() => openSlot(key)}
+                  <button onClick={() => openSlot(key)} aria-label={`Log ${label}`}
                     className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
                     style={{ background: "#EAF2E8", color: "#4A7C44" }}>✎</button>
                 </div>
@@ -564,20 +637,13 @@ export default function LogPage() {
                 <div style={{ borderTop: "1px solid #F0EFE8" }}>
                   {slotLogs.map(log => (
                     <div key={log.id} style={{ borderBottom: "1px solid #F6F5EE" }}>
-
                       {editingId === log.id ? (
-                        /* ── Edit mode ── */
                         <div className="px-4 py-3 space-y-2">
-                          {/* Name */}
                           <input
-                            type="text"
-                            value={editName}
-                            onChange={e => setEditName(e.target.value)}
-                            autoFocus
+                            type="text" value={editName} onChange={e => setEditName(e.target.value)} autoFocus
                             className="w-full rounded-xl px-3 py-2 text-sm"
                             style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
                           />
-                          {/* Qty + unit */}
                           <div className="flex items-center gap-2">
                             <button onClick={() => setEditQty(q => String(Math.max(0.5, parseFloat(q) - 0.5)))}
                               className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
@@ -592,7 +658,7 @@ export default function LogPage() {
                               style={{ background: "#EAF2E8", color: "#1C2B1C" }}>+</button>
                             <select value={editUnit} onChange={e => setEditUnit(e.target.value)}
                               className="flex-1 rounded-lg px-2 py-1.5 text-xs"
-                              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none", appearance: "none" as const }}>
+                              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}>
                               <option value="serving">serving</option>
                               <option value="piece">piece(s)</option>
                               <option value="bowl">bowl</option>
@@ -602,14 +668,13 @@ export default function LogPage() {
                               <option value="g">grams</option>
                             </select>
                           </div>
-                          {/* Save / Cancel */}
                           <div className="flex gap-2 pt-1">
                             <button onClick={saveEdit} disabled={saving || !editName.trim()}
                               className="flex-1 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40"
                               style={{ background: "#1C2B1C" }}>
                               {saving ? "Saving…" : "Save ✓"}
                             </button>
-                            <button onClick={cancelEdit}
+                            <button onClick={() => setEditingId(null)}
                               className="px-4 py-2 rounded-xl text-xs font-semibold"
                               style={{ background: "#F0EFE8", color: "#5A6055" }}>
                               Cancel
@@ -617,18 +682,17 @@ export default function LogPage() {
                           </div>
                         </div>
                       ) : (
-                        /* ── Read mode ── */
                         <div className="flex items-center justify-between px-4 py-2.5">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm truncate" style={{ color: "#1C201C" }}>{log.food_name}</p>
                             <p className="text-xs" style={{ color: "#8A9085" }}>
                               {log.quantity_g} {log.quantity_unit ?? "serving"}
-                              {log.calories  != null ? ` · ${log.calories} kcal`      : ""}
+                              {log.calories  != null ? (log.nutrition_estimated ? ` · ~${log.calories} kcal est.` : ` · ${log.calories} kcal`) : ""}
                               {log.protein_g != null ? ` · ${log.protein_g}g protein` : ""}
                             </p>
                           </div>
                           <div className="flex items-center gap-1.5 ml-2">
-                            <button onClick={() => startEdit(log)}
+                            <button onClick={() => startEdit(log)} aria-label="Edit"
                               className="w-7 h-7 flex items-center justify-center rounded-lg"
                               style={{ background: "#EAF2E8" }}>
                               <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
@@ -636,13 +700,12 @@ export default function LogPage() {
                                 <path d="M7.5 3L10 5.5" stroke="#4A7C44" strokeWidth="1.5"/>
                               </svg>
                             </button>
-                            <button onClick={() => deleteLog(log.id)}
+                            <button onClick={() => deleteLog(log.id)} aria-label="Delete"
                               className="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold"
                               style={{ color: "#C05050", background: "#FEF2F2" }}>✕</button>
                           </div>
                         </div>
                       )}
-
                     </div>
                   ))}
                 </div>
@@ -652,193 +715,76 @@ export default function LogPage() {
         })}
       </main>
 
-      {/* ══ Slide-up panel ══ */}
+      {/* ══ Slide-up panel: one screen — pick, set qty, log ══ */}
       {activeSlot && (
         <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "rgba(0,0,0,0.4)" }}>
-          <button className="flex-1" onClick={closePanel} />
-          <div className="rounded-t-3xl flex flex-col" style={{ background: "#F6F5EE", maxHeight: "90vh" }}>
+          <button className="flex-1 min-h-[6vh]" onClick={closePanel} aria-label="Close" />
+          <div className="rounded-t-3xl flex flex-col overflow-hidden" style={{ background: "#F6F5EE", maxHeight: "90vh" }}>
 
-            {/* Panel header */}
+            {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0"
               style={{ borderBottom: "1px solid #E2E1D8" }}>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A9085" }}>
-                  {step === "select" ? "Select items for" : "Set quantities for"}
+                  What did you eat?
                 </p>
                 <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-dm-serif)", color: "#1C201C" }}>
-                  {SLOTS.find(s => s.key === activeSlot)?.label}
+                  {slotLabel(activeSlot)}
                 </h2>
               </div>
-              <button onClick={closePanel}
+              <button onClick={closePanel} aria-label="Close"
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
                 style={{ background: "#E2E1D8", color: "#5A6055" }}>✕</button>
             </div>
 
-            {/* ── OTHER: photo + manual entry ── */}
-            {activeSlot === "other" ? (
-              <div className="overflow-y-auto px-5 py-4 space-y-4">
+            {/* Single scroll area */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-4">
 
-                {/* ── Meal time selector ── */}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8A9085" }}>
-                    Which meal?
+              {/* Family pool */}
+              {poolRows.length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#4A7C44" }}>
+                    {poolName}
                   </p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {([
-                      { key: "breakfast", icon: "☀️",  label: "Breakfast" },
-                      { key: "lunch",     icon: "🌤️", label: "Lunch"     },
-                      { key: "dinner",    icon: "🌙",  label: "Dinner"    },
-                      { key: "other",     icon: "＋",  label: "Other"     },
-                    ] as { key: Slot; icon: string; label: string }[]).map(s => (
-                      <button key={s.key}
-                        onClick={() => setManualSlot(s.key)}
-                        className="flex flex-col items-center gap-1 py-2.5 rounded-xl text-center"
-                        style={{
-                          background: manualSlot === s.key ? "#1C2B1C" : "#fff",
-                          border: `1.5px solid ${manualSlot === s.key ? "#1C2B1C" : "#E2E1D8"}`,
-                        }}>
-                        <span className="text-lg leading-none">{s.icon}</span>
-                        <span className="text-[10px] font-semibold leading-tight"
-                          style={{ color: manualSlot === s.key ? "#fff" : "#5A6055" }}>
-                          {s.label}
-                        </span>
-                      </button>
-                    ))}
+                  <p className="text-xs mb-2" style={{ color: "#8A9085" }}>
+                    {planners.length ? `Planned by ${planners.join(", ")} · ` : ""}tap what you ate and set your portion
+                  </p>
+                  <div className="space-y-1.5">
+                    {poolRows.map(r => foodRow(r.key, r.food))}
                   </div>
-                </div>
+                </section>
+              )}
 
-                {/* Food name */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>
-                    Item name
-                  </label>
-                  <input type="text" value={manualName} onChange={e => setManualName(e.target.value)}
-                    placeholder="e.g. Avial, Lemon Rice, Biryani…"
-                    className="w-full rounded-xl px-4 py-3 text-sm"
-                    style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
-                </div>
-
-                {/* Qty + Unit */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>Quantity</label>
-                    <input type="number" min="0.5" step="0.5" value={manualQty}
-                      onChange={e => setManualQty(e.target.value)}
-                      className="w-full rounded-xl px-3 py-3 text-sm"
-                      style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
+              {/* Ticked items that scrolled out of view */}
+              {offscreen.length > 0 && (
+                <section>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8A9085" }}>
+                    Also on your plate
+                  </p>
+                  <div className="space-y-1.5">
+                    {offscreen.map(k => foodRow(k, picked[k]))}
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>Unit</label>
-                    <select value={manualUnit} onChange={e => setManualUnit(e.target.value)}
-                      className="w-full rounded-xl px-3 py-3 text-sm"
-                      style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none", appearance: "none" as const }}>
-                      <option value="serving">serving</option>
-                      <option value="piece">piece(s)</option>
-                      <option value="bowl">bowl</option>
-                      <option value="cup">cup</option>
-                      <option value="glass">glass</option>
-                      <option value="tbsp">tbsp</option>
-                      <option value="g">grams</option>
-                    </select>
-                  </div>
-                </div>
+                </section>
+              )}
 
-                {/* Calories */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>
-                    Approx. calories <span style={{ color: "#A0A89A" }}>(optional)</span>
-                  </label>
-                  <input type="number" min="0" value={manualCal} onChange={e => setManualCal(e.target.value)}
-                    placeholder="e.g. 250"
-                    className="w-full rounded-xl px-4 py-3 text-sm"
-                    style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>
-                    Notes <span style={{ color: "#A0A89A" }}>(optional)</span>
-                  </label>
-                  <input type="text" value={manualNote} onChange={e => setManualNote(e.target.value)}
-                    placeholder="e.g. restaurant, light oil, leftovers…"
-                    className="w-full rounded-xl px-4 py-3 text-sm"
-                    style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
-                </div>
-
-                <button onClick={saveManual} disabled={saving || !manualName.trim()}
-                  className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
-                  style={{ background: "#4A7C44" }}>
-                  {saving ? "Saving…" : "Log this item ✓"}
-                </button>
-
-                {/* Bottom padding so last button clears the nav */}
-                <div style={{ height: "8px" }} />
-              </div>
-
-            ) : step === "select" ? (
-              /* ── STEP 1: CHECKBOX SELECTION ── */
-              <div className="flex flex-col overflow-hidden">
-
-                {/* ── Pool items from today's plan ── */}
-                {poolItems.length > 0 && (
-                  <div className="shrink-0 px-4 pt-3 pb-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#4A7C44" }}>
-                      From today&apos;s plan
-                    </p>
-                    <div className="space-y-1.5">
-                      {poolItems.map(item => {
-                        const fakeId = item.foodItemId ?? `pool-${item.planId}`;
-                        const isChecked = checked.has(fakeId);
-                        const food = foodMap[fakeId];
-                        return (
-                          <button
-                            key={item.planId}
-                            onClick={() => food && toggle(food)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left"
-                            style={{
-                              background: isChecked ? "#EAF2E8" : "#fff",
-                              border: `1.5px solid ${isChecked ? "#4A7C44" : "#E2E1D8"}`,
-                            }}
-                          >
-                            <div className="shrink-0 w-5 h-5 rounded flex items-center justify-center"
-                              style={{
-                                background: isChecked ? "#4A7C44" : "#fff",
-                                border: `2px solid ${isChecked ? "#4A7C44" : "#C8C5BA"}`,
-                              }}>
-                              {isChecked && (
-                                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                                  <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate" style={{ color: isChecked ? "#1C201C" : "#5A6055" }}>
-                                {item.foodName}
-                              </p>
-                              {item.caloriesPerServing != null && (
-                                <p className="text-xs" style={{ color: "#4A7C44" }}>
-                                  ~{item.caloriesPerServing} kcal · {item.servingWeightG}g per serving
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="flex items-center gap-3 mt-3">
-                      <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
-                      <span className="text-xs" style={{ color: "#8A9085" }}>or search for more</span>
-                      <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
-                    </div>
+              {/* Search */}
+              <section>
+                {poolRows.length > 0 && (
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
+                    <span className="text-xs" style={{ color: "#8A9085" }}>add something else</span>
+                    <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
                   </div>
                 )}
-
-                {/* Category tabs */}
-                <div className="shrink-0 px-4 pt-3 pb-2">
-                  <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                <input type="search" value={query} onChange={e => { setQuery(e.target.value); setDishPicker(false); }}
+                  aria-label="Search food"
+                  placeholder="Search food…"
+                  className="w-full rounded-xl px-4 py-2.5 text-sm mb-2"
+                  style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
+                {query.trim().length < 2 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
                     {CAT_TABS.map(tab => (
-                      <button key={tab.key}
-                        onClick={() => { setCatFilter(tab.key); setQuery(""); }}
+                      <button key={tab.key} onClick={() => setCatFilter(tab.key)}
                         className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium"
                         style={{
                           background: catFilter === tab.key ? "#1C2B1C" : "#E2E1D8",
@@ -848,297 +794,178 @@ export default function LogPage() {
                       </button>
                     ))}
                   </div>
-                </div>
+                )}
 
-                {/* Search */}
-                <div className="shrink-0 px-4 pb-2">
-                  <input type="search" value={query} onChange={e => setQuery(e.target.value)}
-                    placeholder="Search food…"
-                    className="w-full rounded-xl px-4 py-2.5 text-sm"
-                    style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
-                </div>
-
-                {/* Food list with checkboxes */}
-                <div className="overflow-y-auto px-4 space-y-1.5" style={{ minHeight: 0, paddingBottom: checked.size ? "80px" : "20px" }}>
-                  {searching && <p className="text-xs text-center py-4" style={{ color: "#8A9085" }}>Loading…</p>}
-                  {!searching && results.length === 0 && (
-                    <p className="text-xs text-center py-4" style={{ color: "#8A9085" }}>No items found</p>
-                  )}
-                  {!searching && results.map(food => {
-                    const isChecked = checked.has(food.id);
-                    return (
-                      <button key={food.id} onClick={() => toggle(food)}
-                        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left"
-                        style={{
-                          background: isChecked ? "#EAF2E8" : "#fff",
-                          border: `1.5px solid ${isChecked ? "#4A7C44" : "#E2E1D8"}`,
-                        }}>
-                        {/* Checkbox */}
-                        <div className="shrink-0 w-5 h-5 rounded flex items-center justify-center"
-                          style={{
-                            background: isChecked ? "#4A7C44" : "#fff",
-                            border: `2px solid ${isChecked ? "#4A7C44" : "#C8C5BA"}`,
-                          }}>
-                          {isChecked && (
-                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                              <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          )}
-                        </div>
-                        <span className="text-lg shrink-0">{CAT_ICON[food.category] ?? "🍽️"}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: "#1C201C" }}>{food.name}</p>
-                          <p className="text-xs truncate" style={{ color: "#8A9085" }}>
-                            {food.name_ta ? `${food.name_ta} · ` : ""}
-                            per {food.serving_weight_g}g · {food.calories ?? "—"} kcal/100g
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                  {/* ── Ate outside? Photo section ── */}
-                  <div className="pt-2 pb-4">
-                    {/* Hidden file inputs */}
-                    <input ref={cameraRef}  type="file" accept="image/*" capture="environment"
-                      onChange={handlePhotoChange} className="hidden" />
-                    <input ref={galleryRef} type="file" accept="image/*"
-                      onChange={handlePhotoChange} className="hidden" />
-
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
-                      <span className="text-xs" style={{ color: "#8A9085" }}>ate outside?</span>
-                      <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
-                    </div>
-
-                    {/* Photo preview */}
-                    {photoPreview && (
-                      <div className="mb-3">
-                        <div className="relative rounded-2xl overflow-hidden"
-                          style={{ background: "#1C201C", minHeight: "160px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={photoPreview} alt="Food photo"
-                            style={{ width: "100%", maxHeight: "220px", objectFit: "contain", display: "block" }} />
-                          <button onClick={clearPhoto}
-                            className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                            style={{ background: "rgba(0,0,0,0.65)", color: "#fff" }}>✕</button>
-                        </div>
-                        <div className="flex gap-4 justify-center mt-2">
-                          <button onClick={() => cameraRef.current?.click()}
-                            className="text-xs font-medium" style={{ color: "#4A7C44" }}>📷 Retake</button>
-                          <button onClick={() => galleryRef.current?.click()}
-                            className="text-xs font-medium" style={{ color: "#4A7C44" }}>🖼️ Change</button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Capture buttons — shown when no photo yet */}
-                    {!photoPreview && !analyzing && !aiSuggestions && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => cameraRef.current?.click()}
-                          className="flex flex-col items-center gap-2 py-5 rounded-2xl"
-                          style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
-                          <span className="text-2xl">📷</span>
-                          <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>Take Photo</span>
-                        </button>
-                        <button onClick={() => galleryRef.current?.click()}
-                          className="flex flex-col items-center gap-2 py-5 rounded-2xl"
-                          style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
-                          <span className="text-2xl">🖼️</span>
-                          <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>From Gallery</span>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Analysing spinner */}
-                    {analyzing && (
-                      <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
-                        style={{ background: "#EAF2E8", border: "1px solid #C5DFC2" }}>
-                        <span className="text-base animate-spin" style={{ display: "inline-block" }}>🔄</span>
-                        <span className="text-sm font-medium" style={{ color: "#4A7C44" }}>Identifying dishes…</span>
-                      </div>
-                    )}
-
-                    {/* AI identified items */}
-                    {aiSuggestions && aiSuggestions.length > 0 && !analyzing && (
-                      <div className="rounded-2xl overflow-hidden"
-                        style={{ border: "1.5px solid #C5DFC2", background: "#F0F7EF" }}>
-                        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-                          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#4A7C44" }}>
-                            ✨ {aiSuggestions.length} item{aiSuggestions.length > 1 ? "s" : ""} identified
-                          </p>
-                          <p className="text-xs" style={{ color: "#8A9085" }}>uncheck to remove</p>
-                        </div>
-                        {aiSuggestions.map((item, i) => {
-                          const isOn = aiChecked.has(item);
-                          return (
-                            <div key={item} style={{ borderTop: i > 0 ? "1px solid #D5EBD2" : undefined }}>
-                              <div className="flex items-center gap-3 px-4 py-2.5"
-                                style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
-                                <button
-                                  onClick={() => { const n = new Set(aiChecked); isOn ? n.delete(item) : n.add(item); setAiChecked(n); }}
-                                  className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center"
-                                  style={{ background: isOn ? "#4A7C44" : "#fff", border: `2px solid ${isOn ? "#4A7C44" : "#B0C4AE"}` }}>
-                                  {isOn && <svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                </button>
-                                <input id={`ai-${i}`} type="text" value={aiEdits[item] ?? item}
-                                  onChange={e => setAiEdits(p => ({ ...p, [item]: e.target.value }))}
-                                  className="flex-1 text-sm font-medium bg-transparent rounded-lg px-2 py-1"
-                                  style={{ color: isOn ? "#1C2B1C" : "#8A9085", border: "1.5px solid transparent", outline: "none", minWidth: 0 }}
-                                  onFocus={e => (e.target.style.border = "1.5px solid #4A7C44")}
-                                  onBlur={e  => (e.target.style.border = "1.5px solid transparent")} />
-                                <label htmlFor={`ai-${i}`}
-                                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer"
-                                  style={{ background: "#EAF2E8" }}>
-                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                                    <path d="M9 1.5L11.5 4L4.5 11H2v-2.5L9 1.5Z" stroke="#4A7C44" strokeWidth="1.5" strokeLinejoin="round"/>
-                                    <path d="M7.5 3L10 5.5" stroke="#4A7C44" strokeWidth="1.5"/>
-                                  </svg>
-                                </label>
-                              </div>
-                              <div className="flex items-center gap-2 px-4 pb-3"
-                                style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
-                                <button onClick={() => setAiQtys(p => ({ ...p, [item]: Math.max(0.5, (p[item] ?? 1) - 0.5) }))}
-                                  className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
-                                  style={{ background: "#D5EBD2", color: "#1C2B1C" }}>−</button>
-                                <span className="text-sm font-semibold w-8 text-center" style={{ color: "#1C2B1C" }}>
-                                  {aiQtys[item] ?? 1}
-                                </span>
-                                <button onClick={() => setAiQtys(p => ({ ...p, [item]: (p[item] ?? 1) + 0.5 }))}
-                                  className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
-                                  style={{ background: "#D5EBD2", color: "#1C2B1C" }}>+</button>
-                                <select value={aiUnits[item] ?? "serving"}
-                                  onChange={e => setAiUnits(p => ({ ...p, [item]: e.target.value }))}
-                                  className="rounded-lg px-2 py-1.5 text-xs"
-                                  style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none", width: "5.5rem" }}>
-                                  {["serving","piece","bowl","cup","glass","tbsp","g"].map(u => <option key={u} value={u}>{u}</option>)}
-                                </select>
-                                <div className="flex items-center gap-1 ml-auto">
-                                  <input type="number" min="0" value={aiCals[item] ?? ""}
-                                    onChange={e => setAiCals(p => ({ ...p, [item]: e.target.value }))}
-                                    placeholder="kcal"
-                                    className="w-14 rounded-lg px-2 py-1.5 text-xs text-center"
-                                    style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none" }} />
-                                  <span className="text-xs" style={{ color: "#8A9085" }}>kcal</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        <div className="px-4 py-3" style={{ borderTop: "1px solid #D5EBD2" }}>
-                          <button onClick={saveAiItems}
-                            disabled={saving || aiChecked.size === 0}
-                            className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
-                            style={{ background: "#1C2B1C" }}>
-                            {saving ? "Saving…" : aiChecked.size === 0 ? "Select at least one item"
-                              : `Log ${aiChecked.size} item${aiChecked.size > 1 ? "s" : ""} ✓`}
+                <div className="space-y-1.5">
+                  {searching && <p className="text-xs text-center py-3" style={{ color: "#8A9085" }}>Loading…</p>}
+                  {!searching && results
+                    .filter(f => !poolKeys.has(f.id))
+                    .map(f => foodRow(f.id, f))}
+                  {!searching && typed.length >= 2 && !exactMatch && (
+                    kutumbhId ? (
+                      <div className="rounded-xl px-3 py-2.5"
+                        style={{ background: "#FBEFD9", border: "1.5px dashed #E4B774", color: "#7A4C12" }}>
+                        {!dishPicker ? (
+                          <button onClick={() => setDishPicker(true)} className="w-full text-left text-sm">
+                            ＋ Add <b>“{typed}”</b> as a Family Dish
+                            <span className="block text-xs mt-0.5" style={{ color: "#A5661A" }}>
+                              The Prime Member will add its exact nutrition, ingredients and preparation
+                            </span>
                           </button>
-                        </div>
+                        ) : (
+                          <>
+                            <p className="text-xs mb-1.5">What kind of dish is <b>{typed}</b>?</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {DISH_CATEGORIES.map(c => (
+                                <button key={c.key} onClick={() => addFamilyDish(c.key)} disabled={addingDish}
+                                  className="px-2.5 py-1.5 rounded-full text-xs font-medium disabled:opacity-50"
+                                  style={{ background: "#fff", color: "#5A4012", border: "1px solid #E4B774" }}>
+                                  {c.icon} {c.label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    ) : results.length === 0 ? (
+                      <p className="text-xs text-center py-3" style={{ color: "#8A9085" }}>No items found</p>
+                    ) : null
+                  )}
+                </div>
+              </section>
+
+              {/* Ate outside? — photo */}
+              <section className="pb-2">
+                <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+                  onChange={handlePhotoChange} className="hidden" />
+                <input ref={galleryRef} type="file" accept="image/*"
+                  onChange={handlePhotoChange} className="hidden" />
+
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
+                  <span className="text-xs" style={{ color: "#8A9085" }}>ate outside?</span>
+                  <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
                 </div>
 
-                {/* Sticky bottom bar when items are selected */}
-                {checked.size > 0 && (
-                  <div className="shrink-0 absolute bottom-0 left-0 right-0 px-4 py-4 rounded-b-3xl"
-                    style={{ background: "#F6F5EE", borderTop: "1px solid #E2E1D8" }}>
-                    <button onClick={goToQty}
-                      className="w-full py-3 rounded-xl font-semibold text-sm text-white"
-                      style={{ background: "#1C2B1C" }}>
-                      Set quantities for {checked.size} item{checked.size > 1 ? "s" : ""} →
+                {photoPreview && (
+                  <div className="mb-3">
+                    <div className="relative rounded-2xl overflow-hidden"
+                      style={{ background: "#1C201C", minHeight: "160px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photoPreview} alt="Food photo"
+                        style={{ width: "100%", maxHeight: "220px", objectFit: "contain", display: "block" }} />
+                      <button onClick={clearPhoto} aria-label="Remove photo"
+                        className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                        style={{ background: "rgba(0,0,0,0.65)", color: "#fff" }}>✕</button>
+                    </div>
+                  </div>
+                )}
+
+                {!photoPreview && !analyzing && !aiSuggestions && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => cameraRef.current?.click()}
+                      className="flex flex-col items-center gap-2 py-4 rounded-2xl"
+                      style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
+                      <span className="text-2xl">📷</span>
+                      <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>Take Photo</span>
+                    </button>
+                    <button onClick={() => galleryRef.current?.click()}
+                      className="flex flex-col items-center gap-2 py-4 rounded-2xl"
+                      style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
+                      <span className="text-2xl">🖼️</span>
+                      <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>From Gallery</span>
                     </button>
                   </div>
                 )}
-              </div>
 
-            ) : (
-              /* ── STEP 2: SET QUANTITIES ── */
-              <div className="flex flex-col overflow-hidden">
-                <div className="overflow-y-auto px-4 py-4 space-y-3" style={{ minHeight: 0, paddingBottom: "80px" }}>
-                  <p className="text-xs" style={{ color: "#8A9085" }}>
-                    Adjust quantity for each item, then tap Log.
-                  </p>
-                  {checkedList.map(food => {
-                    const qty = quantities[food.id] ?? (MIN_QTY[food.serving_unit] ?? 1);
-                    const g   = toGrams(qty, food);
-                    const cal = calcCal(food, g);
-                    return (
-                      <div key={food.id} className="rounded-2xl px-4 py-3"
-                        style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
-                        {/* Food name row */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-lg">{CAT_ICON[food.category] ?? "🍽️"}</span>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold" style={{ color: "#1C201C" }}>{food.name}</p>
-                            {cal != null && (
-                              <p className="text-xs" style={{ color: "#4A7C44" }}>
-                                {qtyLabel(qty, food.serving_unit)} ≈ {g}g · {cal} kcal
-                              </p>
-                            )}
-                          </div>
-                          <button onClick={() => { setChecked(prev => { const n = new Set(prev); n.delete(food.id); return n; }); }}
-                            className="text-xs w-5 h-5 flex items-center justify-center"
-                            style={{ color: "#8A9085" }}>✕</button>
-                        </div>
-                        {/* Ingredients / Preparation reference */}
-                        {(food.ingredients || food.preparation) && (
-                          <div className="rounded-xl px-3 py-2 mb-3 space-y-1"
-                            style={{ background: "#F6F5EE", border: "1px solid #E2E1D8" }}>
-                            {food.ingredients && (
-                              <p className="text-xs leading-snug" style={{ color: "#5A6055" }}>
-                                <span className="font-semibold" style={{ color: "#8A9085" }}>Ingredients: </span>
-                                {food.ingredients}
-                              </p>
-                            )}
-                            {food.preparation && (
-                              <p className="text-xs leading-snug" style={{ color: "#5A6055" }}>
-                                <span className="font-semibold" style={{ color: "#8A9085" }}>Prep: </span>
-                                {food.preparation}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        {/* Stepper + quick-pick */}
-                        <div className="flex items-center gap-3">
-                          <button onClick={() => adjustQty(food.id, -1)}
-                            className="w-9 h-9 rounded-full text-lg font-bold flex items-center justify-center"
-                            style={{ background: "#EAF2E8", color: "#2E5C28" }}>−</button>
-                          <div className="flex-1 text-center">
-                            <p className="text-xl font-bold" style={{ color: "#1C201C" }}>
-                              {qty % 1 === 0 ? qty : qty}
-                            </p>
-                            <p className="text-xs" style={{ color: "#8A9085" }}>
-                              {UNIT_LABEL[food.serving_unit] ?? food.serving_unit}
-                            </p>
-                          </div>
-                          <button onClick={() => adjustQty(food.id, 1)}
-                            className="w-9 h-9 rounded-full text-lg font-bold flex items-center justify-center"
-                            style={{ background: "#EAF2E8", color: "#2E5C28" }}>+</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Sticky bottom */}
-                <div className="shrink-0 absolute bottom-0 left-0 right-0 px-4 py-4 rounded-b-3xl"
-                  style={{ background: "#F6F5EE", borderTop: "1px solid #E2E1D8" }}>
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    <button onClick={() => setStep("select")}
-                      className="text-sm font-medium"
-                      style={{ color: "#5A6055" }}>← Back</button>
-                    <p className="text-sm font-semibold" style={{ color: "#4A7C44" }}>
-                      {qtyPreviewCal > 0 ? `${qtyPreviewCal} kcal total` : ""}
-                    </p>
+                {analyzing && (
+                  <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
+                    style={{ background: "#EAF2E8", border: "1px solid #C5DFC2" }}>
+                    <span className="text-base animate-spin" style={{ display: "inline-block" }}>🔄</span>
+                    <span className="text-sm font-medium" style={{ color: "#4A7C44" }}>Identifying dishes…</span>
                   </div>
-                  <button onClick={saveItems} disabled={saving || checked.size === 0}
-                    className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-                    style={{ background: "#1C2B1C" }}>
-                    {saving ? "Saving…" : `Log ${checked.size} item${checked.size > 1 ? "s" : ""} ✓`}
-                  </button>
-                </div>
-              </div>
-            )}
+                )}
+
+                {aiSuggestions && aiSuggestions.length > 0 && !analyzing && (
+                  <div className="rounded-2xl overflow-hidden" style={{ border: "1.5px solid #C5DFC2", background: "#F0F7EF" }}>
+                    <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#4A7C44" }}>
+                        ✨ {aiSuggestions.length} item{aiSuggestions.length > 1 ? "s" : ""} identified
+                      </p>
+                      <p className="text-xs" style={{ color: "#8A9085" }}>uncheck to remove</p>
+                    </div>
+                    {aiSuggestions.map((item, i) => {
+                      const isOn = aiChecked.has(item);
+                      return (
+                        <div key={item} style={{ borderTop: i > 0 ? "1px solid #D5EBD2" : undefined }}>
+                          <div className="flex items-center gap-3 px-4 py-2.5" style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
+                            <button
+                              onClick={() => { const n = new Set(aiChecked); if (isOn) n.delete(item); else n.add(item); setAiChecked(n); }}
+                              className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center"
+                              style={{ background: isOn ? "#4A7C44" : "#fff", border: `2px solid ${isOn ? "#4A7C44" : "#B0C4AE"}` }}>
+                              {isOn && <svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                            </button>
+                            <input id={`ai-${i}`} type="text" value={aiEdits[item] ?? item}
+                              onChange={e => setAiEdits(p => ({ ...p, [item]: e.target.value }))}
+                              className="flex-1 text-sm font-medium bg-transparent rounded-lg px-2 py-1"
+                              style={{ color: isOn ? "#1C2B1C" : "#8A9085", border: "1.5px solid #D5EBD2", outline: "none", minWidth: 0 }} />
+                          </div>
+                          <div className="flex items-center gap-2 px-4 pb-3" style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
+                            <button onClick={() => setAiQtys(p => ({ ...p, [item]: Math.max(0.5, (p[item] ?? 1) - 0.5) }))}
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
+                              style={{ background: "#D5EBD2", color: "#1C2B1C" }}>−</button>
+                            <span className="text-sm font-semibold w-8 text-center" style={{ color: "#1C2B1C" }}>
+                              {aiQtys[item] ?? 1}
+                            </span>
+                            <button onClick={() => setAiQtys(p => ({ ...p, [item]: (p[item] ?? 1) + 0.5 }))}
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
+                              style={{ background: "#D5EBD2", color: "#1C2B1C" }}>+</button>
+                            <select value={aiUnits[item] ?? "serving"}
+                              onChange={e => setAiUnits(p => ({ ...p, [item]: e.target.value }))}
+                              className="rounded-lg px-2 py-1.5 text-xs"
+                              style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none", width: "5.5rem" }}>
+                              {["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"].map(u => <option key={u} value={u}>{u}</option>)}
+                            </select>
+                            <div className="flex items-center gap-1 ml-auto">
+                              <input type="number" min="0" value={aiCals[item] ?? ""}
+                                onChange={e => setAiCals(p => ({ ...p, [item]: e.target.value }))}
+                                placeholder="kcal"
+                                className="w-14 rounded-lg px-2 py-1.5 text-xs text-center"
+                                style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none" }} />
+                              <span className="text-xs" style={{ color: "#8A9085" }}>kcal</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="px-4 py-3" style={{ borderTop: "1px solid #D5EBD2" }}>
+                      <button onClick={saveAiItems} disabled={saving || aiChecked.size === 0}
+                        className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
+                        style={{ background: "#1C2B1C" }}>
+                        {saving ? "Saving…" : aiChecked.size === 0 ? "Select at least one item"
+                          : `Log ${aiChecked.size} outside item${aiChecked.size > 1 ? "s" : ""} ✓`}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
+
+            {/* Always-visible action bar */}
+            <div className="shrink-0 px-4 pt-3" style={{
+              background: "#F6F5EE", borderTop: "1px solid #E2E1D8",
+              paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
+            }}>
+              <button onClick={saveItems} disabled={saving || pickedCount === 0}
+                className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
+                style={{ background: "#1C2B1C" }}>
+                {saving
+                  ? "Saving…"
+                  : pickedCount === 0
+                    ? "Tick what you ate"
+                    : `Log ${pickedCount} item${pickedCount > 1 ? "s" : ""} · ${pickedEst ? "~" : ""}${pickedCal} kcal ✓`}
+              </button>
+            </div>
           </div>
         </div>
       )}

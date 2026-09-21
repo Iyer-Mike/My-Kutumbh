@@ -11,6 +11,7 @@ type MealLog = {
   quantity_g: number;
   quantity_unit: string | null;
   calories: number | null;
+  nutrition_estimated: boolean | null;
 };
 
 type Props = {
@@ -52,12 +53,19 @@ export default function DashboardSlotCard({ slotKey, name, icon, time, items }: 
   async function saveEdit() {
     if (!editingId || !editName.trim()) return;
     setSaving(true);
+    const newQty = parseFloat(editQty) || 1;
+    const old    = items.find(l => l.id === editingId);
+    // Scale kcal with the portion; a unit change can't be converted here
+    const scale  = old && old.quantity_g && (old.quantity_unit ?? "serving") === editUnit
+      ? { calories: old.calories != null ? Math.round(old.calories * newQty / old.quantity_g) : null }
+      : {};
     const { error } = await supabase
       .from("meal_logs")
       .update({
         food_name:     editName.trim(),
-        quantity_g:    parseFloat(editQty) || 1,
+        quantity_g:    newQty,
         quantity_unit: editUnit,
+        ...scale,
       })
       .eq("id", editingId);
     setSaving(false);
@@ -187,8 +195,8 @@ export default function DashboardSlotCard({ slotKey, name, icon, time, items }: 
                       {log.quantity_g} {log.quantity_unit ?? "serving"}
                     </p>
                     {log.calories != null && (
-                      <p className="text-xs font-medium" style={{ color: "#4A7C44" }}>
-                        {Math.round(log.calories)} kcal
+                      <p className="text-xs font-medium" style={{ color: log.nutrition_estimated ? "#A5661A" : "#4A7C44" }}>
+                        {log.nutrition_estimated ? `~${Math.round(log.calories)} kcal est.` : `${Math.round(log.calories)} kcal`}
                       </p>
                     )}
                     <button

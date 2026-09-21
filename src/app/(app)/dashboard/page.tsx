@@ -47,11 +47,12 @@ export default async function DashboardPage() {
 
   const { data: membership } = await supabase
     .from("kutumbh_members")
-    .select("kutumbh_id, kutumbhs(name)")
+    .select("kutumbh_id, role, kutumbhs(name)")
     .eq("user_id", user!.id)
     .maybeSingle();
 
   const kutumbhId = membership?.kutumbh_id ?? null;
+  const isPrime   = membership?.role === "owner";
   const rawKutumbh = membership?.kutumbhs;
   const kutumbhName: string = (Array.isArray(rawKutumbh)
     ? (rawKutumbh[0] as { name: string } | undefined)?.name
@@ -104,7 +105,19 @@ export default async function DashboardPage() {
 
         <div className="rounded-2xl px-4 py-4 mb-4" style={{ background: "rgba(255,255,255,0.08)" }}>
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>{todayLabel()}</p>
-          <p className="text-xl font-medium text-white mt-0.5">Namaste, {firstName} 🙏</p>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <p className="text-xl font-medium text-white">Namaste, {firstName} 🙏</p>
+            {membership && (
+              <span
+                className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                style={isPrime
+                  ? { background: "#C8832A", color: "#fff" }
+                  : { background: "rgba(255,255,255,0.15)", color: "#DDEBD9" }}
+              >
+                {isPrime ? "★ Prime Member" : "Member"}
+              </span>
+            )}
+          </div>
           <p className="text-xs mt-1" style={{ color: "#8FBF88" }}>
             {totalKcal > 0 ? `${Math.round(totalKcal)} kcal logged today` : "What have you eaten today?"}
           </p>

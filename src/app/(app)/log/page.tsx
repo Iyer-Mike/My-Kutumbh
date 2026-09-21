@@ -20,6 +20,10 @@ type PoolPlanItem = {
   servingWeightG: number;
   servingUnit: string;
   calsPer100g: number | null;
+  category: string;
+  proteinPer100g: number | null;
+  ingredients: string | null;
+  preparation: string | null;
 };
 type MealLog = {
   id: string; food_name: string; meal_slot: string;
@@ -231,8 +235,9 @@ export default function LogPage() {
         logged_date:   today,
       };
     });
-    await supabase.from("meal_logs").insert(rows);
+    const { error } = await supabase.from("meal_logs").insert(rows);
     setSaving(false);
+    if (error) { alert(`Couldn't save your log: ${error.message}`); return; }
     closePanel();
     loadLogs();
   }
@@ -248,18 +253,30 @@ export default function LogPage() {
         .select("kutumbh_id")
         .eq("user_id", data.user.id)
         .maybeSingle();
-      setKutumbhId(mem?.kutumbh_id ?? null);
+      const kid = mem?.kutumbh_id ?? null;
+      setKutumbhId(kid);
+
+      // Auto-open a slot arriving from the Dashboard (?slot=). Done here, after
+      // membership resolves, so the family pool can load on first open.
+      const slot = searchParams.get("slot") as Slot | null;
+      if (slot && ["breakfast", "lunch", "dinner", "other"].includes(slot)) {
+        openSlot(slot, kid);
+      }
     });
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
+  // RLS lets members read each other's logs (for the Family tab), so this
+  // must filter to the current user or family entries appear as your own.
   const loadLogs = useCallback(async () => {
+    if (!userId) return;
     const { data } = await supabase
       .from("meal_logs")
       .select("id,food_name,meal_slot,quantity_g,quantity_unit,calories,protein_g")
+      .eq("user_id", userId)
       .eq("logged_date", today)
       .order("logged_at", { ascending: true });
     if (data) setLogs(data);
-  }, [today]);
+  }, [today, userId]);
 
   useEffect(() => { loadLogs(); }, [loadLogs]);
 
@@ -267,7 +284,7 @@ export default function LogPage() {
     if (!kid || slot === "other") { setPoolItems([]); return; }
     const { data } = await supabase
       .from("meal_plans")
-      .select("id, food_name, food_item_id, calories, food_items(serving_weight_g, serving_unit, calories)")
+      .select("id, food_name, food_item_id, calories, food_items(serving_weight_g, serving_unit, calories, category, protein_g, ingredients, preparation)")
       .eq("kutumbh_id", kid)
       .eq("meal_slot", slot)
       .eq("planned_date", today);
@@ -282,6 +299,10 @@ export default function LogPage() {
         servingWeightG: (fi?.serving_weight_g as number) ?? 100,
         servingUnit: (fi?.serving_unit as string) ?? "serving",
         calsPer100g: (fi?.calories as number) ?? null,
+        category: (fi?.category as string) ?? "other",
+        proteinPer100g: (fi?.protein_g as number) ?? null,
+        ingredients: (fi?.ingredients as string) ?? null,
+        preparation: (fi?.preparation as string) ?? null,
       };
     });
 
@@ -296,28 +317,19 @@ export default function LogPage() {
         id,
         name: item.foodName,
         name_ta: null,
-        category: "other",
+        category: item.category,
         calories: item.calsPer100g,
-        protein_g: null,
+        protein_g: item.proteinPer100g,
         serving_unit: item.servingUnit,
         serving_weight_g: item.servingWeightG,
-        ingredients: null,
-        preparation: null,
+        ingredients: item.ingredients,
+        preparation: item.preparation,
       };
       newIds.add(id);
     });
     setFoodMap(prev => ({ ...prev, ...newFoodMap }));
-    setChecked(newIds);
+    setChecked(prev => new Set([...prev, ...newIds]));
   }
-
-  // Auto-open a slot when arriving from the Dashboard ?slot= param
-  useEffect(() => {
-    const slot = searchParams.get("slot") as Slot | null;
-    if (slot && ["breakfast", "lunch", "dinner", "other"].includes(slot)) {
-      openSlot(slot);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (!activeSlot || activeSlot === "other") return;
@@ -383,7 +395,7 @@ export default function LogPage() {
   }
 
   // ── Panel open/close ──────────────────────────────────────────
-  function openSlot(slot: Slot) {
+  function openSlot(slot: Slot, kid: string | null = kutumbhId) {
     setActiveSlot(slot);
     setStep("select");
     setQuery(""); setCatFilter("");
@@ -393,7 +405,7 @@ export default function LogPage() {
     setManualQty("1"); setManualUnit("serving"); setManualNote("");
     setManualSlot(slot === "other" ? "other" : slot);
     clearPhoto();
-    loadPoolForSlot(slot, kutumbhId);
+    loadPoolForSlot(slot, kid);
   }
 
   function closePanel() {
@@ -411,15 +423,18 @@ export default function LogPage() {
       const qty  = quantities[id] ?? (MIN_QTY[food.serving_unit] ?? 1);
       const g    = toGrams(qty, food);
       return {
-        user_id: userId, food_item_id: food.id, food_name: food.name,
+        // Custom pool items carry a synthetic "pool-…" id that isn't a real
+        // food_items uuid; sending it fails the FK and rejects the whole batch.
+        user_id: userId, food_item_id: id.startsWith("pool-") ? null : food.id, food_name: food.name,
         meal_slot: activeSlot, quantity_g: qty, quantity_unit: food.serving_unit,
         calories:  calcCal(food, g),
         protein_g: food.protein_g != null ? Math.round((food.protein_g * g) / 100 * 10) / 10 : null,
         logged_date: today,
       };
     });
-    await supabase.from("meal_logs").insert(rows);
+    const { error } = await supabase.from("meal_logs").insert(rows);
     setSaving(false);
+    if (error) { alert(`Couldn't save your log: ${error.message}`); return; }
     closePanel();
     loadLogs();
   }
@@ -428,7 +443,7 @@ export default function LogPage() {
     if (!manualName.trim() || !userId) return;
     setSaving(true);
 
-    await supabase.from("meal_logs").insert({
+    const { error } = await supabase.from("meal_logs").insert({
       user_id:       userId,
       food_name:     manualName.trim(),
       meal_slot:     manualSlot,
@@ -439,6 +454,7 @@ export default function LogPage() {
       logged_date:   today,
     });
     setSaving(false);
+    if (error) { alert(`Couldn't save your log: ${error.message}`); return; }
     closePanel();
     loadLogs();
   }

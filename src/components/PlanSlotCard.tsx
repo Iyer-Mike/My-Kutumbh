@@ -8,12 +8,15 @@ type PlanItem = {
   food_name: string;
   quantity_g: number;
   quantity_unit: string | null;
+  calories: number | null;
 };
 
 type FoodSuggestion = {
   id: string;
   name: string;
   calories: number | null;
+  serving_weight_g: number | null;
+  serving_unit: string | null;
 };
 
 type Props = {
@@ -32,15 +35,26 @@ function todayISO() {
   return new Date().toISOString().split("T")[0];
 }
 
+function calcKcal(food: FoodSuggestion, qty: number, unit: string): number | null {
+  if (!food.calories) return null;
+  if (unit === "g") {
+    return Math.round((qty * food.calories) / 100);
+  }
+  // For serving/piece/bowl/cup etc — use serving_weight_g to convert to grams
+  const gPerServing = food.serving_weight_g ?? 100;
+  return Math.round((qty * gPerServing * food.calories) / 100);
+}
+
 export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumbhId, initialItems }: Props) {
   const supabase = createClient();
-  const [items, setItems]           = useState<PlanItem[]>(initialItems);
-  const [adding, setAdding]         = useState(false);
-  const [query, setQuery]           = useState("");
+  const [items, setItems]             = useState<PlanItem[]>(initialItems);
+  const [adding, setAdding]           = useState(false);
+  const [query, setQuery]             = useState("");
   const [suggestions, setSuggestions] = useState<FoodSuggestion[]>([]);
-  const [qty, setQty]               = useState("1");
-  const [unit, setUnit]             = useState("serving");
-  const [saving, setSaving]         = useState(false);
+  const [selectedFood, setSelectedFood] = useState<FoodSuggestion | null>(null);
+  const [qty, setQty]                 = useState("1");
+  const [unit, setUnit]               = useState("serving");
+  const [saving, setSaving]           = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +64,7 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
     const t = setTimeout(async () => {
       const { data } = await supabase
         .from("food_items")
-        .select("id, name, calories")
+        .select("id, name, calories, serving_weight_g, serving_unit")
         .ilike("name", `%${query.trim()}%`)
         .limit(6);
       setSuggestions(data ?? []);
@@ -74,6 +88,7 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
     setAdding(true);
     setQuery("");
     setSuggestions([]);
+    setSelectedFood(null);
     setQty("1");
     setUnit("serving");
     setTimeout(() => inputRef.current?.focus(), 60);
@@ -83,11 +98,26 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
     setAdding(false);
     setQuery("");
     setSuggestions([]);
+    setSelectedFood(null);
   }
 
-  async function addItem(foodName: string, foodItemId?: string) {
-    if (!foodName.trim() || saving) return;
+  // Picking from dropdown fills the query and stores food data — does NOT insert yet
+  function pickSuggestion(s: FoodSuggestion) {
+    setQuery(s.name);
+    setSelectedFood(s);
+    // Use the food's own serving unit as default if available
+    if (s.serving_unit) setUnit(s.serving_unit);
+    setSuggestions([]);
+    setTimeout(() => inputRef.current?.focus(), 60);
+  }
+
+  const estimatedKcal = selectedFood ? calcKcal(selectedFood, parseFloat(qty) || 0, unit) : null;
+
+  async function addItem() {
+    const foodName = query.trim();
+    if (!foodName || saving) return;
     setSaving(true);
+    const kcal = estimatedKcal;
     const { data, error } = await supabase
       .from("meal_plans")
       .insert({
@@ -95,12 +125,13 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
         kutumbh_id:   kutumbhId ?? null,
         planned_date: todayISO(),
         meal_slot:    slotKey,
-        food_name:    foodName.trim(),
+        food_name:    foodName,
         quantity_g:   parseFloat(qty) || 1,
         quantity_unit: unit,
-        food_item_id: foodItemId ?? null,
+        food_item_id: selectedFood?.id ?? null,
+        calories:     kcal ?? null,
       })
-      .select("id, food_name, quantity_g, quantity_unit")
+      .select("id, food_name, quantity_g, quantity_unit, calories")
       .single();
     setSaving(false);
     if (error || !data) return;
@@ -114,6 +145,7 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
   }
 
   const hasItems = items.length > 0;
+  const totalPlanKcal = items.reduce((s, i) => s + (i.calories ?? 0), 0);
 
   return (
     <div
@@ -132,7 +164,9 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
           <div className="min-w-0">
             <p className="font-semibold text-sm" style={{ color: "#1C201C" }}>{name}</p>
             <p className="text-xs mt-0.5" style={{ color: hasItems ? "#4A7C44" : "#8A9085" }}>
-              {hasItems ? `${items.length} planned` : `${time} · Nothing planned`}
+              {hasItems
+                ? `${items.length} item${items.length > 1 ? "s" : ""}${totalPlanKcal > 0 ? ` · ~${totalPlanKcal} kcal` : ""}`
+                : `${time} · Nothing planned`}
             </p>
           </div>
         </div>
@@ -160,9 +194,16 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
                 <p className="text-sm truncate" style={{ color: "#1C201C" }}>{item.food_name}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                <p className="text-xs" style={{ color: "#8A9085" }}>
-                  {item.quantity_g} {item.quantity_unit ?? "serving"}
-                </p>
+                <div className="text-right">
+                  <p className="text-xs" style={{ color: "#8A9085" }}>
+                    {item.quantity_g} {item.quantity_unit ?? "serving"}
+                  </p>
+                  {item.calories != null && (
+                    <p className="text-xs font-medium" style={{ color: "#4A7C44" }}>
+                      {item.calories} kcal
+                    </p>
+                  )}
+                </div>
                 <button
                   onClick={() => removeItem(item.id)}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-xs"
@@ -189,18 +230,17 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
               ref={inputRef}
               type="text"
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={e => { setQuery(e.target.value); setSelectedFood(null); }}
               onKeyDown={e => {
                 if (e.key === "Escape") cancelAdd();
-                if (e.key === "Enter" && suggestions.length === 0 && query.trim()) addItem(query);
               }}
               placeholder="Search or type a dish name…"
               className="w-full rounded-xl px-3 py-2 text-sm"
               style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
             />
 
-            {/* Suggestions */}
-            {(suggestions.length > 0 || query.trim()) && (
+            {/* Suggestions dropdown */}
+            {(suggestions.length > 0 || query.trim()) && !selectedFood && (
               <div
                 className="absolute z-20 left-0 right-0 top-full mt-1 rounded-xl overflow-hidden"
                 style={{ background: "#fff", border: "1px solid #E2E1D8", boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}
@@ -208,34 +248,31 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
                 {suggestions.map((s, i) => (
                   <button
                     key={s.id}
-                    onClick={() => addItem(s.name, s.id)}
+                    onClick={() => pickSuggestion(s)}
                     className="w-full text-left px-3 py-2.5 text-sm flex items-center justify-between"
                     style={{ borderBottom: i < suggestions.length - 1 ? "1px solid #F3F2EB" : undefined, color: "#1C201C" }}
                   >
                     <span>{s.name}</span>
-                    {s.calories != null && (
-                      <span className="text-xs ml-2" style={{ color: "#8A9085" }}>{Math.round(s.calories)} kcal</span>
+                    {s.calories != null && s.serving_weight_g != null && (
+                      <span className="text-xs ml-2" style={{ color: "#8A9085" }}>
+                        {Math.round(s.serving_weight_g * s.calories / 100)} kcal/serving
+                      </span>
                     )}
                   </button>
                 ))}
-                {query.trim() && (
-                  <button
-                    onClick={() => addItem(query)}
-                    className="w-full text-left px-3 py-2.5 text-sm font-semibold"
-                    style={{
-                      borderTop: suggestions.length > 0 ? "1px solid #EAF2E8" : undefined,
-                      color: "#4A7C44",
-                      background: "#F7FAF7",
-                    }}
+                {query.trim() && suggestions.length === 0 && (
+                  <div
+                    className="px-3 py-2.5 text-sm"
+                    style={{ color: "#8A9085" }}
                   >
-                    Add &ldquo;{query}&rdquo; →
-                  </button>
+                    No matches — will save as custom item
+                  </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Qty + unit row */}
+          {/* Qty + unit row with live kcal */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setQty(q => String(Math.max(0.5, parseFloat(q) - 0.5)))}
@@ -262,10 +299,22 @@ export default function PlanSlotCard({ slotKey, name, icon, time, userId, kutumb
             </select>
           </div>
 
+          {/* Live kcal estimate */}
+          {estimatedKcal != null && (
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+              style={{ background: "#EAF2E8", color: "#2E5A28" }}
+            >
+              <span>≈</span>
+              <span>{estimatedKcal} kcal</span>
+              <span style={{ color: "#6A9A65", fontWeight: 400 }}>for {qty} {unit}</span>
+            </div>
+          )}
+
           {/* Confirm / cancel */}
           <div className="flex gap-2 pt-1">
             <button
-              onClick={() => query.trim() && addItem(query)}
+              onClick={addItem}
               disabled={saving || !query.trim()}
               className="flex-1 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40"
               style={{ background: "#1C2B1C" }}

@@ -15,6 +15,7 @@ type Props = {
   dietType: string | null;
   conditions: string[];
   allergies: string[];
+  medications: string[];
   dailyKcalGoal: number | null;
 };
 
@@ -65,6 +66,7 @@ export default function ProfileEditCard(props: Props) {
   const [dietType,       setDietType]      = useState(props.dietType      ?? "");
   const [conditions,     setConditions]    = useState<string[]>(props.conditions ?? []);
   const [allergiesText,  setAllergiesText] = useState((props.allergies ?? []).join(", "));
+  const [medsText,       setMedsText]      = useState((props.medications ?? []).join(", "));
   const [dailyKcalGoal,  setDailyKcalGoal] = useState(String(props.dailyKcalGoal ?? ""));
 
   function toggleCondition(c: string) {
@@ -83,6 +85,7 @@ export default function ProfileEditCard(props: Props) {
     setDietType(props.dietType ?? "");
     setConditions(props.conditions ?? []);
     setAllergiesText((props.allergies ?? []).join(", "));
+    setMedsText((props.medications ?? []).join(", "));
     setDailyKcalGoal(String(props.dailyKcalGoal ?? ""));
     setEditing(false);
   }
@@ -90,6 +93,10 @@ export default function ProfileEditCard(props: Props) {
   async function save() {
     setSaving(true);
     const allergyArr = allergiesText
+      .split(",")
+      .map(s => s.trim())
+      .filter(Boolean);
+    const medsArr = medsText
       .split(",")
       .map(s => s.trim())
       .filter(Boolean);
@@ -106,6 +113,7 @@ export default function ProfileEditCard(props: Props) {
         diet_type:       dietType  || null,
         conditions:      conditions,
         allergies:       allergyArr,
+        medications:     medsArr,
         daily_kcal_goal: dailyKcalGoal ? parseInt(dailyKcalGoal) : null,
       })
       .eq("id", props.userId);
@@ -274,6 +282,26 @@ export default function ProfileEditCard(props: Props) {
             />
           </div>
 
+          {/* Medications */}
+          <div>
+            <label htmlFor="medications" className="text-xs" style={{ color: "#8A9085" }}>
+              Regular medications{" "}
+              <span style={{ color: "#B5B0A8" }}>(comma-separated, e.g. metformin, amlodipine)</span>
+            </label>
+            <input
+              id="medications"
+              type="text"
+              value={medsText}
+              onChange={e => setMedsText(e.target.value)}
+              placeholder="metformin, thyroxine…"
+              className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
+              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+            />
+            <p className="text-[11px] mt-1" style={{ color: "#B5B0A8" }}>
+              Used to spot food–medicine interactions in your insights. Shared only within your Kutumbh.
+            </p>
+          </div>
+
           {/* Daily kcal goal */}
           <div>
             <label className="text-xs" style={{ color: "#8A9085" }}>
@@ -363,6 +391,20 @@ export default function ProfileEditCard(props: Props) {
                   <span key={a} className="px-2.5 py-1 rounded-full text-xs font-medium"
                     style={{ background: "#FFF3E8", color: "#C85A00", border: "1px solid #FDD9B5" }}>
                     {a}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {props.medications && props.medications.length > 0 && (
+            <div>
+              <p className="text-xs mb-2" style={{ color: "#8A9085" }}>Medications</p>
+              <div className="flex flex-wrap gap-1.5">
+                {props.medications.map(m => (
+                  <span key={m} className="px-2.5 py-1 rounded-full text-xs font-medium"
+                    style={{ background: "#EEF1FA", color: "#3E4F86", border: "1px solid #D3DAF0" }}>
+                    💊 {m}
                   </span>
                 ))}
               </div>

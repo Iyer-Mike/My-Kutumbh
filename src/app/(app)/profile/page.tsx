@@ -95,6 +95,7 @@ export default async function ProfilePage() {
           dietType={profile?.diet_type ?? null}
           conditions={profile?.conditions ?? []}
           allergies={profile?.allergies ?? []}
+          medications={profile?.medications ?? []}
           dailyKcalGoal={profile?.daily_kcal_goal ?? null}
         />
 

@@ -20,11 +20,12 @@ type Props = {
 };
 
 const ACTIVITY_OPTIONS = [
-  { value: "sedentary",         label: "Sedentary (desk job, little exercise)" },
-  { value: "lightly_active",    label: "Lightly active (light exercise 1–3 days)" },
-  { value: "moderately_active", label: "Moderately active (exercise 3–5 days)" },
-  { value: "very_active",       label: "Very active (hard exercise 6–7 days)" },
-  { value: "extra_active",      label: "Extra active (very hard exercise / physical job)" },
+  // Must match profiles_activity_level_check (same values as onboarding)
+  { value: "sedentary",   label: "Sedentary — desk work, little movement" },
+  { value: "light",       label: "Light — walking, light housework" },
+  { value: "moderate",    label: "Moderate — exercise 3–4× per week" },
+  { value: "active",      label: "Active — exercise most days" },
+  { value: "very_active", label: "Very Active — physical job or intense daily training" },
 ];
 
 const DIET_OPTIONS = [

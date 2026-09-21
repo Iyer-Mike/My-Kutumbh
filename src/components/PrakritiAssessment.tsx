@@ -94,7 +94,11 @@ function computePrakriti(answers: number[]) {
   let primary: string;
   const diff01 = sorted[0].s - sorted[1].s;
   if (diff01 <= 2) {
-    primary = `${sorted[0].d}-${sorted[1].d}`;
+    // Name the pair in canonical order — profiles_primary_dosha_check only
+    // accepts vata-pitta / pitta-kapha / vata-kapha, never e.g. pitta-vata.
+    const ORDER = ["vata", "pitta", "kapha"];
+    const pair = [sorted[0].d, sorted[1].d].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+    primary = `${pair[0]}-${pair[1]}`;
     // Special case: all three equal-ish
     const diff12 = sorted[1].s - sorted[2].s;
     if (diff01 <= 2 && diff12 <= 2) primary = "tridosha";

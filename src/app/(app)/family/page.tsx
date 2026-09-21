@@ -91,13 +91,15 @@ export default async function FamilyPage() {
       };
     });
 
-    // Owner first, then alphabetical
+    // Prime Member first, then alphabetical
     members.sort((a, b) => {
       if (a.role === "owner" && b.role !== "owner") return -1;
       if (b.role === "owner" && a.role !== "owner") return 1;
       return (a.full_name ?? "").localeCompare(b.full_name ?? "");
     });
   }
+
+  const primeName = members.find((m) => m.role === "owner")?.full_name ?? null;
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
@@ -108,11 +110,22 @@ export default async function FamilyPage() {
       >
         <PageNav />
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>My Kutumbh</p>
-        <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
-          {kutumbhName ?? "Kutumbh"}
+        <h1
+          className="flex flex-wrap items-baseline gap-x-2 text-xl text-white"
+          style={{ fontFamily: "var(--font-dm-serif)" }}
+        >
+          <span>{kutumbhName ?? "Kutumbh"}</span>
+          {primeName && (
+            <>
+              <span style={{ color: "rgba(255,255,255,0.4)" }}>·</span>
+              <span className="font-bold">{primeName}</span>
+            </>
+          )}
         </h1>
-        {isOwner && (
-          <p className="text-xs mt-1" style={{ color: "#8FBF88" }}>You are the family owner</p>
+        {kutumbhName && (
+          <p className="text-xs mt-1" style={{ color: "#8FBF88" }}>
+            {isOwner ? "You're the Prime Member of the Kutumbh" : "You're a member of the Kutumbh"}
+          </p>
         )}
       </header>
 
@@ -194,9 +207,9 @@ export default async function FamilyPage() {
                           {m.role === "owner" && (
                             <span
                               className="text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0"
-                              style={{ background: "#F3F2EB", color: "#8A9085" }}
+                              style={{ background: "#FBEFD9", color: "#A5661A" }}
                             >
-                              Owner
+                              ★ Prime Member
                             </span>
                           )}
                         </div>
@@ -234,10 +247,10 @@ export default async function FamilyPage() {
               </div>
             </div>
 
-            {/* ── Non-owner: invite note ── */}
+            {/* ── Non-Prime Member: invite note ── */}
             {!isOwner && (
               <p className="text-xs text-center" style={{ color: "#8A9085" }}>
-                Ask the family owner to invite more members.
+                Ask the Prime Member to invite more members.
               </p>
             )}
 

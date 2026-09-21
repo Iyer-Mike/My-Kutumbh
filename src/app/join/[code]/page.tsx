@@ -83,7 +83,7 @@ export default async function JoinPage({ params }: Props) {
                   : "This invite link is no longer active."}
               </p>
               <p className="text-xs" style={{ color: "#8A9085" }}>
-                Ask the family owner to send you a fresh link.
+                Ask the Prime Member to send you a fresh link.
               </p>
               <a
                 href="/"

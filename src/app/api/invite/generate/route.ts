@@ -22,7 +22,7 @@ export async function POST(_req: NextRequest) {
     .single();
 
   if (!membership || membership.role !== "owner") {
-    return NextResponse.json({ error: "Only the family owner can create invites" }, { status: 403 });
+    return NextResponse.json({ error: "Only the Prime Member can create invites" }, { status: 403 });
   }
 
   // Deactivate any previously active invites for this kutumbh

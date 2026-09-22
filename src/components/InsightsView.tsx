@@ -127,7 +127,12 @@ function Readings({ f }: { f: LabFlag }) {
   );
 }
 
-function FlagItem({ f }: { f: LabFlag }) {
+const NUTRIENT_WORD: Partial<Record<NutrientKey, string>> = {
+  fiber_g: "fibre", iron_mg: "iron", calcium_mg: "calcium", vitamin_b12_mcg: "B12",
+  folate_mcg: "folate", potassium_mg: "potassium",
+};
+
+function FlagItem({ f, repeatOf }: { f: LabFlag; repeatOf: boolean }) {
   if (!f.known) {
     return (
       <div className="grid gap-2 py-3" style={{ borderTop: `1px solid ${C.rule}` }}>
@@ -149,13 +154,17 @@ function FlagItem({ f }: { f: LabFlag }) {
           <ul className="grid gap-0.5 text-sm list-disc pl-5" style={{ color: C.ink2 }}>
             {f.favour.map((x) => <li key={x}>{x}</li>)}
           </ul>
-          {f.favourFoods.length > 0 && (
+          {f.favourFoods.length > 0 && (repeatOf ? (
+            <p className="text-xs mt-1" style={{ color: C.ink3 }}>
+              Same {f.nutrient ? NUTRIENT_WORD[f.nutrient] ?? "" : ""}-rich foods as above.
+            </p>
+          ) : (
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {f.favourFoods.map((n) => (
                 <span key={n} className="text-xs px-2 py-0.5 rounded-full" style={{ background: C.leafSoft, color: "#2E5A28" }}>{n}</span>
               ))}
             </div>
-          )}
+          ))}
         </div>
       )}
 
@@ -241,7 +250,10 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
                 return `${n} value${n === 1 ? "" : "s"} outside the normal range, with what ${you === "you" ? "you" : "they"} can do through food.`;
               })()}
             </p>
-            {flags.map((f) => <FlagItem key={f.key} f={f} />)}
+            {flags.map((f, i) => (
+              <FlagItem key={f.key} f={f}
+                repeatOf={f.favourFoods.length > 0 && flags.slice(0, i).some((g) => g.favourFoods.join("|") === f.favourFoods.join("|"))} />
+            ))}
             <p className="text-[11px] pt-3" style={{ color: C.ink3, borderTop: `1px solid ${C.rule}` }}>
               General guidance only, not medical advice. Always follow your doctor&apos;s advice, especially about supplements and medicines.
             </p>

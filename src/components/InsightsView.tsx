@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { IntakeSummary, LabFlag, Needs, NutrientKey } from "@/lib/insights/types";
+import type { CorrectionEvent, IntakeSummary, LabFlag, Needs, NutrientKey } from "@/lib/insights/types";
 import type { AyurvedaSummary, Rasa } from "@/lib/insights/ayurveda";
 import { energyNarrative, microNarrative, trendNarrative, ayurvedaNarrative, labNarrative } from "@/lib/insights/narrate";
+import CoachChat from "@/components/CoachChat";
 
 export type InsightsPeriod = {
   key: "today" | "week" | "month";
@@ -12,6 +13,7 @@ export type InsightsPeriod = {
   intake: IntakeSummary;
   ayurveda: AyurvedaSummary;
   flags: LabFlag[];
+  events: CorrectionEvent[];
 };
 
 type Props = {
@@ -20,7 +22,47 @@ type Props = {
   primaryDosha: string | null;
   hasReport: boolean;
   viewingOther: boolean;
+  memberId: string | null;
+  firstName: string;
 };
+
+const SEVERITY: Record<CorrectionEvent["severity"], { label: string; bg: string; fg: string }> = {
+  alert: { label: "Alert", bg: "#FBE2DC", fg: "#9A2C1B" },
+  watch: { label: "Watch", bg: "#FBEBCF", fg: "#7E4A08" },
+  tip:   { label: "Tip",   bg: "#DDE9F6", fg: "#1F4A78" },
+};
+const CATEGORY: Record<CorrectionEvent["category"], string> = {
+  medicine: "Medicine & food", allergy: "Allergy", condition: "Condition", pattern: "Lab pattern",
+};
+
+function eventsNarrative(events: CorrectionEvent[]): string {
+  if (!events.length) return "Nothing needs attention right now.";
+  const n = (s: CorrectionEvent["severity"]) => events.filter((e) => e.severity === s).length;
+  const parts = [
+    n("alert") && `${n("alert")} alert${n("alert") === 1 ? "" : "s"}`,
+    n("watch") && `${n("watch")} to watch`,
+    n("tip") && `${n("tip")} tip${n("tip") === 1 ? "" : "s"}`,
+  ].filter(Boolean);
+  return `${parts.join(", ")} — ${events[0].title.toLowerCase()}${events.length > 1 ? " and more" : ""}.`;
+}
+
+function EventCard({ e }: { e: CorrectionEvent }) {
+  const s = SEVERITY[e.severity];
+  return (
+    <div className="grid gap-1.5 py-3" style={{ borderTop: "1px solid #E2E1D8" }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.fg }}>{s.label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#5F675C" }}>{CATEGORY[e.category]}</span>
+      </div>
+      <p className="text-base font-bold" style={{ color: "#4B2A7A" }}>{e.title}</p>
+      <p className="text-sm" style={{ color: "#3A4238" }}>{e.detail}</p>
+      <p className="text-sm" style={{ color: "#141814" }}><b>Do this:</b> {e.action}</p>
+      {e.evidence.length > 0 && (
+        <p className="text-xs" style={{ color: "#5F675C" }}>Based on: {e.evidence.join(" · ")}</p>
+      )}
+    </div>
+  );
+}
 
 // Higher-contrast text than the rest of the app, as this page is read closely
 const C = {
@@ -29,7 +71,9 @@ const C = {
 };
 
 type Theme = { bar: string; text: string; accent: string };
-const THEME: Record<"energy" | "lab" | "micro" | "ayurveda" | "trend", Theme> = {
+const THEME: Record<"alerts" | "coach" | "energy" | "lab" | "micro" | "ayurveda" | "trend", Theme> = {
+  alerts:   { bar: "#ECE3F7", text: "#4B2A7A", accent: "#6B3FA0" },
+  coach:    { bar: "#E4ECE0", text: "#1C3A1E", accent: "#1C2B1C" },
   energy:   { bar: "#E1F0DE", text: "#1F5E25", accent: "#2F7A35" },
   lab:      { bar: "#FBE2DC", text: "#8E2A1B", accent: "#B23A26" },
   micro:    { bar: "#DDE9F6", text: "#1F4A78", accent: "#2E64A0" },
@@ -70,8 +114,10 @@ const fmt = (x: number) =>
   : parseFloat(x.toFixed(3)).toString();
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-const STORE_KEY = "insights-open-v1";
-const DEFAULT_OPEN: Record<string, boolean> = { energy: true, lab: true, micro: false, ayurveda: false, trend: false };
+const STORE_KEY = "insights-open-v2";
+const DEFAULT_OPEN: Record<string, boolean> = {
+  alerts: true, energy: false, lab: true, micro: false, ayurveda: false, trend: false, coach: false,
+};
 
 function Chevron({ open, color }: { open: boolean; color: string }) {
   return (
@@ -226,7 +272,7 @@ function Finding({ f, repeatOf, open, onToggle }: { f: LabFlag; repeatOf: boolea
   );
 }
 
-export default function InsightsView({ periods, needs, primaryDosha, hasReport, viewingOther }: Props) {
+export default function InsightsView({ periods, needs, primaryDosha, hasReport, viewingOther, memberId, firstName }: Props) {
   const [key, setKey] = useState<InsightsPeriod["key"]>("week");
   const [open, setOpen] = useState<Record<string, boolean>>(DEFAULT_OPEN);
   const [openFinding, setOpenFinding] = useState<Record<string, boolean>>({});
@@ -249,7 +295,7 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
   }
 
   const p = periods.find((x) => x.key === key) ?? periods[0];
-  const { intake, ayurveda, flags } = p;
+  const { intake, ayurveda, flags, events } = p;
   const nothing = intake.items === 0;
   const perLabel = key === "today" ? "today" : `a day, over ${intake.loggedDays} logged day${intake.loggedDays === 1 ? "" : "s"}`;
   const firstKnown = flags.find((f) => f.known)?.key;
@@ -274,6 +320,23 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
           {!viewingOther && <> <Link href="/log" className="font-bold underline">Log a meal</Link> to see your nutrition.</>}
         </div>
       )}
+
+      <Section id="alerts" title="Health alerts & tips" theme={THEME.alerts} open={open.alerts} onToggle={() => toggle("alerts")}
+        summary={eventsNarrative(events)} aside={events.length ? `${events.length}` : undefined}>
+        {events.length === 0 ? (
+          <p className="text-sm" style={{ color: C.ink2 }}>
+            No medicine, allergy or lab-pattern concerns found for this period. Keep your profile&apos;s conditions, allergies and
+            medications up to date so this stays accurate.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm -mt-1" style={{ color: C.ink2 }}>
+              Personal checks that connect {viewingOther ? `${firstName}'s` : "your"} medicines, allergies, conditions and lab results with the food logged.
+            </p>
+            {events.map((e) => <EventCard key={e.id} e={e} />)}
+          </>
+        )}
+      </Section>
 
       {!nothing && (
         <Section id="energy" title="Energy" theme={THEME.energy} open={open.energy} onToggle={() => toggle("energy")}
@@ -411,6 +474,13 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
           <Trend daily={intake.daily} target={needs.kcal.value} accent={THEME.trend.accent} />
         </Section>
       )}
+
+      <Section id="coach" title="Ask the coach" theme={THEME.coach} open={open.coach} onToggle={() => toggle("coach")}
+        summary={viewingOther
+          ? `Ask questions about ${firstName}'s food and health, answered from their own data.`
+          : "Ask questions about your food and health, answered from your own data."}>
+        <CoachChat memberId={memberId} firstName={firstName} viewingOther={viewingOther} />
+      </Section>
     </div>
   );
 }

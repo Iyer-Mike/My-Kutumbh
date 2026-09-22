@@ -315,3 +315,73 @@ describe("narration", () => {
     assert.equal(labNarrative([], true), "All values in the latest report are within the normal range.");
   });
 });
+
+// ── Intelligence ──────────────────────────────────────────────────
+describe("intelligence", async () => {
+  const { evaluateIntelligence, medicationGroups } = await import("./intelligence.ts");
+  const needs = computeNeeds(MOHAN, "2026-09-22");
+  const REPORT = latestLabValues([{ report_date: "2026-08-20", extracted_values: {
+    hba1c: 6.6, hba1c_ref: "<5.7", triglycerides: 150, triglycerides_ref: "30-149",
+    ldl: 155, ldl_ref: "<100", crp: 9.8, crp_ref: "0.0-3.3",
+    vitamin_d: 13.24, vitamin_d_ref: "30-100", vitamin_b12: 238, vitamin_b12_ref: "211-911",
+  } }]);
+  const period = (entries: LogEntry[]) => summarizeIntake(entries, "2026-09-16", "2026-09-22");
+
+  test("medicines are recognised by generic and Indian brand names", () => {
+    const g = medicationGroups(["Glycomet 500", "Thyronorm 50 mcg", "Telma 40", "pan 40"]);
+    assert.deepEqual([...g.keys()].sort(), ["aceArb", "acidReducer", "metformin", "thyroid"]);
+    assert.equal(g.get("metformin"), "Glycomet 500");
+    assert.equal(medicationGroups(null).size, 0);
+  });
+
+  test("metformin + low-normal B12 test + low B12 intake is a 'watch'", () => {
+    const entries = [log({ food: IDLI, calories: 260 })];
+    const ev = evaluateIntelligence({ profile: { ...MOHAN, medications: ["metformin"] }, needs, intake: period(entries), entries, labs: REPORT });
+    const m = ev.find((e) => e.id === "med-metformin-b12")!;
+    assert.equal(m.severity, "watch");
+    assert.ok(m.evidence.some((x) => /238 pg\/mL/.test(x)));
+  });
+
+  test("the user's real report produces the combined patterns", () => {
+    const ev = evaluateIntelligence({ profile: MOHAN, needs, intake: period([]), entries: [], labs: REPORT });
+    const ids = ev.map((e) => e.id);
+    assert.ok(ids.includes("pattern-insulin-resistance"));
+    assert.ok(ids.includes("pattern-sugar-cholesterol"));
+    assert.ok(ids.includes("pattern-inflammation-metabolic"));
+    assert.equal(ev[0].severity, "alert");                                // alerts first
+  });
+
+  test("allergy 'oily foods' flags fried dishes that were logged", () => {
+    const VADA = food({ name: "Medu Vada", category: "snack", fat_g: 13.5 });
+    const entries = [log({ food_name: "Medu Vada", food: VADA, calories: 260 }), log({ food: IDLI, calories: 130 })];
+    const ev = evaluateIntelligence({ profile: MOHAN, needs, intake: period(entries), entries, labs: {} });
+    const a = ev.find((e) => e.category === "allergy")!;
+    assert.equal(a.severity, "alert");
+    assert.deepEqual(a.evidence, ["Logged: Medu Vada"]);
+  });
+
+  test("hypertension + salt over the limit is an alert; under the limit is silent", () => {
+    const profile = { ...MOHAN, conditions: ["Hypertension"] };
+    const salty = [log({ food: RASAM, quantity_g: 4, quantity_unit: "bowl", calories: 168 })];     // 2400 mg sodium
+    assert.ok(evaluateIntelligence({ profile, needs, intake: period(salty), entries: salty, labs: {} }).some((e) => e.id === "cond-bp-salt"));
+    const light = [log({ food: IDLI, calories: 130 })];
+    assert.ok(!evaluateIntelligence({ profile, needs, intake: period(light), entries: light, labs: {} }).some((e) => e.id === "cond-bp-salt"));
+  });
+
+  test("sugar-lowering medicine notices skipped breakfasts", () => {
+    const entries = [
+      log({ logged_date: "2026-09-20", meal_slot: "lunch", calories: 400 }),
+      log({ logged_date: "2026-09-21", meal_slot: "dinner", calories: 400 }),
+      log({ logged_date: "2026-09-22", meal_slot: "breakfast", calories: 300 }),
+    ];
+    const ev = evaluateIntelligence({ profile: { ...MOHAN, medications: ["Amaryl 1mg"] }, needs, intake: period(entries), entries, labs: {} });
+    const s = ev.find((e) => e.id === "med-sulfonylurea-meals")!;
+    assert.equal(s.severity, "watch");
+    assert.ok(s.evidence.includes("No breakfast logged on 2 of 3 logged days"));
+  });
+
+  test("nothing to say gives an empty list", () => {
+    const quiet = { ...MOHAN, conditions: [], allergies: [], medications: [] };
+    assert.deepEqual(evaluateIntelligence({ profile: quiet, needs, intake: period([]), entries: [], labs: {} }), []);
+  });
+});

@@ -58,6 +58,18 @@ export type Profile = {
   diet_type: string | null;
   allergies: string[] | null;
   conditions: string[] | null;
+  medications?: string[] | null;
+};
+
+/** A personalised finding from the Intelligence layer (Blueprint: "AI Correction Event"). */
+export type CorrectionEvent = {
+  id: string;                               // stable key, e.g. "med-metformin-b12"
+  severity: "alert" | "watch" | "tip";
+  category: "medicine" | "allergy" | "condition" | "pattern";
+  title: string;
+  detail: string;
+  action: string;
+  evidence: string[];                        // the facts it was based on
 };
 
 export type Target = { value: number; kind: "goal" | "limit"; source: string };

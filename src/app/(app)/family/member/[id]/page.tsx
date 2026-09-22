@@ -93,6 +93,13 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
             <p className="text-xs capitalize" style={{ color: "rgba(255,255,255,0.6)" }}>{profile.primary_dosha}</p>
           )}
         </div>
+        <Link
+          href={`/insights?member=${memberId}`}
+          className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-xl text-xs font-semibold"
+          style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
+        >
+          ◔ Open {name.split(" ")[0]}&apos;s Insights &amp; lab guidance →
+        </Link>
       </header>
 
       <main className="flex-1 px-5 py-5 space-y-3">

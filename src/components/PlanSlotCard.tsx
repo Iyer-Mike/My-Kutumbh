@@ -105,7 +105,7 @@ export default function PlanSlotCard({
     let cancelled = false;
     (async () => {
       const q = applyFoodFilter(
-        supabase.from("food_items").select(SUGGEST_COLS).order("name").limit(80), filter, false, slotKey);
+        supabase.from("food_items").select(SUGGEST_COLS).order("name").limit(400), filter, false, slotKey);
       const { data } = await q;
       if (!cancelled) setBrowse(sortForSlot((data ?? []) as FoodSuggestion[], slotKey));
     })();

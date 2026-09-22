@@ -325,7 +325,7 @@ export default function LogPage() {
     const t = setTimeout(async () => {
       setSearching(true);
       const searchingByName = query.trim().length >= 2;
-      let q = supabase.from("food_items").select(FOOD_COLS).order("name").limit(searchingByName ? 40 : 80);
+      let q = supabase.from("food_items").select(FOOD_COLS).order("name").limit(searchingByName ? 40 : 400);
       if (searchingByName) q = q.ilike("name", `%${query.trim()}%`);
       q = applyFoodFilter(q, filter, searchingByName, activeSlot);
       const { data } = await q;

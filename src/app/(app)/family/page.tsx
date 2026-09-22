@@ -2,10 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import InviteButton from "@/components/InviteButton";
 import Link from "next/link";
-
-function todayISO() {
-  return new Date().toISOString().split("T")[0];
-}
+import { todayLocal } from "@/lib/dates";
 
 const DOSHA_COLORS: Record<string, string> = {
   vata:   "#C8832A",
@@ -67,7 +64,7 @@ export default async function FamilyPage() {
       .from("meal_logs")
       .select("user_id, calories")
       .in("user_id", memberIds)
-      .eq("logged_date", todayISO());
+      .eq("logged_date", todayLocal());
 
     type LogSummary = { count: number; kcal: number };
     const logMap: Record<string, LogSummary> = {};

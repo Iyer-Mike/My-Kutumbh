@@ -61,6 +61,54 @@ type Props = {
   initialRecords: MedRecord[];
 };
 
+const BUCKET = "medical-reports";
+
+// Vercel rejects request bodies over 4.5 MB, and base64 adds a third, so
+// PDFs are capped here and photos are shrunk before being sent to be read.
+const MAX_PDF_BYTES  = 3 * 1024 * 1024;
+const MAX_IMAGE_EDGE = 2000;
+
+function readBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function toParsePayload(file: File): Promise<{ base64: string; mediaType: string }> {
+  if (file.type === "application/pdf") {
+    if (file.size > MAX_PDF_BYTES) {
+      throw new Error("This PDF is over 3 MB, too large to read automatically. Enter the values below, or upload a photo or screenshot of the results page.");
+    }
+    return { base64: await readBase64(file), mediaType: "application/pdf" };
+  }
+
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error("This image format can't be read. Please use a JPG or PNG photo, or a PDF.");
+  }
+  const scale  = Math.min(1, MAX_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width  = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const jpeg = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob(b => (b ? resolve(b) : reject(new Error("Couldn't prepare the photo."))), "image/jpeg", 0.85),
+  );
+  return { base64: await readBase64(jpeg), mediaType: "image/jpeg" };
+}
+
+// Older records saved a public URL (which never opens for a private
+// bucket); newer ones save the storage path. Accept both.
+function storagePath(fileUrl: string) {
+  return fileUrl.startsWith("http") ? fileUrl.replace(/^.*\/medical-reports\//, "") : fileUrl;
+}
+
 export default function MedicalReportsCard({ userId, initialRecords }: Props) {
   const supabase = createClient();
   const fileRef  = useRef<HTMLInputElement>(null);
@@ -79,49 +127,62 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
   const [draftNotes, setDraftNotes]   = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [saving, setSaving]           = useState(false);
+  const [parseMsg, setParseMsg]       = useState<string | null>(null);
 
   function resetDraft() {
     setDraftValues({}); setDraftType("other"); setDraftDate("");
-    setDraftNotes(""); setPendingFile(null); setShowForm(false);
+    setDraftNotes(""); setPendingFile(null); setShowForm(false); setParseMsg(null);
+    if (fileRef.current) fileRef.current.value = "";
+    if (cameraRef.current) cameraRef.current.value = "";
   }
 
   async function handleFile(file: File) {
     setPendingFile(file);
     setShowForm(true);
     setParsing(true);
+    setParseMsg(null);
 
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
+      const { base64, mediaType } = await toParsePayload(file);
       const res = await fetch("/api/parse-medical-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileBase64: base64, mediaType: file.type || "image/jpeg" }),
+        body: JSON.stringify({ fileBase64: base64, mediaType }),
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        setDraftType(data.report_type ?? "other");
-        setDraftDate(data.report_date ?? "");
-        // Convert extracted values to string for editing
-        const vals: Record<string, string> = {};
-        for (const [k, v] of Object.entries(data.extracted_values ?? {})) {
-          if (typeof v === "number" || typeof v === "string") {
-            vals[k] = String(v);
-          }
-        }
-        setDraftValues(vals);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setParseMsg(data.error ?? "Couldn't read this report automatically. Enter the values below.");
+        return;
       }
-    } catch {
-      // Silent — user can fill manually
+      setDraftType(data.report_type ?? "other");
+      setDraftDate(data.report_date ?? "");
+      const vals: Record<string, string> = {};
+      for (const [k, v] of Object.entries(data.extracted_values ?? {})) {
+        if (typeof v === "number" || typeof v === "string") vals[k] = String(v);
+      }
+      setDraftValues(vals);
+      if (!Object.keys(vals).some(k => !k.endsWith("_ref"))) {
+        setParseMsg("No lab values were found in this file. Check it's the results page, or enter the values below.");
+      }
+    } catch (e) {
+      setParseMsg(e instanceof Error ? e.message : "Couldn't read this report automatically. Enter the values below.");
     } finally {
       setParsing(false);
     }
+  }
+
+  async function openOriginal(rec: MedRecord) {
+    if (!rec.file_url) return;
+    // Open the tab synchronously so mobile browsers don't block it as a pop-up
+    const win = window.open("", "_blank");
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(storagePath(rec.file_url), 300);
+    if (error || !data) {
+      win?.close();
+      alert(`Couldn't open the file: ${error?.message ?? "not found"}`);
+      return;
+    }
+    if (win) win.location.assign(data.signedUrl);
+    else window.location.assign(data.signedUrl);
   }
 
   async function saveRecord() {
@@ -136,16 +197,17 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
       const ext  = pendingFile.name.split(".").pop() ?? "jpg";
       const path = `${userId}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
-        .from("medical-reports")
+        .from(BUCKET)
         .upload(path, pendingFile, { contentType: pendingFile.type });
-      if (!upErr) {
-        const { data: urlData } = supabase.storage
-          .from("medical-reports")
-          .getPublicUrl(path);
-        fileUrl  = urlData.publicUrl;
-        fileName = pendingFile.name;
-      }
       setUploading(false);
+      if (upErr) {
+        // Keep the draft so nothing typed is lost
+        setSaving(false);
+        alert(`The file couldn't be stored: ${upErr.message}\n\nYour values are still here. Tap ✕ next to the file name to save them without the file.`);
+        return;
+      }
+      fileUrl  = path;
+      fileName = pendingFile.name;
     }
 
     // Build extracted_values: only numeric keys (not _ref keys for now)
@@ -169,11 +231,13 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
       .single();
 
     setSaving(false);
-    if (!error && data) {
-      setRecords(prev => [data as MedRecord, ...prev]);
-      setExpandedId(data.id);
-      resetDraft();
+    if (error || !data) {
+      alert(`Couldn't save the report: ${error?.message ?? "unknown error"}`);
+      return;
     }
+    setRecords(prev => [data as MedRecord, ...prev]);
+    setExpandedId(data.id);
+    resetDraft();
   }
 
   // Get displayable lab keys (skip _ref keys)
@@ -233,6 +297,13 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
 
           {!parsing && (
             <>
+              {parseMsg && (
+                <div className="rounded-xl px-4 py-3 mt-4 text-sm"
+                  style={{ background: "#FBEFD9", color: "#7A4C12", border: "1px solid #E4B774" }}>
+                  {parseMsg}
+                </div>
+              )}
+
               {/* File name */}
               {pendingFile && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl mt-4"
@@ -409,6 +480,16 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                     +{labKeys.length - 4} more values ▼
                   </button>
                 )}
+              </div>
+            )}
+
+            {isExpanded && rec.file_url && (
+              <div className="px-5 pb-3" style={{ background: "#F0F7EF" }}>
+                <button onClick={() => openOriginal(rec)}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                  style={{ background: "#fff", color: "#4A7C44", border: "1px solid #C5DFC2" }}>
+                  📄 View original{rec.file_name ? ` · ${rec.file_name}` : ""}
+                </button>
               </div>
             )}
           </div>

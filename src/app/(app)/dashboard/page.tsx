@@ -2,16 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import KutumbhLogo from "@/components/KutumbhLogo";
 import DashboardTabs from "@/components/DashboardTabs";
 import { redirect } from "next/navigation";
-
-function todayLabel() {
-  return new Date().toLocaleDateString("en-IN", {
-    weekday: "long", day: "numeric", month: "long",
-  });
-}
-
-function todayISO() {
-  return new Date().toISOString().split("T")[0];
-}
+import { todayLocal, longDateLocal } from "@/lib/dates";
 
 type MealLog = {
   id: string;
@@ -72,12 +63,12 @@ export default async function DashboardPage() {
     .from("meal_logs")
     .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated")
     .eq("user_id", user!.id)
-    .eq("logged_date", todayISO());
+    .eq("logged_date", todayLocal());
 
   const plansQuery = supabase
     .from("meal_plans")
     .select("id, user_id, food_name, meal_slot, food_items(needs_review, category, serving_unit, serving_weight_g, calories)")
-    .eq("planned_date", todayISO())
+    .eq("planned_date", todayLocal())
     .order("created_at", { ascending: true });
 
   const { data: planRows } = await (kutumbhId
@@ -103,7 +94,7 @@ export default async function DashboardPage() {
       .from("meal_pools")
       .select("meal_slot, name")
       .eq("kutumbh_id", kutumbhId)
-      .eq("planned_date", todayISO());
+      .eq("planned_date", todayLocal());
     for (const p of pools ?? []) poolNames[p.meal_slot] = p.name;
   }
 
@@ -147,7 +138,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="rounded-2xl px-4 py-4 mb-4" style={{ background: "rgba(255,255,255,0.08)" }}>
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>{todayLabel()}</p>
+          <p className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>{longDateLocal()}</p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <p className="text-xl font-medium text-white">Namaste, {firstName} 🙏</p>
             {membership && (

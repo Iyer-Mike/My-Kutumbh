@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import { SLOTS, slotLabel } from "@/lib/meal-slots";
+import { daysAgoLocal } from "@/lib/dates";
 
 type Log = {
   id: string;
@@ -15,16 +16,12 @@ type Log = {
   logged_date: string;
 };
 
-function isoDaysAgo(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().split("T")[0];
-}
-
 function dayLabel(iso: string) {
-  if (iso === isoDaysAgo(0)) return "Today";
-  if (iso === isoDaysAgo(1)) return "Yesterday";
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+  if (iso === daysAgoLocal(0)) return "Today";
+  if (iso === daysAgoLocal(1)) return "Yesterday";
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", {
+    timeZone: "UTC", weekday: "short", day: "numeric", month: "short",
+  });
 }
 
 // Prime Member only: what a family member has eaten over the last 7 days.
@@ -57,14 +54,14 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
       .from("meal_logs")
       .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated, logged_date")
       .eq("user_id", memberId)
-      .gte("logged_date", isoDaysAgo(6))
+      .gte("logged_date", daysAgoLocal(6))
       .order("logged_date", { ascending: false })
       .order("logged_at", { ascending: true }),
   ]);
 
   const days: { date: string; logs: Log[]; kcal: number }[] = [];
   for (let i = 0; i < 7; i++) {
-    const date = isoDaysAgo(i);
+    const date = daysAgoLocal(i);
     const dayLogs = ((logs ?? []) as Log[]).filter((l) => l.logged_date === date);
     days.push({ date, logs: dayLogs, kcal: Math.round(dayLogs.reduce((s, l) => s + (l.calories ?? 0), 0)) });
   }

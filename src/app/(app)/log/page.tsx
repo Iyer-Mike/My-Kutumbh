@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import PageNav from "@/components/PageNav";
 import { SLOTS, isSlot, slotLabel, defaultPoolName, type Slot } from "@/lib/meal-slots";
 import { DISH_CATEGORIES, categoryDefaults, type DishCategory } from "@/lib/dish-categories";
+import { todayLocal, longDateLocal } from "@/lib/dates";
 
 // ── Types ─────────────────────────────────────────────────────────
 type FoodItem = {
@@ -99,7 +100,7 @@ function perServingText(food: FoodItem) {
 export default function LogPage() {
   const supabase     = createClient();
   const searchParams = useSearchParams();
-  const today        = new Date().toISOString().split("T")[0];
+  const today        = todayLocal();
 
   const [userId, setUserId]         = useState<string | null>(null);
   const [kutumbhId, setKutumbhId]   = useState<string | null>(null);
@@ -585,7 +586,7 @@ export default function LogPage() {
         <div className="px-5 py-4">
           <PageNav />
           <p className="text-xs mb-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
-            {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+            {longDateLocal()}
           </p>
           <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Log Food</h1>
           {totalCal > 0 && (

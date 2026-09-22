@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { defaultPoolName } from "@/lib/meal-slots";
 import { DISH_CATEGORIES, categoryDefaults, type DishCategory } from "@/lib/dish-categories";
+import { todayLocal } from "@/lib/dates";
 
 // The Plan is the family menu: dish names only. Each member sets their own
 // portion when logging, and nutrition is worked out from that.
@@ -39,10 +40,6 @@ type Props = {
   initialPoolName: string | null;
   memberNames: Record<string, string>;
 };
-
-function todayISO() {
-  return new Date().toISOString().split("T")[0];
-}
 
 function perServingKcal(f: { calories: number | null; serving_weight_g: number | null; serving_unit: string | null }) {
   if (f.calories == null) return null;
@@ -141,7 +138,7 @@ export default function PlanSlotCard({
       .insert({
         user_id:       userId,
         kutumbh_id:    kutumbhId ?? null,
-        planned_date:  todayISO(),
+        planned_date:  todayLocal(),
         meal_slot:     slotKey,
         food_name:     food?.name ?? typed,
         quantity_g:    1,
@@ -179,7 +176,7 @@ export default function PlanSlotCard({
       .from("meal_pools")
       .upsert(
         {
-          kutumbh_id: kutumbhId, planned_date: todayISO(), meal_slot: slotKey,
+          kutumbh_id: kutumbhId, planned_date: todayLocal(), meal_slot: slotKey,
           name: next, updated_by: userId, updated_at: new Date().toISOString(),
         },
         { onConflict: "kutumbh_id,planned_date,meal_slot" },

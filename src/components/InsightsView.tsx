@@ -42,7 +42,12 @@ const RASA_LABEL: Record<Rasa, string> = {
   sweet: "Sweet", sour: "Sour", salty: "Salty", pungent: "Pungent", bitter: "Bitter", astringent: "Astringent",
 };
 
-const fmt = (x: number) => (x >= 100 ? Math.round(x).toLocaleString("en-IN") : (Math.round(x * 10) / 10).toString());
+// Big numbers whole, mid-range to one decimal, small lab values (e.g. urine
+// specific gravity 1.005, TSH 4.046) kept precise.
+const fmt = (x: number) =>
+  Math.abs(x) >= 100 ? Math.round(x).toLocaleString("en-IN")
+  : Math.abs(x) >= 10 ? (Math.round(x * 10) / 10).toString()
+  : parseFloat(x.toFixed(3)).toString();
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
 function Card({ title, children, aside }: { title: string; children: React.ReactNode; aside?: React.ReactNode }) {
@@ -104,19 +109,38 @@ function Trend({ daily, target }: { daily: { date: string; kcal: number }[]; tar
   );
 }
 
+function Readings({ f }: { f: LabFlag }) {
+  return (
+    <ul className="grid gap-1">
+      {f.readings.map((r) => (
+        <li key={r.key} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+          <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: C.lowSoft, color: C.low }}>
+            {r.status === "low" ? "Low" : "High"}
+          </span>
+          <span style={{ color: C.ink }}>{r.label}</span>
+          <span className="tabular-nums text-xs" style={{ color: C.ink2 }}>
+            <b style={{ color: C.ink }}>{fmt(r.value)}</b>{r.unit ? ` ${r.unit}` : ""} · normal {r.range}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function FlagItem({ f }: { f: LabFlag }) {
-  const low = f.status === "low";
+  if (!f.known) {
+    return (
+      <div className="grid gap-2 py-3" style={{ borderTop: `1px solid ${C.rule}` }}>
+        <span className="text-sm font-semibold" style={{ color: C.ink2 }}>{f.label}</span>
+        <Readings f={f} />
+        <p className="text-xs" style={{ color: C.ink3 }}>{f.meaning}</p>
+      </div>
+    );
+  }
   return (
     <div className="grid gap-2 py-3" style={{ borderTop: `1px solid ${C.rule}` }}>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold" style={{ color: C.ink }}>{f.label}</span>
-        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: C.lowSoft, color: C.low }}>
-          {low ? "Low" : "High"}
-        </span>
-        <span className="text-xs tabular-nums" style={{ color: C.ink2 }}>
-          {fmt(f.value)} {f.unit} · normal {f.range}
-        </span>
-      </div>
+      <span className="text-sm font-semibold" style={{ color: C.ink }}>{f.label}</span>
+      <Readings f={f} />
       <p className="text-sm" style={{ color: C.ink2 }}>{f.meaning}</p>
 
       {(f.favour.length > 0 || f.favourFoods.length > 0) && (
@@ -212,7 +236,10 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
         ) : (
           <>
             <p className="text-sm -mt-1 mb-1" style={{ color: C.ink2 }}>
-              {flags.length} value{flags.length === 1 ? "" : "s"} outside the normal range, with what {you === "you" ? "you" : "they"} can do through food.
+              {(() => {
+                const n = flags.reduce((s, f) => s + f.readings.length, 0);
+                return `${n} value${n === 1 ? "" : "s"} outside the normal range, with what ${you === "you" ? "you" : "they"} can do through food.`;
+              })()}
             </p>
             {flags.map((f) => <FlagItem key={f.key} f={f} />)}
             <p className="text-[11px] pt-3" style={{ color: C.ink3, borderTop: `1px solid ${C.rule}` }}>

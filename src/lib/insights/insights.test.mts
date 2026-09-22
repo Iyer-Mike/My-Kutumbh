@@ -182,30 +182,67 @@ describe("labs", () => {
     assert.deepEqual(topFoodsFor("vitamin_b12_mcg", foods, ["milk"]), []);                   // both contain milk
   });
 
-  test("a real-report shape: low vitamin D and B12 flagged, normal TSH not", () => {
+  test("the user's real report: grouped, aliased, CRP recognised, TSH normal", () => {
+    // Values as extracted from the 20 Aug 2026 report
     const values = latestLabValues([{
       report_date: "2026-08-20",
       extracted_values: {
+        ldl: 155, ldl_ref: "<100",
+        hba1c: 6.6, hba1c_ref: "<5.7",
         vitamin_d: 13.24, vitamin_d_ref: "30-100",
-        vitamin_b12: 180, vitamin_b12_ref: "211-911",
+        triglycerides: 150, triglycerides_ref: "30-149",
+        total_cholesterol: 232, total_cholesterol_ref: "<200",
+        crp: 9.8, crp_ref: "0.0-3.3",
+        hba1c_ifcc_mmol_mol: 48.6, hba1c_ifcc_mmol_mol_ref: "<39.0",
+        non_hdl_cholesterol: 186, non_hdl_cholesterol_ref: "<130",
+        urine_specific_gravity: 1.005, urine_specific_gravity_ref: "1.015-1.025",
+        total_cholesterol_hdl_ratio: 5, total_cholesterol_hdl_ratio_ref: "0.0-4.9",
         tsh: 4.046, tsh_ref: "0.55-4.78",
-        ggt: 60, ggt_ref: "7-50",
+        vitamin_b12: 238, vitamin_b12_ref: "211-911",
       },
     }]);
+    const flags = evaluateLabs(values, { intake: null, needs: computeNeeds(MOHAN, "2026-09-22"), foods: [] });
+
+    // 10 out-of-range readings become 5 findings, in priority order
+    assert.deepEqual(flags.map((f) => f.key), ["sugar", "lipids", "inflammation", "vitamin_d", "other"]);
+    const [sugar, lipids, crp, , other] = flags;
+    assert.deepEqual(sugar.readings.map((r) => r.label), ["HbA1c", "HbA1c (IFCC)"]);
+    assert.deepEqual(lipids.readings.map((r) => r.label).sort(),
+      ["Cholesterol/HDL ratio", "LDL", "Non-HDL cholesterol", "Total cholesterol", "Triglycerides"]);
+    assert.equal(lipids.label, "Cholesterol & blood fats");
+    assert.equal(crp.readings[0].value, 9.8);
+    assert.deepEqual(other.readings.map((r) => r.key), ["urine_specific_gravity"]);
+    assert.equal(other.known, false);
+    assert.equal(other.readings[0].value, 1.005);                        // not rounded to 1
+    // TSH 4.046 and B12 238 are within their ranges: not flagged
+    assert.ok(!flags.some((f) => f.readings.some((r) => r.key === "tsh" || r.key === "vitamin_b12")));
+  });
+
+  test("blood sugar and blood fat findings never suggest sugary foods", () => {
+    const DATES = food({ name: "Dates (dry)", serving_weight_g: 30, carbs_g: 75, fiber_g: 8 });
+    const CHICKPEA = food({ name: "Chickpeas (cooked)", serving_weight_g: 150, carbs_g: 27.4, fiber_g: 7.6 });
+    const HALWA = food({ name: "Rava Halwa", category: "sweet", serving_weight_g: 100, carbs_g: 35, fiber_g: 20 });
+    const flags = evaluateLabs(
+      { hba1c: { value: 6.6, ref: "<5.7", date: null } },
+      { intake: null, needs: computeNeeds(MOHAN, "2026-09-22"), foods: [DATES, CHICKPEA, HALWA] },
+    );
+    assert.deepEqual(flags[0].favourFoods, ["Chickpeas (cooked)"]);
+    // …but a plain fibre ranking would still include them
+    assert.ok(topFoodsFor("fiber_g", [DATES, CHICKPEA, HALWA]).includes("Rava Halwa"));
+  });
+
+  test("a single finding keeps its own wording and advice", () => {
     const needs = computeNeeds(MOHAN, "2026-09-22");
     const intake = summarizeIntake([log({ food: CURD, quantity_g: 1, quantity_unit: "cup", calories: 91 })], "2026-09-16", "2026-09-22");
-    const flags = evaluateLabs(values, { intake, needs, foods: [IDLI, PANEER, CURD, SPINACH] });
-
-    assert.deepEqual(flags.map((f) => f.key), ["vitamin_d", "vitamin_b12", "ggt"]);   // known rules first, TSH normal
-    const d = flags[0];
-    assert.equal(d.status, "low");
-    assert.equal(d.nutrient, null);
-    assert.ok(d.favour.some((x) => /sun/.test(x)));
-    const b12 = flags[1];
+    const flags = evaluateLabs(
+      { vitamin_b12: { value: 180, ref: "211-911", date: null }, hdl: { value: 35, ref: ">40", date: null } },
+      { intake, needs, foods: [IDLI, PANEER, CURD, SPINACH] },
+    );
+    const b12 = flags.find((f) => f.key === "vitamin_b12")!;
     assert.deepEqual(b12.favourFoods, ["Paneer", "Curd / Yogurt"]);
-    assert.match(b12.intakeNote ?? "", /24% of your 2\.5 mcg need \(well short\)/);  // 0.6 of 2.5
-    const ggt = flags[2];
-    assert.match(ggt.meaning, /Ask your doctor/);
+    assert.match(b12.intakeNote ?? "", /24% of your 2\.5 mcg need \(well short\)/);   // 0.6 of 2.5
+    const lipids = flags.find((f) => f.key === "lipids")!;
+    assert.match(lipids.meaning, /Low HDL/);                                         // not the generic lipid text
   });
 
   test("with no meals logged, the note asks for logging", () => {
@@ -213,7 +250,7 @@ describe("labs", () => {
       { hemoglobin: { value: 11.2, ref: "13.0-17.0", date: null } },
       { intake: summarizeIntake([], "2026-09-16", "2026-09-22"), needs: computeNeeds(MOHAN, "2026-09-22"), foods: [SPINACH] },
     );
-    assert.equal(flags[0].status, "low");
+    assert.equal(flags[0].readings[0].status, "low");
     assert.equal(flags[0].intakeNote, "Log your meals to see how your food compares.");
     assert.deepEqual(flags[0].favourFoods, ["Spinach (cooked)"]);
   });
@@ -225,7 +262,7 @@ describe("labs", () => {
       "2026-09-22", "2026-09-22",
     );
     const flags = evaluateLabs({ creatinine: { value: 1.8, ref: null, date: null } }, { intake: salty, needs, foods: [] });
-    assert.equal(flags[0].status, "high");
+    assert.equal(flags[0].readings[0].status, "high");
     assert.match(flags[0].intakeNote ?? "", /2400 mg of sodium a day, above the 2000 mg limit/);
   });
 });

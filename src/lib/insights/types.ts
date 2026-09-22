@@ -74,17 +74,25 @@ export type IntakeSummary = {
   estimatedShare: number;       // share of kcal that is an estimate
 };
 
-export type LabFlag = {
+export type LabReading = {
   key: string;
   label: string;
   unit: string;
   value: number;
   status: "low" | "high";
   range: string;
+};
+
+/** One finding: related out-of-range readings grouped under shared advice. */
+export type LabFlag = {
+  key: string;                  // group key, e.g. "lipids"
+  label: string;                // group title, e.g. "Cholesterol & blood fats"
+  readings: LabReading[];
+  known: boolean;               // false = no dietary rule; shown as "other values"
   meaning: string;
   favour: string[];             // advice lines
   limit: string[];
-  nutrient: NutrientKey | null; // intake nutrient this flag relates to
+  nutrient: NutrientKey | null; // intake nutrient this finding relates to
   favourFoods: string[];        // concrete foods from the catalogue / family dishes
   intakeNote: string | null;    // correlation with what was actually eaten
 };

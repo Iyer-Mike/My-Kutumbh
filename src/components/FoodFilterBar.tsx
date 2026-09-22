@@ -33,7 +33,7 @@ export function dietOr(diet: Diet): string {
 export function applyFoodFilter<Q extends Filterable<Q>>(q: Q, f: FoodFilter, searching: boolean, slot: string | null): Q {
   q = q.or(dietOr(f.diet));
   if (searching) return q;
-  if (f.mealOnly && slot) q = q.or(`meal_hint.cs.{${slot}},meal_hint.is.null`);
+  if (f.mealOnly && slot) q = q.or(`meal_hint.cs.{${slot}},and(meal_hint.is.null,kutumbh_id.not.is.null)`);
   if (f.cuisine === "indian") q = q.or(`cuisine.is.null,cuisine.in.(${INDIAN_CUISINES.join(",")})`);
   else if (f.cuisine !== "all") q = q.eq("cuisine", f.cuisine);
   if (f.type) q = q.eq("category", f.type);

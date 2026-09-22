@@ -185,6 +185,18 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
     else window.location.assign(data.signedUrl);
   }
 
+  async function deleteRecord(rec: MedRecord) {
+    if (!confirm("Delete this report and its file? This can't be undone.")) return;
+    if (rec.file_url) {
+      const { error: fileErr } = await supabase.storage.from(BUCKET).remove([storagePath(rec.file_url)]);
+      if (fileErr) { alert(`Couldn't delete the file: ${fileErr.message}`); return; }
+    }
+    const { error } = await supabase.from("medical_records").delete().eq("id", rec.id);
+    if (error) { alert(`Couldn't delete the report: ${error.message}`); return; }
+    setRecords(prev => prev.filter(r => r.id !== rec.id));
+    setExpandedId(null);
+  }
+
   async function saveRecord() {
     if (!userId) return;
     setSaving(true);
@@ -483,12 +495,19 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
               </div>
             )}
 
-            {isExpanded && rec.file_url && (
-              <div className="px-5 pb-3" style={{ background: "#F0F7EF" }}>
-                <button onClick={() => openOriginal(rec)}
+            {isExpanded && (
+              <div className="px-5 pb-3 flex flex-wrap items-center justify-between gap-2" style={{ background: "#F0F7EF" }}>
+                {rec.file_url ? (
+                  <button onClick={() => openOriginal(rec)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg truncate max-w-full"
+                    style={{ background: "#fff", color: "#4A7C44", border: "1px solid #C5DFC2" }}>
+                    📄 View original{rec.file_name ? ` · ${rec.file_name}` : ""}
+                  </button>
+                ) : <span />}
+                <button onClick={() => deleteRecord(rec)}
                   className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-                  style={{ background: "#fff", color: "#4A7C44", border: "1px solid #C5DFC2" }}>
-                  📄 View original{rec.file_name ? ` · ${rec.file_name}` : ""}
+                  style={{ background: "#FEF2F2", color: "#B42318", border: "1px solid #F5C2BE" }}>
+                  Delete report
                 </button>
               </div>
             )}

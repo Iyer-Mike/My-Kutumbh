@@ -353,7 +353,11 @@ describe("intelligence", async () => {
 
   test("allergy 'oily foods' flags fried dishes that were logged", () => {
     const VADA = food({ name: "Medu Vada", category: "snack", fat_g: 13.5 });
-    const entries = [log({ food_name: "Medu Vada", food: VADA, calories: 260 }), log({ food: IDLI, calories: 130 })];
+    const COCONUT = food({ name: "Coconut (fresh grated)", category: "other", fat_g: 33 });   // fatty, but not "oily food"
+    const entries = [
+      log({ food_name: "Medu Vada", food: VADA, calories: 260 }), log({ food: IDLI, calories: 130 }),
+      log({ food_name: "Coconut (fresh grated)", food: COCONUT, quantity_g: 20, calories: 70 }),
+    ];
     const ev = evaluateIntelligence({ profile: MOHAN, needs, intake: period(entries), entries, labs: {} });
     const a = ev.find((e) => e.category === "allergy")!;
     assert.equal(a.severity, "alert");

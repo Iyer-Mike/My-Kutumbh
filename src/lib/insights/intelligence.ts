@@ -32,7 +32,7 @@ export function medicationGroups(meds: string[] | null | undefined): Map<MedGrou
 
 const has = (list: string[] | null | undefined, word: RegExp) => (list ?? []).some((c) => word.test(c));
 const pct = (x: number) => `${Math.round(x * 100)}%`;
-const FRIED = /vada|murukku|bajji|bhaji|pakora|pakoda|samosa|puri|poori|chips|mixture|bonda|fried/i;
+const FRIED = /vada|murukku|chakli|bajji|bhaji|pakora|pakoda|samosa|kachori|bhatura|puri|poori|jalebi|chips|mixture|bonda|fried|fry\b/i;
 
 type Input = {
   profile: Profile;
@@ -153,8 +153,8 @@ export function evaluateIntelligence({ profile, needs, intake, entries, labs }: 
       .filter((e) => {
         const text = `${e.food_name} ${e.food?.name ?? ""} ${e.food?.ingredients ?? ""}`.toLowerCase();
         if (text.includes(term)) return true;
-        // "oily foods" → fried/oily dishes
-        return /oil|fried|fat/.test(term) && (FRIED.test(text) || (e.food?.fat_g ?? 0) >= 12);
+        // "oily foods" → fried dishes (not naturally fatty whole foods like coconut or nuts)
+        return /oil|fried|fat/.test(term) && FRIED.test(text);
       })
       .map((e) => e.food_name))];
     if (!hits.length) continue;

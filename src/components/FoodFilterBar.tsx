@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { slotLabel } from "@/lib/meal-slots";
 import {
   CUISINES, DIETS, DISH_TYPES, INDIAN_CUISINES, dietsAllowed,
   type Cuisine, type Diet, type DishType,
 } from "@/lib/food-taxonomy";
 
 // A. Cuisine ("indian" = every Indian region) → B. Diet (show dishes up to
-// this diet) → C. Dish type ("" = all types).
-export type FoodFilter = { cuisine: "indian" | "all" | Cuisine; diet: Diet; type: DishType | "" };
+// this diet) → C. Dish type ("" = all types). mealOnly keeps the list to
+// dishes that suit the meal being planned or logged.
+export type FoodFilter = { cuisine: "indian" | "all" | Cuisine; diet: Diet; type: DishType | ""; mealOnly: boolean };
 
-export const DEFAULT_FILTER: FoodFilter = { cuisine: "indian", diet: "veg", type: "" };
+export const DEFAULT_FILTER: FoodFilter = { cuisine: "indian", diet: "veg", type: "", mealOnly: true };
 
 type Filterable<Q> = { or(filters: string): Q; eq(column: string, value: string): Q };
 
@@ -25,11 +27,13 @@ export function dietOr(diet: Diet): string {
 /**
  * Adds the filters to a food_items query. Family Dishes made before the
  * classification may have no cuisine or diet yet: they count as Indian / Veg.
+ * Family Dishes with no meal set show at every meal.
  * While searching by name, only the diet applies.
  */
-export function applyFoodFilter<Q extends Filterable<Q>>(q: Q, f: FoodFilter, searching: boolean): Q {
+export function applyFoodFilter<Q extends Filterable<Q>>(q: Q, f: FoodFilter, searching: boolean, slot: string | null): Q {
   q = q.or(dietOr(f.diet));
   if (searching) return q;
+  if (f.mealOnly && slot) q = q.or(`meal_hint.cs.{${slot}},meal_hint.is.null`);
   if (f.cuisine === "indian") q = q.or(`cuisine.is.null,cuisine.in.(${INDIAN_CUISINES.join(",")})`);
   else if (f.cuisine !== "all") q = q.eq("cuisine", f.cuisine);
   if (f.type) q = q.eq("category", f.type);
@@ -39,8 +43,7 @@ export function applyFoodFilter<Q extends Filterable<Q>>(q: Q, f: FoodFilter, se
 /** Dishes usually eaten at this meal first; the rest keep their order. */
 export function sortForSlot<T extends { meal_hint?: string[] | null }>(items: T[], slot: string | null): T[] {
   if (!slot) return items;
-  const want = slot.includes("snack") ? "snack" : slot;
-  const fits = (i: T) => (i.meal_hint ?? []).includes(want);
+  const fits = (i: T) => (i.meal_hint ?? []).includes(slot);
   return [...items.filter(fits), ...items.filter((i) => !fits(i))];
 }
 
@@ -77,11 +80,22 @@ const selectStyle = {
   border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none",
 } as const;
 
-export default function FoodFilterBar({ value, onChange, idPrefix }: {
-  value: FoodFilter; onChange: (f: FoodFilter) => void; idPrefix: string;
+export default function FoodFilterBar({ value, onChange, idPrefix, slot }: {
+  value: FoodFilter; onChange: (f: FoodFilter) => void; idPrefix: string; slot: string;
 }) {
+  const meal = slotLabel(slot);
   return (
     <div className="grid gap-2">
+      <div className="flex rounded-full p-0.5 text-xs font-semibold" style={{ background: "#E2E1D8" }} role="group" aria-label="Which dishes to show">
+        {[{ on: true, label: `${meal} dishes` }, { on: false, label: "All meals" }].map((o) => (
+          <button key={o.label} type="button" onClick={() => onChange({ ...value, mealOnly: o.on })}
+            aria-pressed={value.mealOnly === o.on}
+            className="flex-1 py-1.5 rounded-full"
+            style={value.mealOnly === o.on ? { background: "#1C2B1C", color: "#fff" } : { color: "#5A6055" }}>
+            {o.label}
+          </button>
+        ))}
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label htmlFor={`${idPrefix}-cuisine`} className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#8A9085" }}>

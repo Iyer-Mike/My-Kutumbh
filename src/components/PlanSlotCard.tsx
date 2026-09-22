@@ -68,7 +68,7 @@ export default function PlanSlotCard({
   const [query, setQuery]               = useState("");
   const [suggestions, setSuggestions]   = useState<FoodSuggestion[]>([]);
   const [searched, setSearched]         = useState("");
-  const [selectedFood, setSelectedFood] = useState<FoodSuggestion | null>(null);
+  const [chosen, setChosen]             = useState<FoodSuggestion[]>([]);
   const [newCategory, setNewCategory]   = useState<DishType | null>(null);
   const [filter, setFilter]             = useMyFoodFilter();
   const [browse, setBrowse]             = useState<FoodSuggestion[]>([]);
@@ -91,45 +91,54 @@ export default function PlanSlotCard({
         .ilike("name", `%${q}%`)
         .or(dietOr(filter.diet))
         .order("name")
-        .limit(8);
-      setSuggestions((data ?? []) as FoodSuggestion[]);
+        .limit(12);
+      setSuggestions(sortForSlot((data ?? []) as FoodSuggestion[], slotKey));
       setSearched(q);
     }, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, filter.diet]);
 
-  // Browse by Cuisine → Diet → Dish type while nothing is typed
+  // Browse by meal → cuisine → diet → dish type while nothing is typed
   useEffect(() => {
     if (!adding || query.trim()) return;
     let cancelled = false;
     (async () => {
       const q = applyFoodFilter(
-        supabase.from("food_items").select(SUGGEST_COLS).order("name").limit(60), filter, false);
+        supabase.from("food_items").select(SUGGEST_COLS).order("name").limit(80), filter, false, slotKey);
       const { data } = await q;
-      if (!cancelled) setBrowse(sortForSlot((data ?? []) as FoodSuggestion[], slotKey).slice(0, 30));
+      if (!cancelled) setBrowse(sortForSlot((data ?? []) as FoodSuggestion[], slotKey));
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adding, query, filter]);
 
+  function resetPicker() {
+    setQuery(""); setSuggestions([]); setSearched("");
+    setChosen([]); setNewCategory(null);
+  }
+
   function openAdd() {
     setAdding(true);
-    setQuery(""); setSuggestions([]); setSearched("");
-    setSelectedFood(null); setNewCategory(null);
-    setTimeout(() => inputRef.current?.focus(), 60);
+    resetPicker();
+    setFilter(f => ({ ...f, type: "", mealOnly: true }));
   }
 
   function cancelAdd() {
     setAdding(false);
-    setQuery(""); setSuggestions([]); setSearched("");
-    setSelectedFood(null); setNewCategory(null);
+    resetPicker();
   }
 
+  function toggleChosen(f: FoodSuggestion) {
+    setChosen(prev => prev.some(c => c.id === f.id) ? prev.filter(c => c.id !== f.id) : [...prev, f]);
+  }
+
+  const onMenu        = new Set(items.map(i => i.food_name.toLowerCase()));
   const typed         = query.trim();
   const exactMatch    = suggestions.find(s => s.name.toLowerCase() === typed.toLowerCase()) ?? null;
-  const isNewDish     = !!typed && !selectedFood && !exactMatch && searched === typed;
-  const canAdd        = !!typed && (!!selectedFood || !!exactMatch || (isNewDish && (!kutumbhId || !!newCategory)));
+  const isNewDish     = !!typed && !exactMatch && searched === typed;
+  const newDishReady  = isNewDish && (!kutumbhId || !!newCategory);
+  const addCount      = chosen.length + (newDishReady ? 1 : 0);
 
   // New dish → a Family Dish (family-only), awaiting the Prime Member's details
   async function createFamilyDish(dishName: string, category: DishType) {
@@ -140,6 +149,7 @@ export default function PlanSlotCard({
         name: dishName, kutumbh_id: kutumbhId, created_by: userId, needs_review: true,
         category, serving_unit: d.unit, serving_weight_g: d.servingG, is_south_indian: true,
         cuisine: filter.cuisine === "indian" || filter.cuisine === "all" ? null : filter.cuisine,
+        meal_hint: [slotKey],
       })
       .select(SUGGEST_COLS)
       .single();
@@ -147,44 +157,80 @@ export default function PlanSlotCard({
     return data as FoodSuggestion;
   }
 
-  async function addItem() {
-    if (!canAdd || saving) return;
+  // Everything ticked (plus a new dish, if one was typed) goes on the menu in one go
+  async function addChosen() {
+    if (!addCount || saving) return;
     setSaving(true);
 
-    let food = selectedFood ?? exactMatch;
-    if (!food && kutumbhId && newCategory) {
-      food = await createFamilyDish(typed, newCategory);
-      if (!food) { setSaving(false); return; }
+    const foods: (FoodSuggestion | null)[] = [...chosen];
+    if (newDishReady) {
+      if (kutumbhId && newCategory) {
+        const made = await createFamilyDish(typed, newCategory);
+        if (!made) { setSaving(false); return; }
+        foods.push(made);
+      } else {
+        foods.push(null);                     // no Kutumbh: plan it by name only
+      }
     }
 
-    const { data, error } = await supabase
-      .from("meal_plans")
-      .insert({
-        user_id:       userId,
-        kutumbh_id:    kutumbhId ?? null,
-        planned_date:  todayLocal(),
-        meal_slot:     slotKey,
-        food_name:     food?.name ?? typed,
-        quantity_g:    1,
-        quantity_unit: food?.serving_unit ?? "serving",
-        food_item_id:  food?.id ?? null,
-      })
-      .select("id, user_id, food_name")
-      .single();
+    const rows = foods.map(food => ({
+      user_id:       userId,
+      kutumbh_id:    kutumbhId ?? null,
+      planned_date:  todayLocal(),
+      meal_slot:     slotKey,
+      food_name:     food?.name ?? typed,
+      quantity_g:    1,
+      quantity_unit: food?.serving_unit ?? "serving",
+      food_item_id:  food?.id ?? null,
+    }));
+    const { data, error } = await supabase.from("meal_plans").insert(rows).select("id, user_id, food_name, food_item_id");
     setSaving(false);
     if (error || !data) { alert(`Couldn't add to the menu: ${error?.message ?? "unknown error"}`); return; }
 
-    setItems(prev => [...prev, {
-      id: data.id, user_id: data.user_id, food_name: data.food_name,
-      needs_review:     !!food?.needs_review,
-      category:         food?.category ?? null,
-      serving_unit:     food?.serving_unit ?? null,
-      kcal_per_serving: food ? perServingKcal(food) : null,
-    }]);
-    // Stay open so the next dish can be added straight away
-    setQuery(""); setSuggestions([]); setSearched("");
-    setSelectedFood(null); setNewCategory(null);
-    setTimeout(() => inputRef.current?.focus(), 60);
+    const byId = new Map(foods.filter((f): f is FoodSuggestion => !!f).map(f => [f.id, f]));
+    setItems(prev => [...prev, ...data.map(d => {
+      const food = d.food_item_id ? byId.get(d.food_item_id) : undefined;
+      return {
+        id: d.id, user_id: d.user_id, food_name: d.food_name,
+        needs_review:     !!food?.needs_review,
+        category:         food?.category ?? null,
+        serving_unit:     food?.serving_unit ?? null,
+        kcal_per_serving: food ? perServingKcal(food) : null,
+      };
+    })]);
+    // Stay open so more dishes can be added straight away
+    resetPicker();
+  }
+
+  // One tickable dish row, used by both the browse list and the search results
+  function dishRow(s: FoodSuggestion, i: number) {
+    const k = perServingKcal(s);
+    const isOn = chosen.some(c => c.id === s.id);
+    const already = onMenu.has(s.name.toLowerCase());
+    return (
+      <button key={s.id} type="button" disabled={already} onClick={() => toggleChosen(s)}
+        aria-pressed={isOn}
+        className="w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2 disabled:opacity-50"
+        style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, color: "#1C201C", background: isOn ? "#EAF2E8" : undefined }}>
+        <span className="min-w-0 flex items-center gap-2">
+          <span className="shrink-0 w-4 h-4 rounded flex items-center justify-center"
+            style={{ background: isOn ? "#4A7C44" : "#fff", border: `2px solid ${isOn ? "#4A7C44" : "#C8C5BA"}` }}>
+            {isOn && (
+              <svg width="8" height="7" viewBox="0 0 10 8" fill="none" aria-hidden>
+                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </span>
+          <span aria-hidden className="shrink-0">{dishTypeOf(s.category).icon}</span>
+          <DietMark diet={s.diet} />
+          <span className="truncate">{s.name}</span>
+          {s.kutumbh_id && <span className="shrink-0 text-[10px] font-semibold" style={{ color: "#A5661A" }}>FAMILY</span>}
+        </span>
+        <span className="text-xs flex-shrink-0" style={{ color: "#8A9085" }}>
+          {already ? "on menu" : k != null ? `${k} kcal / ${s.serving_unit === "g" ? "100 g" : (s.serving_unit ?? "serving")}` : ""}
+        </span>
+      </button>
+    );
   }
 
   async function removeItem(id: string) {
@@ -326,75 +372,46 @@ export default function PlanSlotCard({
             value={query}
             onChange={e => {
               setQuery(e.target.value);
-              setSelectedFood(null);
               setNewCategory(null);
               if (!e.target.value.trim()) { setSuggestions([]); setSearched(""); }
             }}
-            onKeyDown={e => { if (e.key === "Enter" && canAdd) addItem(); if (e.key === "Escape") cancelAdd(); }}
-            placeholder="Dish name, e.g. Sambar"
+            onKeyDown={e => { if (e.key === "Enter" && addCount) addChosen(); if (e.key === "Escape") cancelAdd(); }}
+            placeholder="Search, or type a new dish name"
             aria-label="Dish name"
             className="w-full rounded-xl px-3 py-2 text-sm"
             style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
           />
 
-          {/* Browse by filters */}
+          {/* Browse by filters — tick as many as you like */}
           {!typed && (
             <div className="space-y-2">
-              <FoodFilterBar value={filter} onChange={setFilter} idPrefix={`plan-${slotKey}`} />
-              <div className="rounded-xl overflow-y-auto" style={{ background: "#fff", border: "1px solid #E2E1D8", maxHeight: 260 }}>
-                {browse.length === 0 ? (
-                  <p className="text-xs text-center py-3" style={{ color: "#8A9085" }}>No dishes match these filters</p>
-                ) : browse.map((s, i) => {
-                  const k = perServingKcal(s);
-                  return (
-                    <button key={s.id}
-                      onClick={() => { setSelectedFood(s); setQuery(s.name); setSearched(s.name); }}
-                      className="w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2"
-                      style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, color: "#1C201C" }}>
-                      <span className="truncate flex items-center gap-1.5">
-                        <span aria-hidden>{dishTypeOf(s.category).icon}</span>
-                        <DietMark diet={s.diet} />
-                        <span className="truncate">{s.name}</span>
-                      </span>
-                      {k != null && (
-                        <span className="text-xs flex-shrink-0" style={{ color: "#8A9085" }}>
-                          {k} kcal / {s.serving_unit === "g" ? "100 g" : (s.serving_unit ?? "serving")}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+              <FoodFilterBar value={filter} onChange={setFilter} idPrefix={`plan-${slotKey}`} slot={slotKey} />
+              <div className="rounded-xl overflow-y-auto" style={{ background: "#fff", border: "1px solid #E2E1D8", maxHeight: 300 }}>
+                {browse.length === 0
+                  ? <p className="text-xs text-center py-3" style={{ color: "#8A9085" }}>No dishes match these filters</p>
+                  : browse.map(dishRow)}
               </div>
             </div>
           )}
 
-          {/* Matches */}
-          {suggestions.length > 0 && !selectedFood && (
-            <div className="rounded-xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
-              {suggestions.map((s, i) => {
-                const k = perServingKcal(s);
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => { setSelectedFood(s); setQuery(s.name); setSuggestions([]); }}
-                    className="w-full text-left px-3 py-2.5 text-sm flex items-center justify-between gap-2"
-                    style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, color: "#1C201C" }}
-                  >
-                    <span className="truncate flex items-center gap-1.5">
-                      <DietMark diet={s.diet} />
-                      {s.name}
-                      {s.kutumbh_id && (
-                        <span className="ml-1.5 text-[10px] font-semibold" style={{ color: "#A5661A" }}>FAMILY DISH</span>
-                      )}
-                    </span>
-                    {k != null && (
-                      <span className="text-xs flex-shrink-0" style={{ color: "#8A9085" }}>
-                        {k} kcal / {s.serving_unit === "g" ? "100 g" : (s.serving_unit ?? "serving")}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+          {/* Search results — also tickable */}
+          {typed && suggestions.length > 0 && (
+            <div className="rounded-xl overflow-y-auto" style={{ background: "#fff", border: "1px solid #E2E1D8", maxHeight: 300 }}>
+              {suggestions.map(dishRow)}
+            </div>
+          )}
+
+          {/* What's ticked so far (tap to untick) */}
+          {chosen.length > 0 && (
+            <div className="flex flex-wrap gap-1.5" aria-label="Ticked dishes">
+              {chosen.map(c => (
+                <button key={c.id} type="button" onClick={() => toggleChosen(c)}
+                  className="px-2.5 py-1 rounded-full text-xs font-medium"
+                  style={{ background: "#EAF2E8", color: "#2E5C28", border: "1px solid #C5DFC2" }}
+                  aria-label={`Untick ${c.name}`}>
+                  {c.name} ✕
+                </button>
+              ))}
             </div>
           )}
 
@@ -425,12 +442,15 @@ export default function PlanSlotCard({
           )}
 
           <button
-            onClick={addItem}
-            disabled={saving || !canAdd}
+            onClick={addChosen}
+            disabled={saving || !addCount}
             className="w-full py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40"
             style={{ background: "#1C2B1C" }}
           >
-            {saving ? "Adding…" : isNewDish && kutumbhId && !newCategory ? "Pick what kind of dish it is" : "Add to menu ✓"}
+            {saving ? "Adding…"
+              : addCount ? `Add ${addCount} dish${addCount > 1 ? "es" : ""} to menu ✓`
+              : isNewDish && kutumbhId ? "Pick what kind of dish it is"
+              : "Tick the dishes to add"}
           </button>
         </div>
       )}

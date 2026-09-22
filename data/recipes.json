@@ -38,6 +38,7 @@
    "Fluff with a fork, top with the reserved caramelized onions, and serve warm or at room temperature."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -105,7 +106,8 @@
    "Adjust seasoning and serve warm, with crusty bread or over rice."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 220,
@@ -171,7 +173,8 @@
    "Drain on paper towels and serve warm with tomato sauce spooned over."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 250,
@@ -304,6 +307,7 @@
    "Season with salt and serve with injera or flatbread."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -369,7 +373,8 @@
    "Ladle into bowls, top with spring onions, and serve immediately."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -437,6 +442,7 @@
    "For red curry: swap in red curry paste, same method. For massaman: swap to massaman paste, add 2 cubed potatoes and 3 tbsp roasted peanuts, plus a cinnamon stick and 2 cardamom pods, simmering 20–25 minutes total."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -509,7 +515,7 @@
    "Drain and serve hot in flatbread with tahini sauce, tomatoes, and pickles."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -584,6 +590,7 @@
    "Season, garnish with coriander and almonds, and serve with couscous or flatbread."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -653,6 +660,7 @@
    "Stir in lime juice, season, finish with coriander, and serve with white rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -716,7 +724,8 @@
    "Stir in the roasted cashews and raisins. Serve warm or chilled."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -775,7 +784,7 @@
    "Pour into a greased tray, spreading evenly. Cut into squares while still warm, then cool completely."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 87,
@@ -836,10 +845,8 @@
    "Chill well and serve over ice."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -905,6 +912,7 @@
    "Top with peanuts and remaining spring onions, and serve with lime wedges."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -971,7 +979,7 @@
    "Plate the hummus, drizzle with more olive oil, and serve with the pita wedges."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 250,
@@ -1037,6 +1045,7 @@
    "Stir in most of the spring onions, garnish with the rest, and serve hot."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -1098,7 +1107,7 @@
    "Roll each ball in chocolate sprinkles. Serve in small paper cups, at room temperature."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 30,
@@ -1161,7 +1170,8 @@
    "Repeat with the remaining rice and filling. Serve at room temperature or slightly warm."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -1233,7 +1243,8 @@
    "Stir in the fresh herbs just before serving, with lemon wedges."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -1301,6 +1312,7 @@
    "Season with salt and serve with injera or flatbread."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -1506,9 +1518,8 @@
    "Drain and serve hot with coconut chutney and sambar."
   ],
   "meal_hint": [
-   "snack",
-   "dinner",
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 50,
@@ -1580,7 +1591,8 @@
    "Garnish with chilies and coriander; serve hot."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -1644,7 +1656,7 @@
    "Whisk the dipping sauce ingredients together and serve alongside."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 180,
@@ -1714,6 +1726,7 @@
    "Garnish with cucumber, tomato, and fried shallots."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -1778,7 +1791,7 @@
    "Drizzle with more olive oil and garnish with parsley. Serve with warm pita."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 120,
@@ -1846,7 +1859,8 @@
    "Add the crisp pita last so it stays crunchy."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 180,
@@ -1918,6 +1932,7 @@
    "Stir in the peanuts and most of the spring onions; garnish with the rest and serve over rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -1984,6 +1999,7 @@
    "Stir in most of the spring onions, garnish with the rest, and serve hot."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -2047,7 +2063,7 @@
    "Drain on a rack and serve immediately with the dipping sauce."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 150,
@@ -2113,7 +2129,8 @@
    "Serve warm, directly in the cups."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -2178,7 +2195,8 @@
    "Finish with coriander and parsley; serve warm or at room temperature with bread."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -2242,7 +2260,7 @@
    "Serve warm or at room temperature with lime wedges."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -2307,6 +2325,7 @@
    "Top with sliced hard-boiled egg if using, and serve warm."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -2437,7 +2456,8 @@
    "Ladle into bowls, drizzle with sesame oil, and top with spring onions and desired toppings."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -2559,7 +2579,8 @@
    "Cut into wedges and serve hot."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -2685,7 +2706,8 @@
    "Serve warm."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 120,
@@ -2750,7 +2772,8 @@
    "Ladle into bowls, top with crispy tortilla strips, avocado, queso fresco, coriander, and lime."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -2816,6 +2839,7 @@
    "Ladle into bowls, drizzle with more oil, sprinkle with paprika, and serve with lemon and bread."
   ],
   "meal_hint": [
+   "breakfast",
    "lunch"
   ],
   "serving_unit": "bowl",
@@ -2881,7 +2905,8 @@
    "Season with salt; serve hot with coconut chutney or sambar."
   ],
   "meal_hint": [
-   "lunch"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -2945,7 +2970,8 @@
    "Season with salt; serve with injera or flatbread."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -3009,7 +3035,8 @@
    "Bake at 180°C (350°F) for 35–40 minutes until golden and crisp. Cool slightly before slicing."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 200,
@@ -3075,6 +3102,7 @@
    "Serve hot with injera or flatbread."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -3140,6 +3168,7 @@
    "Garnish with coriander and serve warm."
   ],
   "meal_hint": [
+   "breakfast",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -3203,7 +3232,7 @@
    "Serve warm or chilled, dusted with ground cinnamon."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -3264,10 +3293,8 @@
    "Chill well and serve over ice, garnished with mint and lime."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 200,
@@ -3338,9 +3365,8 @@
    "Season with salt, garnish with coriander, and serve with rice or roti."
   ],
   "meal_hint": [
-   "dinner",
-   "breakfast",
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 180,
@@ -3412,6 +3438,7 @@
    "Fold in the paneer and cream; warm through and season with salt."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -3478,8 +3505,8 @@
   ],
   "meal_hint": [
    "breakfast",
-   "dinner",
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 150,
@@ -3549,7 +3576,8 @@
    "Garnish with coriander; serve with steamed rice."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -3619,9 +3647,9 @@
    "Squeeze in lemon juice, garnish with coriander, and serve with bhature or rice."
   ],
   "meal_hint": [
+   "breakfast",
    "lunch",
-   "dinner",
-   "breakfast"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -3691,6 +3719,7 @@
    "Season and serve with naan or roti."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -3761,8 +3790,8 @@
    "Garnish with coriander; serve with roti."
   ],
   "meal_hint": [
-   "dinner",
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -3824,10 +3853,8 @@
    "Pour into glasses and serve immediately over ice."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "lunch"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 220,
@@ -3895,7 +3922,8 @@
    "Season, garnish with fresh basil, and serve with crusty bread."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -3958,7 +3986,8 @@
    "Season with salt and cracked black pepper; serve immediately."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 180,
@@ -4027,7 +4056,8 @@
    "Stir in lemon juice, season, and serve with crusty bread."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -4092,7 +4122,8 @@
    "Cool 10 minutes before slicing; serve warm or at room temperature."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 180,
@@ -4156,6 +4187,7 @@
    "Rest 10 minutes before serving."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "serving",
@@ -4224,6 +4256,7 @@
    "Serve very cold, topped with croutons and finely diced cucumber, tomato, and pepper."
   ],
   "meal_hint": [
+   "morning_snack",
    "lunch"
   ],
   "serving_unit": "bowl",
@@ -4294,6 +4327,7 @@
    "Mix everything together well at the table before eating."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -4362,6 +4396,7 @@
    "Garnish with sesame seeds; serve warm or at room temperature."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -4431,7 +4466,8 @@
    "Serve hot with steamed rice — the stew is salty enough to season the whole bowl."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -4502,6 +4538,7 @@
    "Serve immediately with steamed rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -4572,6 +4609,7 @@
    "Top each serving with a fried egg if using; garnish with sesame seeds, nori strips, and remaining spring onions."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -4643,6 +4681,7 @@
    "Serve with steamed rice and other curries."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -4710,6 +4749,7 @@
    "Serve hot, ideally in the traditional loud-chopping style at the table."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -4773,7 +4813,8 @@
    "Serve alongside rice, hoppers, or string hoppers as a side condiment."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 40,
@@ -4837,7 +4878,8 @@
    "Drain and serve hot, with pap or a chili sauce alongside."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 120,
@@ -4908,6 +4950,7 @@
    "Stir in the mixed vegetables; cover and steam 5 more minutes."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -4977,6 +5020,7 @@
    "Serve with pounded yam, eba, or rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -5043,7 +5087,6 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack",
    "dinner"
   ],
   "serving_unit": "serving",
@@ -5113,10 +5156,8 @@
    "Serve alongside dosa, idli, or vada."
   ],
   "meal_hint": [
-   "snack",
-   "dinner",
-   "lunch",
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 40,
@@ -5183,8 +5224,8 @@
    "Serve warm with rice or rice and dal."
   ],
   "meal_hint": [
-   "dinner",
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "katori",
   "serving_weight_g": 150,
@@ -5249,6 +5290,7 @@
    "Top with tofu slices, spring onions, and nori; drizzle with sesame oil."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -5316,7 +5358,7 @@
    "Top with grated daikon, spring onions, and ginger."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 120,
@@ -5379,7 +5421,7 @@
    "Serve immediately."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -5448,7 +5490,8 @@
    "Scatter with coriander and serve directly from the pan with bread."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 250,
@@ -5510,7 +5553,8 @@
    "Return to the oven 3–4 minutes until the egg white is just set. Serve immediately."
   ],
   "meal_hint": [
-   "snack"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 200,
@@ -5574,7 +5618,8 @@
    "Season with salt; rest 30 minutes before serving for the flavours to develop."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -5635,7 +5680,8 @@
    "Serve warm with fresh vegetables and optional feta alongside."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 150,
@@ -5700,7 +5746,8 @@
    "Serve with warm pita or flatbread; drizzle with oil and scatter a few whole walnuts on top."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 60,
@@ -5769,6 +5816,7 @@
    "Serve with lime wedges."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -5833,10 +5881,8 @@
    "Chill well; serve over ice with fresh mint."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -5899,7 +5945,7 @@
    "Serve immediately with lime wedges and coriander."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 150,
@@ -5967,7 +6013,8 @@
    "Serve with cancha or tortilla chips alongside."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack",
+   "lunch"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -6030,7 +6077,7 @@
    "Cool slightly before serving — the filling is very hot."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 180,
@@ -6099,6 +6146,7 @@
    "Finish with ground Sichuan pepper and sesame oil; garnish with spring onions. Serve over rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -6166,7 +6214,8 @@
    "Serve immediately with the dipping sauce."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 120,
@@ -6235,7 +6284,8 @@
    "Drizzle with sesame oil; garnish with spring onions."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -6308,6 +6358,7 @@
    "Serve with steamed rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -6377,6 +6428,7 @@
    "Serve with lime on the side."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -6516,7 +6568,7 @@
    "To serve, crack a small hole in each puri, fill with a spoonful of filling, and dip into the spiced pani just before eating."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 120,
@@ -6589,6 +6641,7 @@
    "Season with salt and cumin; serve over rice with warm tortillas."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -6648,8 +6701,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 250,
@@ -6711,7 +6763,6 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -6774,8 +6825,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -6836,8 +6886,8 @@
    "Temper with mustard seeds and curry leaves in oil; pour over and mix."
   ],
   "meal_hint": [
-   "dinner",
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -6900,6 +6950,7 @@
    "Serve with appam or idiyappam."
   ],
   "meal_hint": [
+   "breakfast",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -6962,9 +7013,8 @@
    "Rest 10 min before serving so the flavours meld."
   ],
   "meal_hint": [
-   "dinner",
-   "lunch",
-   "breakfast"
+   "breakfast",
+   "lunch"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 250,
@@ -7026,6 +7076,8 @@
    "Finish with coconut oil tempering of mustard seeds and curry leaves."
   ],
   "meal_hint": [
+   "breakfast",
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -7087,7 +7139,7 @@
    "Drain on paper and serve hot with coconut chutney."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 100,
@@ -7147,7 +7199,8 @@
    "Flip with a skewer and cook 2 min more; serve with tomato chutney."
   ],
   "meal_hint": [
-   "snack",
+   "breakfast",
+   "evening_snack",
    "dinner"
   ],
   "serving_unit": "serving",
@@ -7209,8 +7262,8 @@
    "Serve warm or at room temperature."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 100,
@@ -7272,7 +7325,8 @@
    "Season with salt and lemon juice; garnish with coriander and serve."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 200,
@@ -7334,7 +7388,8 @@
    "Serve immediately with mint chutney or pickled onions."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -7395,7 +7450,8 @@
    "Season with salt, sugar and lemon juice; garnish with coriander."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -7518,7 +7574,8 @@
    "Finish with a sizzling tempering of ghee, cumin, mustard seeds and dried chilli poured over the top."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -7579,7 +7636,8 @@
    "Seal and cook on dum (very low heat) for 20 min; rest 5 min before opening."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -7641,8 +7699,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "breakfast"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -7703,6 +7760,7 @@
    "Add paneer and cream; heat 3 min and garnish with cream swirl and dried rose petals."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -7763,7 +7821,7 @@
    "Finish with sev, pomegranate and coriander; serve immediately."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 200,
@@ -7822,7 +7880,7 @@
    "Drain and serve with fresh mint chutney."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -7882,7 +7940,7 @@
    "Dust with cumin and chaat masala; garnish and serve cold."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -7944,8 +8002,7 @@
    "Garnish with coriander and serve within 2 minutes."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 100,
@@ -8066,7 +8123,8 @@
    "Add a soft-boiled egg for extra protein."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -8123,7 +8181,8 @@
    "Serve roti with warm dal on the side."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 250,
@@ -8184,7 +8243,8 @@
    "Finish with a few drops of sesame oil."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -8246,7 +8306,8 @@
    "Add bean sprouts, toss 30 seconds and serve with spring onion and lime."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -8306,7 +8367,8 @@
    "Top with sliced chilli and serve immediately."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 250,
@@ -8367,7 +8429,8 @@
    "Serve immediately with herb plate and condiments."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 400,
@@ -8429,7 +8492,8 @@
    "Add bean sprouts and spring onion; toss 30 seconds and serve."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -8489,7 +8553,7 @@
    "Drizzle remaining coconut cream and scatter sesame seeds."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 200,
@@ -8547,7 +8611,7 @@
    "Cook until egg sets; fold in half and eat immediately while crisp."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 100,
@@ -8604,7 +8668,7 @@
    "Serve with peanut sauce for dipping."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -8666,7 +8730,8 @@
    "Add lime juice, soy sauce, peanuts; toss and adjust for balance."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -8725,7 +8790,8 @@
    "Add sugar, salt and cinnamon; stir and serve warm."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -8783,7 +8849,8 @@
    "Serve in bowls scattered with sesame seeds."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -8843,7 +8910,8 @@
    "Transfer to plate; drizzle ketchup, a pinch of sugar and mustard."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 180,
@@ -8902,7 +8970,8 @@
    "Ladle into bowls; top with spring onion and a drop of sesame oil."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -8962,7 +9031,8 @@
    "Serve with a small dish of kimchi on the side."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -9023,7 +9093,8 @@
    "Serve immediately with a halved boiled egg."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -9084,7 +9155,8 @@
    "Serve topped with boiled eggs and sesame seeds."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 250,
@@ -9145,7 +9217,9 @@
    "Serve garnished with spring onion."
   ],
   "meal_hint": [
-   "lunch"
+   "breakfast",
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -9206,7 +9280,8 @@
    "Garnish with spring onion and sesame seeds."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -9266,7 +9341,7 @@
    "Flip; press again and cook 2 min until golden. Eat carefully â€” filling is very hot."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 80,
@@ -9326,7 +9401,8 @@
    "Scatter toppings before baking for extra flavour."
   ],
   "meal_hint": [
-   "snack"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 100,
@@ -9384,7 +9460,7 @@
    "Flip and cook 2 min more; serve with dipping sauce."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -9445,7 +9521,7 @@
    "Unmould and eat warm â€” the filling will be very hot."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 100,
@@ -9504,7 +9580,7 @@
    "Drain again; press sesame seeds and pine nuts on top."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 50,
@@ -9626,7 +9702,8 @@
    "Place tofu katsu on top; garnish with spring onion and pickled ginger."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 400,
@@ -9687,7 +9764,8 @@
    "Fluff with a spoon; garnish with spring onion and sesame."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -9748,7 +9826,8 @@
    "Eat immediately before the nori softens too much."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -9809,7 +9888,8 @@
    "Sip the warm kombu broth between bites."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 220,
@@ -9870,6 +9950,7 @@
    "Arrange toppings artfully and drizzle chilli oil; serve immediately."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -9932,6 +10013,7 @@
    "Season with soy sauce and serve over rice with pickle on the side."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -10057,6 +10139,7 @@
    "Drizzle sesame oil; serve immediately with pickled ginger."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -10114,7 +10197,8 @@
    "Squeeze lemon over if desired."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 100,
@@ -10175,7 +10259,7 @@
    "Scatter sesame seeds and shichimi; serve immediately."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -10297,7 +10381,8 @@
    "Steam over high heat for 15 min; rest 2 min before lifting lid."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 150,
@@ -10355,7 +10440,8 @@
    "Serve warm; leftovers thicken overnight â€” thin with a little water when reheating."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -10416,7 +10502,8 @@
    "Add extra chilli oil at the table."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -10479,7 +10566,8 @@
    "Add noodles and 1/2 cup water; simmer 8 min until glossy and sauce has absorbed; finish with sesame oil."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -10540,7 +10628,8 @@
    "Ladle into bowls; drizzle sesame oil and scatter spring onion and coriander."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -10603,7 +10692,8 @@
    "Add spring onion; drizzle sesame oil and season with white pepper; serve in the clay pot."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -10659,7 +10749,7 @@
    "Serve immediately while warm."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -10715,7 +10805,7 @@
    "Serve in ginger broth while hot."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -10776,7 +10866,7 @@
    "Deep fry at 180Â°C until golden and crisp, about 3-4 min; drain and serve."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -10838,7 +10928,8 @@
    "Serve cold or at room temperature."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -10902,7 +10993,8 @@
    "Garnish with parsley; serve straight from the pan with crusty bread."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 250,
@@ -10964,7 +11056,8 @@
    "Beat remaining egg and brush over; scatter sesame seeds; bake at 190°C for 30-35 min until golden."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 150,
@@ -11147,7 +11240,8 @@
    "Place falafel on top; drizzle tahini sauce; roll tightly and serve."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 250,
@@ -11210,7 +11304,8 @@
    "Ladle into bowls; drizzle olive oil; garnish with parsley and croutons."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -11270,6 +11365,7 @@
    "Top with crispy onions and pour tomato sauce over; serve."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -11329,6 +11425,7 @@
    "Bake at 180°C for 30 min until bechamel is golden and set; rest 10 min before cutting."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -11391,6 +11488,7 @@
    "Cover with foil; bake at 180°C for 35 min; uncover last 5 min to colour tops."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "piece",
@@ -11455,6 +11553,7 @@
    "Mound couscous in a serving dish; crown with vegetables and broth."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -11517,7 +11616,7 @@
    "Drain; serve with yoghurt, mint and a squeeze of lemon."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 150,
@@ -11577,7 +11676,8 @@
    "Serve hoppers immediately with coconut sambol."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -11633,7 +11733,8 @@
    "Serve string hopper nests with warm coconut gravy poured over."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 200,
@@ -11747,7 +11848,8 @@
    "Serve warm roti with sambol alongside."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -11806,7 +11908,8 @@
    "Serve with warm coconut milk poured over and condensed milk drizzled on top."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 200,
@@ -11928,7 +12031,8 @@
    "Serve over steamed rice."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -12051,7 +12155,8 @@
    "Pour sizzling tempering over rice; fold gently and serve."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -12113,7 +12218,8 @@
    "Serve over rice."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 350,
@@ -12176,6 +12282,7 @@
    "Adjust salt; remove lemongrass; serve with roti or rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -12239,6 +12346,7 @@
    "Cool before serving — the pickle is better at room temperature and improves overnight."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "katori",
@@ -12301,6 +12409,7 @@
    "Add coconut milk and salt; cook uncovered until liquid reduces and potatoes are coated in a thick, dry sauce; finish with lime."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -12361,7 +12470,7 @@
    "Drain; serve hot with coconut sambol."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 80,
@@ -12420,7 +12529,7 @@
    "Fry until golden and crisp; drain; cool fully before storing."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 40,
@@ -12476,7 +12585,7 @@
    "Drain; cool slightly; the texture should be slightly chewy inside."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 50,
@@ -12532,7 +12641,8 @@
    "While still warm, roll into small balls; cool completely to firm up."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 30,
@@ -12654,7 +12764,8 @@
    "Serve straight from the fridge — it is meant to be eaten cold."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -12894,6 +13005,7 @@
    "Fold in mushrooms and parmesan; stir in remaining butter; rest 2 min; garnish and serve."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -12955,6 +13067,7 @@
    "Serve immediately with torn basil and parmesan."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -13018,6 +13131,7 @@
    "Spread mash over the filling; rough the top with a fork; bake at 200°C for 25 min until golden."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -13144,7 +13258,7 @@
    "Drizzle more olive oil; add pepper; serve immediately."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 110,
@@ -13206,7 +13320,7 @@
    "Brush with egg wash; scatter remaining cheese; bake at 220°C for 15-18 min until risen and golden."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 70,
@@ -13266,7 +13380,8 @@
    "Scatter fresh herbs over the dip; serve chilled."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -13445,7 +13560,8 @@
    "Top with a generous spoonful of pico de gallo; serve immediately."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 200,
@@ -13506,7 +13622,8 @@
    "Stand tamales upright in a steamer; steam 50-60 min until dough pulls cleanly from the husk."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 150,
@@ -13627,7 +13744,8 @@
    "Serve with sour cream and coriander."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -13688,7 +13806,8 @@
    "Cut into wedges; serve with sour cream and guacamole."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 220,
@@ -13746,6 +13865,7 @@
    "Ladle into deep bowls; set out all toppings for the table to add themselves."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -13806,6 +13926,7 @@
    "Drizzle crema; scatter queso fresco, coriander and onion; serve from the dish."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -13868,6 +13989,7 @@
    "Garnish with epazote or coriander; serve as a side or over rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -13929,6 +14051,7 @@
    "Serve with crema drizzled over, avocado slices and lime."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -13989,7 +14112,7 @@
    "Serve immediately with totopos — guacamole begins to oxidise within 30 min."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 120,
@@ -14049,7 +14172,7 @@
    "Serve churros alongside the chocolate dipping sauce."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 100,
@@ -14105,7 +14228,8 @@
    "Serve immediately and eat with your hands."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -14167,7 +14291,8 @@
    "Drizzle honey and argan oil; serve warm."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 90,
@@ -14226,7 +14351,8 @@
    "Dip each pancake in warm butter-honey sauce before each bite."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -14284,7 +14410,8 @@
    "Drain briefly; roll in sugar; eat warm."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 70,
@@ -14345,7 +14472,8 @@
    "Serve at room temperature; store in an airtight tin for up to two weeks."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 50,
@@ -14409,6 +14537,7 @@
    "Pour tfaya into the well; garnish with fried almonds and egg slices; serve."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -14471,7 +14600,8 @@
    "Drizzle olive oil; scatter parsley; serve with a wedge of lemon and bread."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -14528,7 +14658,8 @@
    "Serve at room temperature with crusty bread."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -14590,6 +14721,7 @@
    "Bake 30 min at 190°C until golden; invert; dust with icing sugar and cinnamon pattern."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "serving",
@@ -14652,6 +14784,7 @@
    "Scatter herbs; drizzle raw olive oil; serve warm or at room temperature."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -14714,7 +14847,7 @@
    "Serve warm or at room temperature; store in an airtight tin."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 40,
@@ -14772,7 +14905,9 @@
    "Bake at 220°C for 20-25 min until golden; tap the base — it should sound hollow."
   ],
   "meal_hint": [
-   "snack"
+   "breakfast",
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 80,
@@ -14832,7 +14967,7 @@
    "They will hold their shape better if not touched for the first 2 min of frying."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 80,
@@ -14887,7 +15022,7 @@
    "Cool; dust generously with icing sugar."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 35,
@@ -14948,6 +15083,7 @@
    "Ladle broth over and serve the rest in a bowl on the side for people to add as they eat."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -15007,7 +15143,8 @@
    "Drain on paper; eat warm with tea."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 60,
@@ -15063,7 +15200,8 @@
    "Serve folded chapati with beans alongside."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -15241,7 +15379,8 @@
    "Serve immediately alongside injera or rice — it is a condiment as much as a salad."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 120,
@@ -15302,7 +15441,8 @@
    "Serve sukuma alongside — tear and scoop the ugali with your right hand."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -15365,7 +15505,8 @@
    "Season; scatter coriander; serve with ugali or chapati."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -15426,6 +15567,7 @@
    "Serve on injera or rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -15484,6 +15626,7 @@
    "Season well; serve mounded as a side to stews or grilled vegetables."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -15549,6 +15692,7 @@
    "Rest 5 min; fluff gently; serve with kachumbari on the side."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -15609,7 +15753,8 @@
    "Serve immediately — it is at its best fresh."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 120,
@@ -15665,7 +15810,7 @@
    "Drain; serve hot with tamarind chutney."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 60,
@@ -15725,7 +15870,8 @@
    "Drain; eat warm with tea."
   ],
   "meal_hint": [
-   "snack"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 55,
@@ -15780,7 +15926,7 @@
    "Squeeze lime; serve with tamarind chutney."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 120,
@@ -15843,7 +15989,7 @@
    "Drain; serve hot with green chutney."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 100,
@@ -15900,7 +16046,8 @@
    "Drizzle honey; serve immediately before it melts."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 350,
@@ -15958,7 +16105,8 @@
    "Drizzle honey; eat while the outside is still crisp."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 150,
@@ -16141,7 +16289,8 @@
    "Ladle into bowls; top with avocado and coriander; serve with bread."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -16203,7 +16352,8 @@
    "Season; scatter herbs; squeeze lime; serve hot."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -16329,6 +16479,7 @@
    "Serve in deep bowls; scatter fresh mint and coriander on top."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -16391,6 +16542,7 @@
    "Serve immediately over rice; add fries; scatter coriander; squeeze lime."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -16450,6 +16602,7 @@
    "Serve garnished with parmesan, olives and egg."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -16511,7 +16664,7 @@
    "Bake at 190°C for 35-40 min until set in the centre and golden on top."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -16571,7 +16724,7 @@
    "Drain briefly; serve immediately while the cheese is still molten."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 80,
@@ -16627,7 +16780,7 @@
    "Serve with guacamole or hogao."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 100,
@@ -16681,7 +16834,8 @@
    "Eat while hot — the filling liquefies as it bakes."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 100,
@@ -16858,7 +17012,8 @@
    "Serve warm with honey, sugar or a side of pepper soup."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 100,
@@ -16915,7 +17070,8 @@
    "Drain; serve hot alongside koko or tea."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 100,
@@ -16973,7 +17129,8 @@
    "Add toppings to taste — the more varied, the better."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -17034,6 +17191,7 @@
    "Serve over boiled yam slices or with plantain."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -17097,6 +17255,7 @@
    "Season; serve over rice or with fufu."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -17158,6 +17317,7 @@
    "Season; serve with boiled yam."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -17221,6 +17381,7 @@
    "Season; scatter coriander; serve over white rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -17279,6 +17440,7 @@
    "Serve with raw onion rings and sliced tomato."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -17341,6 +17503,7 @@
    "Season; scatter fresh coriander; serve with rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -17396,6 +17559,7 @@
    "Shape eba into a ball; serve with soup poured around."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -17456,7 +17620,7 @@
    "Drain on paper; dust with sugar if desired; eat warm."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 70,
@@ -17515,7 +17679,7 @@
    "Drain fully; cool completely before storing — they crisp up as they cool."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 45,
@@ -17570,7 +17734,7 @@
    "Cool completely before packing — they become crispier as they cool."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 40,
@@ -17630,7 +17794,7 @@
    "Drain; dust with icing sugar if desired."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 65,
@@ -17690,7 +17854,7 @@
    "Store in an airtight jar; they keep for one week."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 35,
@@ -17758,7 +17922,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 120,
@@ -17819,8 +17983,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 180,
@@ -17884,7 +18047,8 @@
    "Serve hot with yogurt, pickle, and butter."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 160,
@@ -18012,8 +18176,8 @@
   ],
   "meal_hint": [
    "breakfast",
-   "dinner",
-   "snack"
+   "evening_snack",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -18145,7 +18309,8 @@
    "Crush kasuri methi between palms; stir in. Garnish with coriander and a swirl of cream."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -18274,8 +18439,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "breakfast"
+   "dinner"
   ],
   "serving_unit": "katori",
   "serving_weight_g": 150,
@@ -18341,8 +18505,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "breakfast"
+   "dinner"
   ],
   "serving_unit": "katori",
   "serving_weight_g": 150,
@@ -18408,7 +18571,9 @@
    "Squeeze lemon; garnish with coriander. Serve with roti or pav."
   ],
   "meal_hint": [
-   "lunch"
+   "breakfast",
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "katori",
   "serving_weight_g": 150,
@@ -18478,7 +18643,8 @@
    "Fluff gently; garnish with fried onion and fresh mint."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 250,
@@ -18547,6 +18713,7 @@
    "Add grilled paneer; simmer 2 min. Crush and stir in kasuri methi. Serve with naan or rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -18609,7 +18776,8 @@
    "Add more ghee if desired; serve with papad and pickle."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -18665,7 +18833,6 @@
    "Brush with ghee; serve immediately."
   ],
   "meal_hint": [
-   "breakfast",
    "lunch",
    "dinner"
   ],
@@ -18728,7 +18895,7 @@
    "Drain; sprinkle chaat masala. Serve immediately with mint chutney."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 100,
@@ -18795,7 +18962,8 @@
    "Slit pav buns; toast on a buttered tawa until golden. Serve with bhaji, lemon, onion, and coriander."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 350,
@@ -18862,8 +19030,8 @@
    "Serve hot with tamarind chutney and mint chutney."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 70,
@@ -18926,7 +19094,7 @@
    "Store airtight for up to 2 weeks."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 50,
@@ -18987,7 +19155,8 @@
    "Serve warm, or chill 2–3 hours. Garnish with nuts and rose petals before serving."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -19050,10 +19219,8 @@
    "Serve warm, 2–3 per portion."
   ],
   "meal_hint": [
-   "snack",
    "lunch",
-   "dinner",
-   "breakfast"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 45,
@@ -19114,10 +19281,8 @@
    "Drain briefly; soak in warm syrup 1–2 min. Serve immediately — jalebi are best eaten hot."
   ],
   "meal_hint": [
-   "snack",
    "breakfast",
-   "lunch",
-   "dinner"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 60,
@@ -19176,7 +19341,7 @@
    "Cool completely; store airtight up to 2 weeks."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 40,
@@ -19238,9 +19403,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 150,
@@ -19304,7 +19467,8 @@
    "Fold in cashews, raisins, and cardamom. Serve warm."
   ],
   "meal_hint": [
-   "snack"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 120,
@@ -19359,9 +19523,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 150,
@@ -19419,10 +19581,7 @@
    "Strain into a mug and serve hot."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 200,
@@ -19481,10 +19640,8 @@
    "Pour into a glass and garnish with sliced pistachios. Serve hot or chilled."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "evening_snack",
+   "dinner"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -19540,9 +19697,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 200,
@@ -19601,10 +19756,8 @@
    "Taste and adjust salt or sugar. Serve immediately."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -19664,10 +19817,8 @@
    "Pour into glasses, garnish with curry leaves and coriander. Serve chilled."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "lunch"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -19726,10 +19877,8 @@
    "Refrigerate the concentrate. To serve: stir 3 tbsp concentrate into a glass of cold water. Add ice and mint."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 200,
@@ -19790,10 +19939,9 @@
    "Add cold water, stir and strain into glasses over ice. Garnish with a mint sprig."
   ],
   "meal_hint": [
-   "breakfast",
+   "morning_snack",
    "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 200,
@@ -19850,10 +19998,9 @@
    "To serve: add 2–3 tbsp concentrate to a glass of cold water. Stir in cumin and rock salt. Add ice."
   ],
   "meal_hint": [
-   "breakfast",
+   "morning_snack",
    "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 200,
@@ -19908,10 +20055,8 @@
    "Add ice cubes and soaked basil seeds if using. Serve immediately."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -19967,9 +20112,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 200,
@@ -20031,9 +20174,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "tbsp",
   "serving_weight_g": 40,
@@ -20094,8 +20235,8 @@
    "Transfer to an airtight container and refrigerate until needed. Best used the same day."
   ],
   "meal_hint": [
-   "breakfast",
    "lunch",
+   "evening_snack",
    "dinner"
   ],
   "serving_unit": "tbsp",
@@ -20164,8 +20305,7 @@
   "meal_hint": [
    "breakfast",
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -20229,7 +20369,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch"
+   "dinner"
   ],
   "serving_unit": "tbsp",
   "serving_weight_g": 40,
@@ -20284,10 +20424,8 @@
    "Serve over ice"
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 230,
@@ -20342,10 +20480,8 @@
    "Stir well and serve"
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 220,
@@ -20403,9 +20539,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 300,
@@ -20465,9 +20599,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "tbsp",
   "serving_weight_g": 15,
@@ -20712,6 +20844,7 @@
    "Finish with coconut oil and curry leaves"
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -20771,6 +20904,7 @@
    "Mix in grated coconut; cook 2 more min and serve"
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "katori",
@@ -20830,7 +20964,6 @@
    "Serve as condiment"
   ],
   "meal_hint": [
-   "breakfast",
    "lunch",
    "dinner"
   ],
@@ -20886,7 +21019,6 @@
    "Refrigerate once set"
   ],
   "meal_hint": [
-   "breakfast",
    "lunch",
    "dinner"
   ],
@@ -20941,7 +21073,9 @@
    "Serve immediately"
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "tbsp",
   "serving_weight_g": 15,
@@ -20997,10 +21131,9 @@
    "Serve fresh; refrigerates up to 3 days"
   ],
   "meal_hint": [
-   "breakfast",
    "lunch",
-   "dinner",
-   "snack"
+   "evening_snack",
+   "dinner"
   ],
   "serving_unit": "tbsp",
   "serving_weight_g": 30,
@@ -21059,8 +21192,8 @@
    "Garnish with coriander and chill before serving"
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "katori",
   "serving_weight_g": 150,
@@ -21119,9 +21252,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -21182,10 +21313,8 @@
    "Chill and serve garnished with saffron"
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -21242,10 +21371,8 @@
    "Serve over ice with fresh mint"
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -21308,8 +21435,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "breakfast"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -21423,7 +21549,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "dinner"
+   "lunch"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 80,
@@ -21481,7 +21607,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "dinner"
+   "lunch"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 90,
@@ -21532,10 +21658,7 @@
    "Serve immediately"
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -21593,9 +21716,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack",
-   "lunch",
-   "dinner"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 350,
@@ -21649,9 +21770,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 200,
@@ -21711,7 +21830,8 @@
    "Serve warm with curd, pickle or chundo."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 60,
@@ -21774,7 +21894,8 @@
    "Serve hot with curd, chutney or thecha (green chilli relish)."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 90,
@@ -21837,7 +21958,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch"
+   "evening_snack"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -21895,7 +22016,8 @@
    "Fold gently and serve immediately with coconut chutney."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 80,
@@ -21953,7 +22075,8 @@
    "Serve hot with coconut chutney or saagu."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -22009,7 +22132,8 @@
    "Serve immediately with ghee and a small piece of jaggery on the side."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 110,
@@ -22070,7 +22194,9 @@
    "Serve hot with curd, pickle and green chutney."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 90,
@@ -22129,8 +22255,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack",
-   "lunch"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -22251,7 +22376,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -22310,7 +22435,8 @@
    "Serve hot with cholar dal or aloo dum."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 90,
@@ -22373,7 +22499,8 @@
    "Serve puttu broken over the kadala curry — they are meant to be mixed."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 350,
@@ -22432,7 +22559,8 @@
    "Serve idiyappam with the warm sweetened coconut milk poured over."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 250,
@@ -22491,7 +22619,8 @@
    "Cook with oil on a hot tawa until golden on both sides."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -22551,7 +22680,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 100,
@@ -22609,7 +22738,8 @@
    "Unwrap and eat straight from the leaf — the turmeric imparts a subtle earthiness."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -22666,7 +22796,8 @@
    "Spread generously with ghee; serve hot with sarson ka saag, jaggery and raw onion."
   ],
   "meal_hint": [
-   "breakfast"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 100,
@@ -22790,7 +22921,8 @@
    "Add sliced gatte; simmer 5 minutes. Finish with a mustard tempering."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -22852,7 +22984,8 @@
    "Adjust salt; serve with bajra roti."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 100,
@@ -22915,7 +23048,8 @@
    "Finish with ghee and coriander. The dish thickens as it sits."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -23039,7 +23173,8 @@
    "Cook on low 5 minutes until oil separates. Season with salt."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -23101,7 +23236,8 @@
    "Garnish with a final drizzle of ghee and serve with luchi or rice."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -23160,7 +23296,8 @@
    "Serve with steamed rice — the paste is the sauce."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -23223,7 +23360,8 @@
    "Uncover and cook 5 more minutes until oil surfaces and brinjals are fully soft."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -23281,7 +23419,8 @@
    "Serve the varan over hot steamed rice with a drizzle of extra ghee on top."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 300,
@@ -23344,7 +23483,8 @@
    "Add fresh grated coconut; stir, adjust salt and serve with rice."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -23407,7 +23547,8 @@
    "Adjust salt; serve with rice."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -23465,7 +23606,8 @@
    "Garnish with coriander. Serve cold or at room temperature — never heat Sol Kadhi."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 200,
@@ -23529,7 +23671,8 @@
    "Add fried potatoes; coat well. Add ½ cup water and simmer 10 minutes covered."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -23655,7 +23798,8 @@
    "Serve rajma over rice — they are always eaten together."
   ],
   "meal_hint": [
-   "lunch"
+   "lunch",
+   "dinner"
   ],
   "serving_unit": "plate",
   "serving_weight_g": 350,
@@ -23717,6 +23861,7 @@
    "Add ½ cup water; simmer until lotus stem is fully tender and sauce coats it."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -23780,6 +23925,7 @@
    "Adjust seasoning; serve with rice or sheermal."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -23844,6 +23990,7 @@
    "Add fried dhokar pieces to the curry; simmer 5 minutes and serve."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -23904,6 +24051,7 @@
    "Serve fried brinjal alongside the dal — they are eaten together."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "serving",
@@ -23968,6 +24116,7 @@
    "Garnish with coriander and serve with bhakri or rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -24031,6 +24180,7 @@
    "Add jaggery; stir and adjust consistency with water. Serve hot with rice or bhakri."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -24094,6 +24244,7 @@
    "Serve with bajra roti — this dish is deliberately dry."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -24157,6 +24308,7 @@
    "Finish with more ghee and curry leaves; serve with neer dosa."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -24220,6 +24372,7 @@
    "Adjust salt and serve with neer dosa or rice."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -24284,6 +24437,7 @@
    "Serve hot kadhi poured over khichdi — they are meant to be eaten together."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -24348,6 +24502,7 @@
    "Serve with rice — the consistency should be like a thin curry."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -24411,6 +24566,7 @@
    "Temper with cumin seeds in hot oil; pour over kadhi. Adjust salt and consistency."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -24474,6 +24630,7 @@
    "Serve hot — dalma with ghee is best when freshly made."
   ],
   "meal_hint": [
+   "lunch",
    "dinner"
   ],
   "serving_unit": "bowl",
@@ -24534,8 +24691,8 @@
    "Cool completely before cutting — the crust should be dark brown."
   ],
   "meal_hint": [
-   "dinner",
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 110,
@@ -24593,6 +24750,7 @@
    "Cook until crisp on both sides. Serve with coconut chutney."
   ],
   "meal_hint": [
+   "breakfast",
    "dinner"
   ],
   "serving_unit": "plate",
@@ -24655,7 +24813,7 @@
    "Top with sev and serve immediately — jhal muri goes soggy within 2 minutes."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 120,
@@ -24718,7 +24876,7 @@
    "Deep-fry in medium oil until golden and crisp."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 80,
@@ -24779,10 +24937,8 @@
    "Top with tamarind chutney, green chutney, cumin powder and chilli powder."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast",
    "lunch",
-   "dinner"
+   "evening_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 180,
@@ -24840,7 +24996,8 @@
    "Khakhra must be fully dry — continue cooking on very low heat if needed."
   ],
   "meal_hint": [
-   "snack"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 30,
@@ -24904,7 +25061,7 @@
    "Spread on a plate to cool completely before storing. It crisps as it cools."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 45,
@@ -24966,7 +25123,7 @@
    "Drain and serve hot with tamarind chutney."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 90,
@@ -25028,7 +25185,8 @@
    "Serve hot with tamarind chutney."
   ],
   "meal_hint": [
-   "snack"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 80,
@@ -25088,7 +25246,7 @@
    "Drain on paper; cool completely before storing — they crisp further as they cool."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 35,
@@ -25148,7 +25306,7 @@
    "Drain and serve; they firm up as they cool."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 50,
@@ -25206,7 +25364,7 @@
    "Store in an airtight tin; keeps 2–3 weeks."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 35,
@@ -25267,7 +25425,7 @@
    "Serve immediately."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 120,
@@ -25325,7 +25483,8 @@
    "Toss to coat evenly; serve immediately while warm, or cool completely for storage."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 30,
@@ -25385,8 +25544,9 @@
    "Flip and cook 2 more minutes until golden on both sides."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "breakfast",
+   "evening_snack",
+   "dinner"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -25445,7 +25605,7 @@
    "Drain and serve hot with chai."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 70,
@@ -25506,7 +25666,8 @@
    "Season with salt; serve immediately while still warm and crisp."
   ],
   "meal_hint": [
-   "snack"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 120,
@@ -25564,7 +25725,7 @@
    "Fry slowly until deep brown and cooked through (5–6 min per side). Drain well."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 60,
@@ -25622,7 +25783,8 @@
    "Toss well and serve immediately as a snack."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -25684,7 +25846,7 @@
    "Drain, cool and break into pieces for serving."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 35,
@@ -25744,7 +25906,7 @@
    "Drain well and cool before storing."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 35,
@@ -25802,9 +25964,8 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -25862,10 +26023,7 @@
    "Remove from heat; stir in honey once slightly cooled. Serve warm."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -25924,9 +26082,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -25981,9 +26137,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -26041,9 +26195,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -26101,9 +26253,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -26159,9 +26309,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 250,
@@ -26217,10 +26365,8 @@
    "Add honey if desired and sip slowly between meals."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 250,
@@ -26277,9 +26423,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 220,
@@ -26337,9 +26481,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 250,
@@ -26394,10 +26536,7 @@
    "Add lemon juice and honey; stir and drink on an empty stomach."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "breakfast"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 250,
@@ -26454,9 +26593,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 200,
@@ -26512,10 +26649,8 @@
    "Add black salt and cumin powder; stir and serve chilled."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 220,
@@ -26572,10 +26707,8 @@
    "Stir in honey and sip warm or allow to cool and serve chilled."
   ],
   "meal_hint": [
-   "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 250,
@@ -26634,9 +26767,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 250,
@@ -26700,8 +26831,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -26764,8 +26894,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -26829,8 +26958,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -26895,8 +27023,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -26960,8 +27087,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -27024,8 +27150,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -27088,8 +27213,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -27152,8 +27276,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -27216,8 +27339,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -27281,8 +27403,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 180,
@@ -27343,7 +27464,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -27404,7 +27525,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -27462,8 +27583,8 @@
    "Serve immediately — best enjoyed fresh when mango is at room temperature."
   ],
   "meal_hint": [
-   "breakfast",
-   "snack"
+   "morning_snack",
+   "lunch"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -27519,8 +27640,7 @@
    "Toss gently and serve immediately — watermelon releases water quickly."
   ],
   "meal_hint": [
-   "breakfast",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -27578,7 +27698,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 280,
@@ -27637,7 +27757,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -27696,8 +27816,8 @@
    "Toss again and serve immediately."
   ],
   "meal_hint": [
-   "breakfast",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -27756,7 +27876,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 220,
@@ -27813,7 +27933,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 220,
@@ -27871,7 +27991,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -27932,8 +28052,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -27994,9 +28113,9 @@
    "Serve immediately — sprout salads wilt within 30 minutes of dressing."
   ],
   "meal_hint": [
+   "morning_snack",
    "lunch",
-   "dinner",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -28059,8 +28178,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 120,
@@ -28121,8 +28239,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 100,
@@ -28183,8 +28300,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -28245,8 +28361,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 120,
@@ -28306,8 +28421,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 100,
@@ -28367,9 +28481,8 @@
    "Serve immediately — best eaten within 30 minutes."
   ],
   "meal_hint": [
-   "lunch",
-   "dinner",
-   "snack"
+   "morning_snack",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -28432,8 +28545,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 100,
@@ -28494,8 +28606,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "snack"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 130,
@@ -28711,7 +28822,8 @@
    "Serve hot with coconut chutney or yogurt."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -28782,7 +28894,8 @@
    "Serve with green chutney."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -28922,7 +29035,8 @@
    "Serve warm."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 300,
@@ -29059,7 +29173,8 @@
    "Serve with yogurt and green chutney."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -29130,7 +29245,8 @@
    "Serve with mint chutney or sliced cucumber raita."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -29201,7 +29317,8 @@
    "Fold and serve with coconut chutney and sambar."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 150,
@@ -31199,7 +31316,8 @@
    "Serve 4 idlis with a generous bowl of sambar."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 250,
@@ -31266,7 +31384,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "lunch"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 250,
@@ -31334,7 +31452,8 @@
    "Add lemon juice and coriander. Serve hot."
   ],
   "meal_hint": [
-   "breakfast"
+   "breakfast",
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -32336,7 +32455,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "glass",
   "serving_weight_g": 200,
@@ -32400,7 +32519,7 @@
   ],
   "meal_hint": [
    "breakfast",
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 200,
@@ -32583,8 +32702,7 @@
    "Garnish with coriander. Serve with rice."
   ],
   "meal_hint": [
-   "lunch",
-   "dinner"
+   "lunch"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -32701,7 +32819,6 @@
    "Serve immediately with any dal, sabzi, or curd."
   ],
   "meal_hint": [
-   "breakfast",
    "lunch",
    "dinner"
   ],
@@ -32816,7 +32933,6 @@
    "Use as a base for raita, kadhi, or lassi."
   ],
   "meal_hint": [
-   "breakfast",
    "lunch",
    "dinner"
   ],
@@ -32932,7 +33048,6 @@
    "Serve immediately with ghee, dal, or sabzi."
   ],
   "meal_hint": [
-   "breakfast",
    "lunch",
    "dinner"
   ],
@@ -32991,7 +33106,6 @@
    "Serve hot with a generous knob of ghee."
   ],
   "meal_hint": [
-   "breakfast",
    "lunch",
    "dinner"
   ],
@@ -33045,8 +33159,8 @@
    "Pair with a handful of nuts for a balanced snack."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "breakfast",
+   "morning_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -33097,8 +33211,8 @@
    "Can be paired with curd or rice for a complete summer meal."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "morning_snack",
+   "lunch"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 200,
@@ -33152,8 +33266,8 @@
    "Serve fresh as a first course or snack."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "breakfast",
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -33206,7 +33320,7 @@
    "Eat with or without seeds."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "piece",
   "serving_weight_g": 120,
@@ -33259,8 +33373,8 @@
    "Optionally scatter over curd or use as a garnish."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "breakfast",
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 100,
@@ -33315,8 +33429,8 @@
    "One amla daily in the morning is the Ayurvedic recommendation."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "breakfast",
+   "morning_snack"
   ],
   "serving_unit": "serving",
   "serving_weight_g": 60,
@@ -33371,7 +33485,7 @@
    "Alternatively blend with mint for a fresh summer cooler."
   ],
   "meal_hint": [
-   "snack"
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -33429,8 +33543,8 @@
    "Serve immediately."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "breakfast",
+   "morning_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 200,
@@ -33492,7 +33606,8 @@
    "Serve warm or refrigerate and serve chilled."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -33554,10 +33669,7 @@
    "Serve warm garnished with nuts."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast",
-   "lunch",
-   "dinner"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -33618,7 +33730,8 @@
    "Serve warm or at room temperature."
   ],
   "meal_hint": [
-   "snack"
+   "lunch",
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -33679,7 +33792,7 @@
    "Serve warm."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 100,
@@ -33739,7 +33852,7 @@
    "Garnish with grated coconut. Serve warm."
   ],
   "meal_hint": [
-   "snack"
+   "evening_snack"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,
@@ -33794,8 +33907,8 @@
    "Serve in the tumbler with the dabarah on the side."
   ],
   "meal_hint": [
-   "snack",
-   "breakfast"
+   "breakfast",
+   "evening_snack"
   ],
   "serving_unit": "cup",
   "serving_weight_g": 150,
@@ -33855,7 +33968,7 @@
    "Serve cold as a digestive alongside lunch or on its own."
   ],
   "meal_hint": [
-   "snack",
+   "morning_snack",
    "lunch"
   ],
   "serving_unit": "glass",
@@ -33917,7 +34030,7 @@
    "Serve cold over ice."
   ],
   "meal_hint": [
-   "snack",
+   "morning_snack",
    "lunch"
   ],
   "serving_unit": "glass",
@@ -33971,8 +34084,7 @@
   ],
   "meal_hint": [
    "lunch",
-   "dinner",
-   "breakfast"
+   "dinner"
   ],
   "serving_unit": "bowl",
   "serving_weight_g": 150,

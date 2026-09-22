@@ -327,7 +327,7 @@ export default function LogPage() {
       const searchingByName = query.trim().length >= 2;
       let q = supabase.from("food_items").select(FOOD_COLS).order("name").limit(searchingByName ? 40 : 80);
       if (searchingByName) q = q.ilike("name", `%${query.trim()}%`);
-      q = applyFoodFilter(q, filter, searchingByName);
+      q = applyFoodFilter(q, filter, searchingByName, activeSlot);
       const { data } = await q;
       setResults(sortForSlot((data ?? []) as FoodItem[], activeSlot));
       setSearching(false);
@@ -378,6 +378,7 @@ export default function LogPage() {
           name, kutumbh_id: kutumbhId, created_by: userId, needs_review: true,
           category, serving_unit: d.unit, serving_weight_g: d.servingG, is_south_indian: true,
           cuisine: filter.cuisine === "indian" || filter.cuisine === "all" ? null : filter.cuisine,
+          meal_hint: activeSlot ? [activeSlot] : null,
         })
         .select(FOOD_COLS)
         .single();
@@ -393,7 +394,7 @@ export default function LogPage() {
   // ── Panel open/close ──────────────────────────────────────────
   function openSlot(slot: Slot, kid: string | null = kutumbhId) {
     setActiveSlot(slot);
-    setQuery(""); setFilter(f => ({ ...f, type: "" })); setDishPicker(false);
+    setQuery(""); setFilter(f => ({ ...f, type: "", mealOnly: true })); setDishPicker(false);
     setPicked({}); setQtys({});
     clearPhoto();
     loadPool(slot, kid);
@@ -768,7 +769,7 @@ export default function LogPage() {
                   className="w-full rounded-xl px-4 py-2.5 text-sm mb-2"
                   style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
                 {query.trim().length < 2 && (
-                  <div className="mb-2"><FoodFilterBar value={filter} onChange={setFilter} idPrefix="log" /></div>
+                  <div className="mb-2"><FoodFilterBar value={filter} onChange={setFilter} idPrefix="log" slot={activeSlot} /></div>
                 )}
 
                 <div className="space-y-1.5">

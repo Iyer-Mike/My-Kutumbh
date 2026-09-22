@@ -4,6 +4,7 @@ import { ageOn, computeNeeds, kcalTarget } from "./needs.ts";
 import { datesBetween, entryNutrients, gramsOf, summarizeIntake } from "./intake.ts";
 import { doshasOf, summarizeAyurveda } from "./ayurveda.ts";
 import { evaluateLabs, latestLabValues, parseRange, topFoodsFor } from "./labs.ts";
+import { energyNarrative, microNarrative, trendNarrative, ayurvedaNarrative, labNarrative } from "./narrate.ts";
 import type { FoodData, LogEntry, Profile } from "./types.ts";
 
 // ── Fixtures ──────────────────────────────────────────────────────
@@ -264,5 +265,53 @@ describe("labs", () => {
     const flags = evaluateLabs({ creatinine: { value: 1.8, ref: null, date: null } }, { intake: salty, needs, foods: [] });
     assert.equal(flags[0].readings[0].status, "high");
     assert.match(flags[0].intakeNote ?? "", /2400 mg of sodium a day, above the 2000 mg limit/);
+  });
+});
+
+// ── Narration ─────────────────────────────────────────────────────
+describe("narration", () => {
+  const needs = computeNeeds(MOHAN, "2026-09-22");            // 2250 kcal, protein 58 g
+
+  test("energy: share of target and the biggest macro gap", () => {
+    const s = summarizeIntake([log({ calories: 961, protein_g: 28 })], "2026-09-22", "2026-09-22");
+    const t = energyNarrative(s, needs);
+    assert.match(t, /^Averaging 961 kcal a day, 43% of your 2,250 kcal target\./);
+    assert.match(t, /is the biggest gap at \d+% of need\./);
+    assert.equal(energyNarrative(summarizeIntake([], "2026-09-22", "2026-09-22"), needs), "No meals logged in this period.");
+  });
+
+  test("energy above target says so", () => {
+    const s = summarizeIntake([log({ calories: 2700 })], "2026-09-22", "2026-09-22");
+    assert.match(energyNarrative(s, needs), /20% above your 2,250 kcal target/);
+  });
+
+  test("vitamins and minerals name the two lowest and the sodium status", () => {
+    const s = summarizeIntake([log({ food: SPINACH, quantity_g: 1, quantity_unit: "bowl", calories: 35 })], "2026-09-22", "2026-09-22");
+    assert.match(microNarrative(s, needs), /^Lowest: vitamin B12 \(0%\) and /);
+    assert.match(microNarrative(s, needs), /Sodium is within your limit\.$/);
+  });
+
+  test("trend counts logged days, the highest day and days near target", () => {
+    const t = trendNarrative(
+      [{ date: "2026-09-20", kcal: 1230 }, { date: "2026-09-21", kcal: 0 }, { date: "2026-09-22", kcal: 800 }], 2250);
+    assert.equal(t, "Food logged on 2 of 3 days. Highest: 1,230 kcal on 20 Sept. No day reached your 2,250 kcal target.");
+    assert.match(trendNarrative([{ date: "2026-09-22", kcal: 2200 }], 2250), /1 day near target\./);
+  });
+
+  test("Ayurveda: leading taste, dosha pressure, heating or cooling", () => {
+    const a = summarizeAyurveda([log({ food: RASAM, calories: 300 }), log({ food: RASAM, calories: 300 }), log({ food: IDLI, calories: 400 })], "pitta");
+    const t = ayurvedaNarrative(a);
+    assert.match(t, /leads at \d+%/);
+    assert.match(t, /60% tends to aggravate Pitta/);
+    assert.match(t, /mostly heating foods\.$/);
+  });
+
+  test("lab summary names the areas to work on", () => {
+    const flags = evaluateLabs(
+      { hba1c: { value: 6.6, ref: "<5.7", date: null }, ldl: { value: 155, ref: "<100", date: null }, vitamin_d: { value: 13, ref: "30-100", date: null } },
+      { intake: null, needs, foods: [] });
+    assert.equal(labNarrative(flags, true), "3 areas to work on through food: Blood sugar, Cholesterol & blood fats and Vitamin D.");
+    assert.equal(labNarrative([], false), "No lab report yet.");
+    assert.equal(labNarrative([], true), "All values in the latest report are within the normal range.");
   });
 });

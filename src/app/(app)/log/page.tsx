@@ -5,12 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import PageNav from "@/components/PageNav";
 import { SLOTS, isSlot, slotLabel, defaultPoolName, type Slot } from "@/lib/meal-slots";
-import { DISH_CATEGORIES, categoryDefaults, type DishCategory } from "@/lib/dish-categories";
+import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
+import FoodFilterBar, { applyFoodFilter, sortForSlot, useMyFoodFilter, DietMark } from "@/components/FoodFilterBar";
 import { todayLocal, longDateLocal } from "@/lib/dates";
 
 // ── Types ─────────────────────────────────────────────────────────
 type FoodItem = {
   id: string; name: string; name_ta: string | null; category: string;
+  cuisine?: string | null; diet?: string | null; meal_hint?: string[] | null;
   calories: number | null; protein_g: number | null;
   serving_unit: string; serving_weight_g: number;
   ingredients: string | null; preparation: string | null;
@@ -25,31 +27,14 @@ type MealLog = {
 };
 
 // ── Constants ─────────────────────────────────────────────────────
-const CAT_TABS = [
-  { key: "",          label: "All"     },
-  { key: "grain",     label: "Grains"  },
-  { key: "legume",    label: "Dal"     },
-  { key: "vegetable", label: "Veggies" },
-  { key: "fruit",     label: "Fruits"  },
-  { key: "dairy",     label: "Dairy"   },
-  { key: "snack",     label: "Snacks"  },
-  { key: "sweet",     label: "Sweets"  },
-  { key: "beverage",  label: "Drinks"  },
-];
-
-const CAT_ICON: Record<string, string> = {
-  grain: "🌾", legume: "🫘", vegetable: "🥦", fruit: "🍎",
-  dairy: "🥛", snack: "🥨", sweet: "🍮", spice: "🌶️",
-  beverage: "☕", other: "🍽️",
-};
 
 const UNIT_LABEL: Record<string, string> = {
   piece: "pcs", cup: "cup", bowl: "bowl", serving: "serving",
-  glass: "glass", tbsp: "tbsp", g: "g",
+  glass: "glass", tbsp: "tbsp", tsp: "tsp", plate: "plate", katori: "katori", g: "g",
 };
 
 const FOOD_COLS =
-  "id,name,name_ta,category,calories,protein_g,serving_unit,serving_weight_g,ingredients,preparation,needs_review";
+  "id,name,name_ta,category,cuisine,diet,meal_hint,calories,protein_g,serving_unit,serving_weight_g,ingredients,preparation,needs_review";
 
 function stepFor(unit: string) { return unit === "g" ? 25 : unit === "tbsp" ? 1 : 0.5; }
 function defaultQty(unit: string) { return unit === "g" ? 100 : 1; }
@@ -71,7 +56,7 @@ function nutrition(food: FoodItem, qty: number) {
       estimated: false,
     };
   }
-  const d = categoryDefaults(food.category);
+  const d = dishTypeOf(food.category);
   const servings = food.serving_unit === "g" ? qty / d.servingG : qty;
   return { kcal: Math.round(servings * d.kcalPerServing), protein: null, estimated: true };
 }
@@ -114,7 +99,7 @@ export default function LogPage() {
 
   // Search
   const [query, setQuery]         = useState("");
-  const [catFilter, setCatFilter] = useState("");
+  const [filter, setFilter]       = useMyFoodFilter();
   const [results, setResults]     = useState<FoodItem[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -339,20 +324,17 @@ export default function LogPage() {
     if (!activeSlot) return;
     const t = setTimeout(async () => {
       setSearching(true);
-      let q = supabase.from("food_items").select(FOOD_COLS).limit(40);
-      if (query.trim().length >= 2) {
-        q = q.ilike("name", `%${query.trim()}%`);
-      } else {
-        q = q.eq("is_south_indian", true);
-        if (catFilter) q = q.eq("category", catFilter);
-      }
+      const searchingByName = query.trim().length >= 2;
+      let q = supabase.from("food_items").select(FOOD_COLS).order("name").limit(searchingByName ? 40 : 80);
+      if (searchingByName) q = q.ilike("name", `%${query.trim()}%`);
+      q = applyFoodFilter(q, filter, searchingByName);
       const { data } = await q;
-      setResults((data ?? []) as FoodItem[]);
+      setResults(sortForSlot((data ?? []) as FoodItem[], activeSlot));
       setSearching(false);
     }, 250);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, catFilter, activeSlot]);
+  }, [query, filter, activeSlot]);
 
   // ── Selection ─────────────────────────────────────────────────
   function toggle(key: string, food: FoodItem) {
@@ -380,7 +362,7 @@ export default function LogPage() {
 
   // Unknown dish → a Family Dish awaiting the Prime Member's details. Its
   // category sets the natural unit and the estimate used until then.
-  async function addFamilyDish(category: DishCategory) {
+  async function addFamilyDish(category: DishType) {
     const name = query.trim();
     if (!name || !kutumbhId || !userId) return;
     setAddingDish(true);
@@ -389,12 +371,13 @@ export default function LogPage() {
       .eq("kutumbh_id", kutumbhId).ilike("name", name).limit(1).maybeSingle();
     let dish = existing as FoodItem | null;
     if (!dish) {
-      const d = categoryDefaults(category);
+      const d = dishTypeOf(category);
       const { data, error } = await supabase
         .from("food_items")
         .insert({
           name, kutumbh_id: kutumbhId, created_by: userId, needs_review: true,
           category, serving_unit: d.unit, serving_weight_g: d.servingG, is_south_indian: true,
+          cuisine: filter.cuisine === "indian" || filter.cuisine === "all" ? null : filter.cuisine,
         })
         .select(FOOD_COLS)
         .single();
@@ -410,7 +393,7 @@ export default function LogPage() {
   // ── Panel open/close ──────────────────────────────────────────
   function openSlot(slot: Slot, kid: string | null = kutumbhId) {
     setActiveSlot(slot);
-    setQuery(""); setCatFilter(""); setDishPicker(false);
+    setQuery(""); setFilter(f => ({ ...f, type: "" })); setDishPicker(false);
     setPicked({}); setQtys({});
     clearPhoto();
     loadPool(slot, kid);
@@ -519,9 +502,11 @@ export default function LogPage() {
               </svg>
             )}
           </div>
-          <span className="text-lg shrink-0">{CAT_ICON[food.category] ?? "🍽️"}</span>
+          <span className="text-lg shrink-0" aria-hidden>{dishTypeOf(food.category).icon}</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate" style={{ color: "#1C201C" }}>{food.name}</p>
+            <p className="text-sm font-medium truncate flex items-center gap-1.5" style={{ color: "#1C201C" }}>
+              <DietMark diet={food.diet} /><span className="truncate">{food.name}</span>
+            </p>
             <p className="text-xs truncate" style={{ color: food.needs_review ? "#A5661A" : "#8A9085" }}>
               {food.needs_review ? `Family dish · ${perServingText(food)}` : perServingText(food)}
             </p>
@@ -783,18 +768,7 @@ export default function LogPage() {
                   className="w-full rounded-xl px-4 py-2.5 text-sm mb-2"
                   style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
                 {query.trim().length < 2 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-                    {CAT_TABS.map(tab => (
-                      <button key={tab.key} onClick={() => setCatFilter(tab.key)}
-                        className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium"
-                        style={{
-                          background: catFilter === tab.key ? "#1C2B1C" : "#E2E1D8",
-                          color: catFilter === tab.key ? "#fff" : "#5A6055",
-                        }}>
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
+                  <div className="mb-2"><FoodFilterBar value={filter} onChange={setFilter} idPrefix="log" /></div>
                 )}
 
                 <div className="space-y-1.5">
@@ -817,7 +791,7 @@ export default function LogPage() {
                           <>
                             <p className="text-xs mb-1.5">What kind of dish is <b>{typed}</b>?</p>
                             <div className="flex flex-wrap gap-1.5">
-                              {DISH_CATEGORIES.map(c => (
+                              {DISH_TYPES.map(c => (
                                 <button key={c.key} onClick={() => addFamilyDish(c.key)} disabled={addingDish}
                                   className="px-2.5 py-1.5 rounded-full text-xs font-medium disabled:opacity-50"
                                   style={{ background: "#fff", color: "#5A4012", border: "1px solid #E4B774" }}>

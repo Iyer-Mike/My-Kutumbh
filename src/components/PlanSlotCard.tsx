@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { defaultPoolName } from "@/lib/meal-slots";
-import { DISH_CATEGORIES, categoryDefaults, type DishCategory } from "@/lib/dish-categories";
+import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
+import FoodFilterBar, { applyFoodFilter, dietOr, sortForSlot, useMyFoodFilter, DietMark } from "@/components/FoodFilterBar";
 import { todayLocal } from "@/lib/dates";
 
 // The Plan is the family menu: dish names only. Each member sets their own
@@ -27,7 +28,11 @@ type FoodSuggestion = {
   serving_unit: string | null;
   kutumbh_id: string | null;
   needs_review: boolean | null;
+  diet?: string | null;
+  meal_hint?: string[] | null;
 };
+
+const SUGGEST_COLS = "id, name, category, diet, meal_hint, calories, serving_weight_g, serving_unit, kutumbh_id, needs_review";
 
 type Props = {
   slotKey: string;
@@ -50,7 +55,7 @@ function perServingKcal(f: { calories: number | null; serving_weight_g: number |
 export function servingHint(item: Pick<PlanItem, "needs_review" | "category" | "serving_unit" | "kcal_per_serving">) {
   const unit = item.serving_unit === "g" ? "100 g" : (item.serving_unit ?? "serving");
   if (item.kcal_per_serving != null) return `${item.kcal_per_serving} kcal / ${unit}`;
-  if (item.needs_review) return `~${categoryDefaults(item.category).kcalPerServing} kcal / ${unit} est.`;
+  if (item.needs_review) return `~${dishTypeOf(item.category).kcalPerServing} kcal / ${unit} est.`;
   return null;
 }
 
@@ -64,7 +69,9 @@ export default function PlanSlotCard({
   const [suggestions, setSuggestions]   = useState<FoodSuggestion[]>([]);
   const [searched, setSearched]         = useState("");
   const [selectedFood, setSelectedFood] = useState<FoodSuggestion | null>(null);
-  const [newCategory, setNewCategory]   = useState<DishCategory | null>(null);
+  const [newCategory, setNewCategory]   = useState<DishType | null>(null);
+  const [filter, setFilter]             = useMyFoodFilter();
+  const [browse, setBrowse]             = useState<FoodSuggestion[]>([]);
   const [saving, setSaving]             = useState(false);
 
   const [poolName, setPoolName]   = useState(initialPoolName ?? defaultPoolName(slotKey));
@@ -80,15 +87,31 @@ export default function PlanSlotCard({
     const t = setTimeout(async () => {
       const { data } = await supabase
         .from("food_items")
-        .select("id, name, category, calories, serving_weight_g, serving_unit, kutumbh_id, needs_review")
+        .select(SUGGEST_COLS)
         .ilike("name", `%${q}%`)
-        .limit(6);
-      setSuggestions(data ?? []);
+        .or(dietOr(filter.diet))
+        .order("name")
+        .limit(8);
+      setSuggestions((data ?? []) as FoodSuggestion[]);
       setSearched(q);
     }, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+  }, [query, filter.diet]);
+
+  // Browse by Cuisine → Diet → Dish type while nothing is typed
+  useEffect(() => {
+    if (!adding || query.trim()) return;
+    let cancelled = false;
+    (async () => {
+      const q = applyFoodFilter(
+        supabase.from("food_items").select(SUGGEST_COLS).order("name").limit(60), filter, false);
+      const { data } = await q;
+      if (!cancelled) setBrowse(sortForSlot((data ?? []) as FoodSuggestion[], slotKey).slice(0, 30));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adding, query, filter]);
 
   function openAdd() {
     setAdding(true);
@@ -109,15 +132,16 @@ export default function PlanSlotCard({
   const canAdd        = !!typed && (!!selectedFood || !!exactMatch || (isNewDish && (!kutumbhId || !!newCategory)));
 
   // New dish → a Family Dish (family-only), awaiting the Prime Member's details
-  async function createFamilyDish(dishName: string, category: DishCategory) {
-    const d = categoryDefaults(category);
+  async function createFamilyDish(dishName: string, category: DishType) {
+    const d = dishTypeOf(category);
     const { data, error } = await supabase
       .from("food_items")
       .insert({
         name: dishName, kutumbh_id: kutumbhId, created_by: userId, needs_review: true,
         category, serving_unit: d.unit, serving_weight_g: d.servingG, is_south_indian: true,
+        cuisine: filter.cuisine === "indian" || filter.cuisine === "all" ? null : filter.cuisine,
       })
-      .select("id, name, category, calories, serving_weight_g, serving_unit, kutumbh_id, needs_review")
+      .select(SUGGEST_COLS)
       .single();
     if (error) { alert(`Couldn't add the dish: ${error.message}`); return null; }
     return data as FoodSuggestion;
@@ -313,6 +337,37 @@ export default function PlanSlotCard({
             style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
           />
 
+          {/* Browse by filters */}
+          {!typed && (
+            <div className="space-y-2">
+              <FoodFilterBar value={filter} onChange={setFilter} idPrefix={`plan-${slotKey}`} />
+              <div className="rounded-xl overflow-y-auto" style={{ background: "#fff", border: "1px solid #E2E1D8", maxHeight: 260 }}>
+                {browse.length === 0 ? (
+                  <p className="text-xs text-center py-3" style={{ color: "#8A9085" }}>No dishes match these filters</p>
+                ) : browse.map((s, i) => {
+                  const k = perServingKcal(s);
+                  return (
+                    <button key={s.id}
+                      onClick={() => { setSelectedFood(s); setQuery(s.name); setSearched(s.name); }}
+                      className="w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2"
+                      style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, color: "#1C201C" }}>
+                      <span className="truncate flex items-center gap-1.5">
+                        <span aria-hidden>{dishTypeOf(s.category).icon}</span>
+                        <DietMark diet={s.diet} />
+                        <span className="truncate">{s.name}</span>
+                      </span>
+                      {k != null && (
+                        <span className="text-xs flex-shrink-0" style={{ color: "#8A9085" }}>
+                          {k} kcal / {s.serving_unit === "g" ? "100 g" : (s.serving_unit ?? "serving")}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Matches */}
           {suggestions.length > 0 && !selectedFood && (
             <div className="rounded-xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
@@ -325,7 +380,8 @@ export default function PlanSlotCard({
                     className="w-full text-left px-3 py-2.5 text-sm flex items-center justify-between gap-2"
                     style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, color: "#1C201C" }}
                   >
-                    <span className="truncate">
+                    <span className="truncate flex items-center gap-1.5">
+                      <DietMark diet={s.diet} />
                       {s.name}
                       {s.kutumbh_id && (
                         <span className="ml-1.5 text-[10px] font-semibold" style={{ color: "#A5661A" }}>FAMILY DISH</span>
@@ -349,7 +405,7 @@ export default function PlanSlotCard({
                 New dish — what kind is <b>{typed}</b>?
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {DISH_CATEGORIES.map(c => (
+                {DISH_TYPES.map(c => (
                   <button
                     key={c.key}
                     onClick={() => setNewCategory(c.key)}

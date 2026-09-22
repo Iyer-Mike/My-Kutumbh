@@ -223,7 +223,7 @@ const SUGARY_NAME = /date|jaggery|sugar|halwa|payasam|kheer|laddu|jalebi|sweet|h
 
 /** A food to keep off blood-sugar and blood-fat suggestions. */
 export function isSugary(f: FoodData): boolean {
-  return f.category === "sweet" || (f.carbs_g ?? 0) > 40 || SUGARY_NAME.test(f.name);
+  return f.category === "dessert" || f.category === "sweet" || (f.carbs_g ?? 0) > 40 || SUGARY_NAME.test(f.name);
 }
 
 /** Foods providing the most of a nutrient per serving, skipping allergy matches. */

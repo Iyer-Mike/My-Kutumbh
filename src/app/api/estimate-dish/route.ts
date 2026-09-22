@@ -3,11 +3,17 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
+import { CUISINES, DISH_TYPES } from "@/lib/food-taxonomy";
+
+const DISH_TYPE_KEYS = DISH_TYPES.map((d) => d.key) as [string, ...string[]];
+const CUISINE_KEYS = CUISINES.map((c) => c.key) as [string, ...string[]];
 
 // Nutrient values are per 100 g of the dish as served.
 const DishEstimate = z.object({
-  category: z.enum(["grain", "legume", "vegetable", "fruit", "dairy", "snack", "sweet", "beverage", "other"]),
-  serving_unit: z.enum(["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"]),
+  category: z.enum(DISH_TYPE_KEYS),
+  cuisine: z.enum(CUISINE_KEYS),
+  diet: z.enum(["vegan", "veg", "egg", "nonveg"]),
+  serving_unit: z.enum(["serving", "plate", "bowl", "katori", "piece", "cup", "glass", "tbsp", "tsp", "g"]),
   serving_weight_g: z.number(),
   per_100g: z.object({
     kcal: z.number(),
@@ -40,6 +46,8 @@ const SYSTEM = `You estimate nutrition and Ayurvedic properties for home-cooked 
 Base nutrient figures on Indian Food Composition Tables (IFCT 2017) and standard references, reasoning from the listed ingredients and preparation method. Report every nutrient per 100 g of the dish as served (cooked, with its water). Include typical home salt in sodium unless the preparation says otherwise; account for oil or ghee in the method.
 
 Choose the serving unit and weight a household would naturally use for this dish (e.g. sambar: bowl ≈ 150 g; idli: piece ≈ 40 g; rice: cup ≈ 150 g).
+
+Classify the dish: category is its dish type (${DISH_TYPES.map((d) => `${d.key} = ${d.hint}`).join("; ")}). cuisine is its regional cuisine (${CUISINES.map((c) => `${c.key}: ${c.examples}`).join("; ")}). diet is the strictest diet it fits from the ingredients: vegan (no animal products), veg (dairy allowed), egg, or nonveg (meat, fish, seafood).
 
 For Ayurvedic properties use classical texts: rasa (tastes present, most dominant first), guna (qualities), vipaka, virya, and the dish's effect on each dosha.
 

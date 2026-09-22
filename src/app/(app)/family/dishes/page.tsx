@@ -18,7 +18,7 @@ export default async function FamilyDishesPage() {
 
   const { data: dishes } = await supabase
     .from("food_items")
-    .select("id, name, category, serving_unit, serving_weight_g, calories, protein_g, carbs_g, fat_g, fiber_g, iron_mg, calcium_mg, vitamin_b12_mcg, vitamin_c_mg, folate_mcg, sodium_mg, potassium_mg, rasa, guna, vipaka, ingredients, preparation, virya, vata_effect, pitta_effect, kapha_effect, needs_review, created_by")
+    .select("id, name, category, cuisine, diet, serving_unit, serving_weight_g, calories, protein_g, carbs_g, fat_g, fiber_g, iron_mg, calcium_mg, vitamin_b12_mcg, vitamin_c_mg, folate_mcg, sodium_mg, potassium_mg, rasa, guna, vipaka, ingredients, preparation, virya, vata_effect, pitta_effect, kapha_effect, needs_review, created_by")
     .eq("kutumbh_id", membership.kutumbh_id)
     .order("needs_review", { ascending: false })
     .order("name", { ascending: true });

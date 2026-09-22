@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { CUISINES, DIETS, DISH_TYPES } from "@/lib/food-taxonomy";
 
 type NutrientCol =
   | "calories" | "protein_g" | "carbs_g" | "fat_g" | "fiber_g"
@@ -12,6 +13,8 @@ export type FamilyDish = {
   id: string;
   name: string;
   category: string | null;
+  cuisine: string | null;
+  diet: string | null;
   serving_unit: string | null;
   serving_weight_g: number | null;
   ingredients: string | null;
@@ -27,13 +30,7 @@ export type FamilyDish = {
   created_by: string | null;
 } & Record<NutrientCol, number | null>;
 
-const CATEGORIES = [
-  ["grain", "Grains / rice / tiffin"], ["legume", "Dal / sambar"], ["vegetable", "Vegetable / curry"],
-  ["fruit", "Fruit"], ["dairy", "Dairy"], ["snack", "Snack"], ["sweet", "Sweet"],
-  ["beverage", "Drink"], ["other", "Other"],
-] as const;
-
-const UNITS   = ["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"];
+const UNITS   = ["serving", "plate", "bowl", "katori", "piece", "cup", "glass", "tbsp", "tsp", "g"];
 const EFFECTS = ["balances", "neutral", "aggravates"] as const;
 const RASAS   = ["sweet", "sour", "salty", "pungent", "bitter", "astringent"] as const;
 const GUNAS   = ["heavy", "light", "oily", "dry", "smooth", "rough", "soft", "hard", "liquid", "dense"] as const;
@@ -53,7 +50,7 @@ const ALL_NUTRIENTS = [...MAIN, ...MICRO];
 // Nutrition is entered per serving (how people think) and stored per 100 g
 // (how the app calculates).
 type Draft = {
-  name: string; category: string; serving_unit: string; serving_weight_g: string;
+  name: string; category: string; cuisine: string; diet: string; serving_unit: string; serving_weight_g: string;
   nutrients: Record<NutrientCol, string>;
   ingredients: string; preparation: string;
   rasa: string[]; guna: string[]; vipaka: string;
@@ -61,7 +58,7 @@ type Draft = {
 };
 
 type Estimate = {
-  category: string; serving_unit: string; serving_weight_g: number;
+  category: string; cuisine: string; diet: string; serving_unit: string; serving_weight_g: number;
   per_100g: {
     kcal: number; protein_g: number; carbs_g: number; fat_g: number; fiber_g: number;
     iron_mg: number; calcium_mg: number; vitamin_b12_mcg: number; vitamin_c_mg: number;
@@ -84,7 +81,7 @@ function toDraft(d: FamilyDish): Draft {
   const w = weightOf(unit, d.serving_weight_g);
   const nutrients = Object.fromEntries(ALL_NUTRIENTS.map(n => [n.col, perServing(d[n.col], w)])) as Record<NutrientCol, string>;
   return {
-    name: d.name, category: d.category ?? "other", serving_unit: unit, serving_weight_g: String(w),
+    name: d.name, category: d.category ?? "extras", cuisine: d.cuisine ?? "south_indian", diet: d.diet ?? "veg", serving_unit: unit, serving_weight_g: String(w),
     nutrients,
     ingredients: d.ingredients ?? "", preparation: d.preparation ?? "",
     rasa: d.rasa ?? [], guna: d.guna ?? [], vipaka: d.vipaka ?? "",
@@ -163,6 +160,8 @@ export default function FamilyDishesEditor({
       setDraft(prev => prev && ({
         ...prev,
         category: e.category,
+        cuisine: e.cuisine,
+        diet: e.diet,
         serving_unit: e.serving_unit,
         serving_weight_g: String(w),
         nutrients: Object.fromEntries(ALL_NUTRIENTS.map(n => [n.col, perServing(fromAi[n.col], w)])) as Record<NutrientCol, string>,
@@ -194,6 +193,8 @@ export default function FamilyDishesEditor({
     const update = {
       name:             draft.name.trim(),
       category:         draft.category,
+      cuisine:          draft.cuisine,
+      diet:             draft.diet,
       serving_unit:     draft.serving_unit,
       serving_weight_g: weight,
       ...nutrientCols,
@@ -310,11 +311,28 @@ export default function FamilyDishesEditor({
                   </p>
                 </div>
 
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor={`cuisine-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Cuisine</label>
+                    <select id={`cuisine-${d.id}`} value={draft.cuisine} onChange={e => set("cuisine", e.target.value)}
+                      className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle}>
+                      {CUISINES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor={`diet-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Diet</label>
+                    <select id={`diet-${d.id}`} value={draft.diet} onChange={e => set("diet", e.target.value)}
+                      className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle}>
+                      {DIETS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+
                 <div>
-                  <label htmlFor={`cat-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Category</label>
+                  <label htmlFor={`cat-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Dish type</label>
                   <select id={`cat-${d.id}`} value={draft.category} onChange={e => set("category", e.target.value)}
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle}>
-                    {CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {DISH_TYPES.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
                   </select>
                 </div>
 

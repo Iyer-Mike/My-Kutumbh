@@ -222,7 +222,7 @@ describe("labs", () => {
   test("blood sugar and blood fat findings never suggest sugary foods", () => {
     const DATES = food({ name: "Dates (dry)", serving_weight_g: 30, carbs_g: 75, fiber_g: 8 });
     const CHICKPEA = food({ name: "Chickpeas (cooked)", serving_weight_g: 150, carbs_g: 27.4, fiber_g: 7.6 });
-    const HALWA = food({ name: "Rava Halwa", category: "sweet", serving_weight_g: 100, carbs_g: 35, fiber_g: 20 });
+    const HALWA = food({ name: "Rava Halwa", category: "dessert", serving_weight_g: 100, carbs_g: 35, fiber_g: 20 });
     const flags = evaluateLabs(
       { hba1c: { value: 6.6, ref: "<5.7", date: null } },
       { intake: null, needs: computeNeeds(MOHAN, "2026-09-22"), foods: [DATES, CHICKPEA, HALWA] },

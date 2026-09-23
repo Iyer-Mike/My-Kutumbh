@@ -79,8 +79,8 @@ export default function PantryView({
   const [buyName, setBuyName] = useState("");
 
   // Reading a shop bill
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const galleryRef = useRef<HTMLInputElement>(null);
+  const billRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [reading, setReading] = useState(false);
   const [billNote, setBillNote] = useState<string | null>(null);
   const [bill, setBill] = useState<{ shop: string | null; lines: BillLine[] } | null>(null);
@@ -222,10 +222,12 @@ export default function PantryView({
     setBill(null);
     try {
       const { base64, mediaType } = await toJpegPayload(file);
+      abortRef.current = new AbortController();
       const res = await fetch("/api/read-bill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64: base64, mediaType }),
+        signal: abortRef.current.signal,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setBillNote(data.error ?? "Couldn't read that bill."); return; }
@@ -240,10 +242,18 @@ export default function PantryView({
       }
       setBill({ shop: data.shop ?? null, lines });
     } catch (err) {
-      setBillNote(err instanceof Error ? err.message : "Couldn't read that bill.");
+      if (err instanceof DOMException && err.name === "AbortError") setBillNote(null);
+      else setBillNote(err instanceof Error ? err.message : "Couldn't read that bill.");
     } finally {
+      abortRef.current = null;
       setReading(false);
     }
+  }
+
+  function stopReading() {
+    abortRef.current?.abort();
+    setReading(false);
+    setBillNote(null);
   }
 
   /** Put the ticked lines on the shelf: top up what's there, add what isn't. */
@@ -484,8 +494,7 @@ export default function PantryView({
       {/* Shopped? Photograph the bill — Prime Member only */}
       {isPrime && (
         <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleBillPhoto} className="hidden" />
-          <input ref={galleryRef} type="file" accept="image/*,application/pdf" onChange={handleBillPhoto} className="hidden" />
+          <input ref={billRef} type="file" accept="image/*,application/pdf" onChange={handleBillPhoto} className="hidden" />
 
           {!bill && (
             <>
@@ -495,18 +504,24 @@ export default function PantryView({
                   Photograph the bill and everything on it goes onto the shelf.
                 </p>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => cameraRef.current?.click()} disabled={reading}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+              {reading ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 py-2.5 text-sm font-medium" style={{ color: B.violet }}>
+                    Reading the bill…
+                  </span>
+                  <button onClick={stopReading}
+                    className="px-4 py-2.5 rounded-xl text-sm font-semibold"
+                    style={{ background: B.tint, color: B.violet }}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => billRef.current?.click()}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white"
                   style={{ background: B.button }}>
-                  {reading ? "Reading the bill…" : "📷 Photograph the bill"}
+                  📷 Add the bill
                 </button>
-                <button onClick={() => galleryRef.current?.click()} disabled={reading}
-                  className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                  style={{ background: B.tint, color: B.violet }}>
-                  Choose
-                </button>
-              </div>
+              )}
             </>
           )}
 

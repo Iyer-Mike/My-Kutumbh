@@ -813,9 +813,7 @@ export default function LogPage() {
 
               {/* Ate outside? — photo */}
               <section className="pb-2">
-                <input ref={cameraRef} type="file" accept="image/*" capture="environment"
-                  onChange={handlePhotoChange} className="hidden" />
-                <input ref={galleryRef} type="file" accept="image/*"
+                <input ref={cameraRef} type="file" accept="image/*"
                   onChange={handlePhotoChange} className="hidden" />
 
                 <div className="flex items-center gap-3 mb-3">
@@ -839,20 +837,13 @@ export default function LogPage() {
                 )}
 
                 {!photoPreview && !analyzing && !aiSuggestions && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => cameraRef.current?.click()}
-                      className="flex flex-col items-center gap-2 py-4 rounded-2xl"
-                      style={{ background: "#FAF7FE", border: "1.5px dashed #CBB4EE" }}>
-                      <span className="text-2xl">📷</span>
-                      <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>Take Photo</span>
-                    </button>
-                    <button onClick={() => galleryRef.current?.click()}
-                      className="flex flex-col items-center gap-2 py-4 rounded-2xl"
-                      style={{ background: "#FAF7FE", border: "1.5px dashed #CBB4EE" }}>
-                      <span className="text-2xl">🖼️</span>
-                      <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>From Gallery</span>
-                    </button>
-                  </div>
+                  <button onClick={() => cameraRef.current?.click()}
+                    className="w-full flex flex-col items-center gap-2 py-4 rounded-2xl"
+                    style={{ background: "#FAF7FE", border: "1.5px dashed #CBB4EE" }}>
+                    <span className="text-2xl">📷</span>
+                    <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>Add a photo of the plate</span>
+                    <span className="text-[11px]" style={{ color: "#6A6180" }}>camera or gallery</span>
+                  </button>
                 )}
 
                 {analyzing && (

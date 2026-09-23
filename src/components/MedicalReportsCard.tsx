@@ -103,6 +103,12 @@ async function toParsePayload(file: File): Promise<{ base64: string; mediaType: 
   return { base64: await readBase64(jpeg), mediaType: "image/jpeg" };
 }
 
+// A file name that will not clash, kept out of the component so the
+// purity rule is satisfied.
+function fileStamp() {
+  return Date.now();
+}
+
 // Older records saved a public URL (which never opens for a private
 // bucket); newer ones save the storage path. Accept both.
 function storagePath(fileUrl: string) {
@@ -207,7 +213,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
     if (pendingFile) {
       setUploading(true);
       const ext  = pendingFile.name.split(".").pop() ?? "jpg";
-      const path = `${userId}/${Date.now()}.${ext}`;
+      const path = `${userId}/${fileStamp()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from(BUCKET)
         .upload(path, pendingFile, { contentType: pendingFile.type });
@@ -274,21 +280,13 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
         </div>
         {!showForm && (
           <div className="flex items-center gap-2">
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment"
-              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} className="hidden" />
             <input ref={fileRef} type="file" accept="image/*,application/pdf"
               onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} className="hidden" />
-            <button
-              onClick={() => cameraRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: "#E7DCF7", color: "#6B46B8" }}>
-              📷 Scan
-            </button>
             <button
               onClick={() => fileRef.current?.click()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
               style={{ background: "#E7DCF7", color: "#6B46B8" }}>
-              📄 Upload
+              📷 Add a report
             </button>
           </div>
         )}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B } from "@/lib/brand";
+import { toJpegPayload } from "@/lib/photo";
 import {
   CATEGORIES, KINDS, SHELF_LIFE, STARTER, UNITS,
   categoryLabel, daysLeft, isLow, kindOf,
@@ -30,6 +31,38 @@ const STATUS_STYLE: Record<Status, { label: string; bg: string; fg: string }> = 
 const amount = (q: number | null, u: Unit | null) =>
   q == null ? "" : `${Number.isInteger(q) ? q : q.toFixed(2).replace(/0$/, "")} ${u ?? ""}`.trim();
 
+/** A line read off a bill, waiting to be checked before it touches the shelf. */
+type BillLine = {
+  name: string; quantity: number | null; unit: Unit | null; category: string;
+  take: boolean; matchId: string | null;
+};
+
+const norm = (s: string) => s.toLowerCase().replace(/\(.*?\)/g, " ").replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+
+/** Same thing by another name? "Milk" and "Amul milk" are; "Toor dal" and "Moong dal" are not. */
+function findMatch(name: string, items: PantryItem[]): PantryItem | null {
+  const a = norm(name);
+  if (!a) return null;
+  const exact = items.find((i) => norm(i.name) === a);
+  if (exact) return exact;
+  return items.find((i) => {
+    const b = norm(i.name);
+    return b.length >= 4 && a.length >= 4 && (a.includes(b) || b.includes(a));
+  }) ?? null;
+}
+
+/** kg ↔ g and l ↔ ml convert; anything else keeps the shelf's own unit. */
+function inShelfUnit(qty: number, from: Unit | null, to: Unit | null): number | null {
+  if (qty == null || !from || !to) return null;
+  if (from === to) return qty;
+  const f: Record<string, number> = { g: 1, kg: 1000, ml: 1, l: 1000 };
+  const massOrVolume = (u: Unit) => (u === "g" || u === "kg" ? "m" : u === "ml" || u === "l" ? "v" : null);
+  if (massOrVolume(from) && massOrVolume(from) === massOrVolume(to)) {
+    return Math.round(((qty * f[from]) / f[to]) * 100) / 100;
+  }
+  return null;
+}
+
 export default function PantryView({
   kutumbhId, userId, isPrime, initialItems, initialShopping, memberNames, today,
 }: {
@@ -44,6 +77,13 @@ export default function PantryView({
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ name: "", category: "grain", quantity: "", unit: "kg" as Unit, low_when: "" });
   const [buyName, setBuyName] = useState("");
+
+  // Reading a shop bill
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const [reading, setReading] = useState(false);
+  const [billNote, setBillNote] = useState<string | null>(null);
+  const [bill, setBill] = useState<{ shop: string | null; lines: BillLine[] } | null>(null);
 
   const open = shopping.filter((s) => s.status === "open");
 
@@ -170,6 +210,110 @@ export default function PantryView({
     } catch {
       alert("Couldn't copy on this phone. Long-press the list to copy it by hand.");
     }
+  }
+
+  // ── A shop bill, read by photo ──────────────────────────────
+  async function handleBillPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setReading(true);
+    setBillNote(null);
+    setBill(null);
+    try {
+      const { base64, mediaType } = await toJpegPayload(file);
+      const res = await fetch("/api/read-bill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setBillNote(data.error ?? "Couldn't read that bill."); return; }
+
+      const lines: BillLine[] = (data.items ?? []).map((i: Omit<BillLine, "take" | "matchId">) => {
+        const match = findMatch(i.name, items);
+        return { ...i, take: true, matchId: match?.id ?? null };
+      });
+      if (lines.length === 0) {
+        setBillNote("No kitchen items found on that photo. Try a straighter, brighter shot.");
+        return;
+      }
+      setBill({ shop: data.shop ?? null, lines });
+    } catch (err) {
+      setBillNote(err instanceof Error ? err.message : "Couldn't read that bill.");
+    } finally {
+      setReading(false);
+    }
+  }
+
+  /** Put the ticked lines on the shelf: top up what's there, add what isn't. */
+  async function applyBill() {
+    if (!bill || busy) return;
+    const take = bill.lines.filter((l) => l.take);
+    if (take.length === 0) { setBill(null); return; }
+    setBusy(true);
+
+    const updates: PantryItem[] = [];
+    const inserts: Record<string, unknown>[] = [];
+
+    for (const line of take) {
+      const shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
+      if (shelf) {
+        const added = line.quantity != null ? inShelfUnit(line.quantity, line.unit, shelf.unit) : null;
+        updates.push({
+          ...shelf,
+          status: "ok",
+          quantity: shelf.kind === "sundry" ? shelf.quantity
+            : added != null ? Math.round(((shelf.quantity ?? 0) + added) * 100) / 100
+            : shelf.quantity,
+          bought_on: shelf.kind === "fresh" ? today : shelf.bought_on,
+        });
+      } else {
+        const kind = kindOf(line.category);
+        inserts.push({
+          kutumbh_id: kutumbhId, name: line.name, kind, category: line.category,
+          quantity: kind === "sundry" ? null : line.quantity,
+          unit: kind === "sundry" ? null : line.unit,
+          bought_on: kind === "fresh" ? today : null,
+          use_within_days: kind === "fresh" ? SHELF_LIFE[line.category] ?? 5 : null,
+          updated_by: userId,
+        });
+      }
+    }
+
+    for (const u of updates) {
+      const { error } = await supabase.from("pantry_items")
+        .update({ quantity: u.quantity, status: u.status, bought_on: u.bought_on, updated_by: userId, updated_at: new Date().toISOString() })
+        .eq("id", u.id);
+      if (error) return fail("update the shelf", error.message);
+    }
+
+    let added: PantryItem[] = [];
+    if (inserts.length) {
+      const { data, error } = await supabase.from("pantry_items").insert(inserts)
+        .select("id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note");
+      if (error) return fail("add those items", error.message);
+      added = (data ?? []) as PantryItem[];
+    }
+
+    setItems((prev) => {
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      return [...prev.map((i) => byId.get(i.id) ?? i), ...added].sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    // Anything on the shopping list that was just bought comes off it
+    const boughtNames = new Set(take.map((l) => norm(l.name)));
+    const done = open.filter((s) => boughtNames.has(norm(s.name)) || (s.pantry_item_id && take.some((l) => l.matchId === s.pantry_item_id)));
+    if (done.length) {
+      await supabase.from("shopping_items")
+        .update({ status: "bought", bought_by: userId, bought_at: new Date().toISOString() })
+        .in("id", done.map((s) => s.id));
+      setShopping((prev) => prev.map((s) => (done.some((d) => d.id === s.id) ? { ...s, status: "bought" } : s)));
+    }
+
+    setBill(null);
+    setBillNote(`${take.length} item${take.length > 1 ? "s" : ""} put on the shelf${done.length ? `, ${done.length} ticked off the list` : ""}.`);
+    setBusy(false);
   }
 
   // ── Rows ────────────────────────────────────────────────────
@@ -336,6 +480,102 @@ export default function PantryView({
           </button>
         </div>
       </section>
+
+      {/* Shopped? Photograph the bill — Prime Member only */}
+      {isPrime && (
+        <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleBillPhoto} className="hidden" />
+          <input ref={galleryRef} type="file" accept="image/*,application/pdf" onChange={handleBillPhoto} className="hidden" />
+
+          {!bill && (
+            <>
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Back from the shop?</h2>
+                <p className="text-[11px]" style={{ color: B.muted2 }}>
+                  Photograph the bill and everything on it goes onto the shelf.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => cameraRef.current?.click()} disabled={reading}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                  style={{ background: B.button }}>
+                  {reading ? "Reading the bill…" : "📷 Photograph the bill"}
+                </button>
+                <button onClick={() => galleryRef.current?.click()} disabled={reading}
+                  className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+                  style={{ background: B.tint, color: B.violet }}>
+                  Choose
+                </button>
+              </div>
+            </>
+          )}
+
+          {billNote && (
+            <p className="text-xs rounded-xl px-3 py-2"
+              style={{ background: B.goldTint, color: B.goldInk }}>{billNote}</p>
+          )}
+
+          {bill && (
+            <>
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
+                  On the bill{bill.shop ? ` · ${bill.shop}` : ""}
+                </h2>
+                <p className="text-[11px]" style={{ color: B.muted2 }}>
+                  Untick anything that shouldn&apos;t go on the shelf, then put the rest away.
+                </p>
+              </div>
+
+              <div className="grid">
+                {bill.lines.map((line, idx) => {
+                  const shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
+                  const set = (changes: Partial<BillLine>) =>
+                    setBill((b) => b && { ...b, lines: b.lines.map((l, i) => (i === idx ? { ...l, ...changes } : l)) });
+                  return (
+                    <div key={`${line.name}-${idx}`} className="flex items-center gap-2 py-2"
+                      style={{ borderTop: `1px solid ${B.cardEdge}` }}>
+                      <button onClick={() => set({ take: !line.take })} aria-pressed={line.take}
+                        className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
+                        style={{ background: line.take ? B.violet : "transparent", border: `2px solid ${line.take ? B.violet : B.cardEdge}` }}
+                        aria-label={`${line.take ? "Skip" : "Keep"} ${line.name}`}>
+                        {line.take && (
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm truncate" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
+                        <p className="text-[11px]" style={{ color: B.muted2 }}>
+                          {shelf
+                            ? `Tops up ${shelf.name}${shelf.kind !== "sundry" && line.quantity != null && inShelfUnit(line.quantity, line.unit, shelf.unit) != null
+                                ? ` · ${amount(shelf.quantity, shelf.unit)} → ${amount(Math.round(((shelf.quantity ?? 0) + inShelfUnit(line.quantity, line.unit, shelf.unit)!) * 100) / 100, shelf.unit)}`
+                                : ""}`
+                            : `New · ${categoryLabel(line.category)}`}
+                        </p>
+                      </div>
+                      <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>
+                        {amount(line.quantity, line.unit)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={applyBill} disabled={busy}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                  style={{ background: B.button }}>
+                  {busy ? "Putting away…" : `Put ${bill.lines.filter((l) => l.take).length} away`}
+                </button>
+                <button onClick={() => setBill(null)} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
 
       {/* The shelf, one card per kind */}
       {items.length === 0 ? (

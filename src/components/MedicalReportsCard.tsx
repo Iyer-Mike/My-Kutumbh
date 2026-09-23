@@ -286,7 +286,13 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
               onClick={() => fileRef.current?.click()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
               style={{ background: "#E7DCF7", color: "#6B46B8" }}>
-              📷 Add a report
+              📷 Photo
+            </button>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+              style={{ background: "#E7DCF7", color: "#6B46B8" }}>
+              📄 Upload
             </button>
           </div>
         )}

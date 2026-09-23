@@ -501,7 +501,7 @@ export default function PantryView({
               <div>
                 <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Back from the shop?</h2>
                 <p className="text-[11px]" style={{ color: B.muted2 }}>
-                  Photograph the bill and everything on it goes onto the shelf.
+                  A photo or a PDF of the bill — everything on it goes onto the shelf.
                 </p>
               </div>
               {reading ? (
@@ -516,11 +516,18 @@ export default function PantryView({
                   </button>
                 </div>
               ) : (
-                <button onClick={() => billRef.current?.click()}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white"
-                  style={{ background: B.button }}>
-                  📷 Add the bill
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => billRef.current?.click()}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                    style={{ background: B.button }}>
+                    📷 Photo of the bill
+                  </button>
+                  <button onClick={() => billRef.current?.click()}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                    style={{ background: B.tint, color: B.violet }}>
+                    📄 Upload a file
+                  </button>
+                </div>
               )}
             </>
           )}

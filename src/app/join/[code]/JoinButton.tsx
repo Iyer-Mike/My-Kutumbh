@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { BRAND as B } from "@/lib/brand";
 
 export default function JoinButton({ code }: { code: string }) {
   const router  = useRouter();
@@ -46,13 +47,13 @@ export default function JoinButton({ code }: { code: string }) {
       <button
         onClick={handleJoin}
         disabled={loading}
-        className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-        style={{ background: "#1C2B1C" }}
+        className="w-full py-3.5 rounded-2xl text-sm font-semibold text-white disabled:opacity-50"
+        style={{ background: B.button }}
       >
-        {loading ? "Joining…" : "Join Family"}
+        {loading ? "Joining…" : "Join the Kutumbh"}
       </button>
       {error && (
-        <p className="text-xs text-center" style={{ color: "#C0392B" }}>{error}</p>
+        <p className="text-xs text-center" style={{ color: "#9A2C1B" }}>{error}</p>
       )}
     </div>
   );

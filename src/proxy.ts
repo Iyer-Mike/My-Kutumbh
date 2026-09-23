@@ -35,6 +35,7 @@ export async function proxy(request: NextRequest) {
     isAuthRoute ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/join/") ||          // an invite explains itself before sign-in
     pathname.startsWith("/auth/");
 
   if (!user && !isPublicRoute && !isOnboarding) {

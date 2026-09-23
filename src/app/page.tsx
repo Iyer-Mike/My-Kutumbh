@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AuthCodeHandler from "@/components/AuthCodeHandler";
+import LandingPage from "@/components/LandingPage";
 
 type Search = {
   code?: string;
@@ -44,5 +45,7 @@ export default async function HomePage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  redirect(user ? "/dashboard" : "/login");
+  // Signed in → straight to today's meals. Otherwise, the way in.
+  if (user) redirect("/dashboard");
+  return <LandingPage />;
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiErrorMessage } from "@/lib/ai-error";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
@@ -108,12 +109,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(response.parsed_output);
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) {
-      return NextResponse.json({ error: "The AI service is busy. Try again in a minute." }, { status: 429 });
-    }
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json({ error: `AI service error (${error.status})` }, { status: 502 });
-    }
-    return NextResponse.json({ error: "Couldn't reach the AI service" }, { status: 502 });
+    const { message, status } = aiErrorMessage(error, "The dish estimator");
+    return NextResponse.json({ error: message }, { status });
   }
 }

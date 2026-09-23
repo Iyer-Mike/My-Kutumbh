@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiErrorMessage } from "@/lib/ai-error";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
@@ -102,15 +103,7 @@ export async function POST(req: NextRequest) {
       extracted_values,
     });
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) {
-      return NextResponse.json({ error: "The reading service is busy. Try again in a minute." }, { status: 429 });
-    }
-    if (error instanceof Anthropic.BadRequestError) {
-      return NextResponse.json({ error: "This file couldn't be read. Try a clearer photo, or a smaller PDF." }, { status: 422 });
-    }
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json({ error: `Reading service error (${error.status}). Enter the values below.` }, { status: 502 });
-    }
-    return NextResponse.json({ error: "Couldn't reach the reading service. Enter the values below." }, { status: 502 });
+    const { message, status } = aiErrorMessage(error, "The report reader");
+    return NextResponse.json({ error: message }, { status });
   }
 }

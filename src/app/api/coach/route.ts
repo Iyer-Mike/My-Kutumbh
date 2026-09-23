@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiErrorMessage } from "@/lib/ai-error";
 import { createClient } from "@/lib/supabase/server";
 import { daysAgoLocal } from "@/lib/dates";
 import { loadInsightsData } from "@/lib/insights/load";
@@ -113,12 +114,7 @@ export async function POST(req: NextRequest) {
       .trim();
     return NextResponse.json({ reply: reply || "Sorry, I couldn't put an answer together. Please try asking another way." });
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) {
-      return NextResponse.json({ error: "The coach is busy. Try again in a minute." }, { status: 429 });
-    }
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json({ error: `Coach service error (${error.status}). Please try again.` }, { status: 502 });
-    }
-    return NextResponse.json({ error: "Couldn't reach the coach. Check your connection and try again." }, { status: 502 });
+    const { message, status } = aiErrorMessage(error, "The coach");
+    return NextResponse.json({ error: message }, { status });
   }
 }

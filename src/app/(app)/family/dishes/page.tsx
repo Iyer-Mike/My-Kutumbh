@@ -33,15 +33,15 @@ export default async function FamilyDishesPage() {
   const pending = (dishes ?? []).filter((d) => d.needs_review).length;
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
+    <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
       <header
         className="px-5 pt-safe pb-5"
-        style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 70%, #3D6638 100%)" }}
+        style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}
       >
         <PageNav />
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>Prime Member</p>
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Family Dishes</h1>
-        <p className="text-xs mt-1" style={{ color: "#8FBF88" }}>
+        <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
           {pending > 0
             ? `${pending} dish${pending > 1 ? "es" : ""} waiting for your details`
             : "All dishes have their details"}

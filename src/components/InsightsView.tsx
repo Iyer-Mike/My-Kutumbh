@@ -49,16 +49,16 @@ function eventsNarrative(events: CorrectionEvent[]): string {
 function EventCard({ e }: { e: CorrectionEvent }) {
   const s = SEVERITY[e.severity];
   return (
-    <div className="grid gap-1.5 py-3" style={{ borderTop: "1px solid #E2E1D8" }}>
+    <div className="grid gap-1.5 py-3" style={{ borderTop: "1px solid #E0D4F2" }}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.fg }}>{s.label}</span>
-        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#5F675C" }}>{CATEGORY[e.category]}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#6A6180" }}>{CATEGORY[e.category]}</span>
       </div>
       <p className="text-base font-bold" style={{ color: "#4B2A7A" }}>{e.title}</p>
-      <p className="text-sm" style={{ color: "#3A4238" }}>{e.detail}</p>
-      <p className="text-sm" style={{ color: "#141814" }}><b>Do this:</b> {e.action}</p>
+      <p className="text-sm" style={{ color: "#3D3550" }}>{e.detail}</p>
+      <p className="text-sm" style={{ color: "#1F1A2B" }}><b>Do this:</b> {e.action}</p>
       {e.evidence.length > 0 && (
-        <p className="text-xs" style={{ color: "#5F675C" }}>Based on: {e.evidence.join(" · ")}</p>
+        <p className="text-xs" style={{ color: "#6A6180" }}>Based on: {e.evidence.join(" · ")}</p>
       )}
     </div>
   );
@@ -66,14 +66,14 @@ function EventCard({ e }: { e: CorrectionEvent }) {
 
 // Higher-contrast text than the rest of the app, as this page is read closely
 const C = {
-  ink: "#141814", ink2: "#3A4238", ink3: "#5F675C", rule: "#E2E1D8", track: "#EAE8DF",
+  ink: "#1F1A2B", ink2: "#3D3550", ink3: "#6A6180", rule: "#E0D4F2", track: "#E7E0F3",
   leaf: "#2F7A35", warn: "#C2551F", low: "#B4441A", lowSoft: "#FCE5DA",
 };
 
 type Theme = { bar: string; text: string; accent: string };
 const THEME: Record<"alerts" | "coach" | "energy" | "lab" | "micro" | "ayurveda" | "trend", Theme> = {
   alerts:   { bar: "#ECE3F7", text: "#4B2A7A", accent: "#6B3FA0" },
-  coach:    { bar: "#E4ECE0", text: "#1C3A1E", accent: "#1C2B1C" },
+  coach:    { bar: "#EDE4FA", text: "#33215C", accent: "#4B2D7A" },
   energy:   { bar: "#E1F0DE", text: "#1F5E25", accent: "#2F7A35" },
   lab:      { bar: "#FBE2DC", text: "#8E2A1B", accent: "#B23A26" },
   micro:    { bar: "#DDE9F6", text: "#1F4A78", accent: "#2E64A0" },
@@ -85,7 +85,7 @@ const THEME: Record<"alerts" | "coach" | "energy" | "lab" | "micro" | "ayurveda"
 const GROUP_COLOR: Record<string, string> = {
   sugar: "#C2551F", lipids: "#B23A26", iron: "#8E3B6A", inflammation: "#A8620C",
   kidney: "#2E64A0", liver: "#6A5A12", vitamin_d: "#9A7A00", vitamin_b12: "#6B4FA0",
-  other: "#5F675C",
+  other: "#6A6180",
 };
 
 const MICROS: { key: NutrientKey; label: string; unit: string }[] = [
@@ -134,7 +134,7 @@ function Section({ id, title, theme, summary, open, onToggle, aside, children }:
   onToggle: () => void; aside?: string; children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: `1px solid ${C.rule}` }}>
+    <section className="rounded-2xl overflow-hidden" style={{ background: "#FAF7FE", border: `1px solid ${C.rule}` }}>
       <button onClick={onToggle} aria-expanded={open} aria-controls={`sec-${id}`}
         className="w-full text-left px-4 py-3 grid gap-1" style={{ background: theme.bar }}>
         <span className="flex items-center justify-between gap-3">
@@ -308,14 +308,14 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
         {periods.map((x) => (
           <button key={x.key} role="tab" aria-selected={x.key === key} onClick={() => setKey(x.key)}
             className="flex-1 py-2 rounded-lg text-sm font-semibold"
-            style={{ background: x.key === key ? "#1C2B1C" : "transparent", color: x.key === key ? "#fff" : C.ink2 }}>
+            style={{ background: x.key === key ? "#241238" : "transparent", color: x.key === key ? "#fff" : C.ink2 }}>
             {x.label}
           </button>
         ))}
       </div>
 
       {nothing && (
-        <div className="rounded-2xl px-4 py-4 text-sm font-medium" style={{ background: "#FBEBCF", color: "#6A3D06", border: "1px solid #E4B774" }}>
+        <div className="rounded-2xl px-4 py-4 text-sm font-medium" style={{ background: "#FBEBCF", color: "#6A3D06", border: "1px solid #F2B531" }}>
           No meals logged {key === "today" ? "today" : `in the last ${intake.days} days`}.
           {!viewingOther && <> <Link href="/log" className="font-bold underline">Log a meal</Link> to see your nutrition.</>}
         </div>
@@ -449,7 +449,7 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
                     const word = net > 0.15 ? "Balancing" : net < -0.15 ? "Aggravating" : "Neutral";
                     return (
                       <div key={d} className="rounded-xl px-2 py-2 text-center"
-                        style={{ background: mine ? "#FBEBCF" : "#F6F5EE", border: mine ? "1px solid #E4B774" : `1px solid ${C.rule}` }}>
+                        style={{ background: mine ? "#FBEBCF" : "#F3EEFA", border: mine ? "1px solid #F2B531" : `1px solid ${C.rule}` }}>
                         <p className="text-sm font-bold capitalize" style={{ color: C.ink }}>{d}{mine ? " ★" : ""}</p>
                         <p className="text-xs font-semibold" style={{ color: net < -0.15 ? C.warn : net > 0.15 ? C.leaf : C.ink3 }}>{word}</p>
                       </div>

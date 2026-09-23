@@ -8,7 +8,7 @@ import Link from "next/link";
 const DOSHA_COLOR: Record<string, string> = {
   vata:          "#7B68EE",
   pitta:         "#E07B39",
-  kapha:         "#4A7C44",
+  kapha:         "#6B46B8",
   "vata-pitta":  "#9B6EC9",
   "pitta-kapha": "#5A8F5A",
   "vata-kapha":  "#6B8CAE",
@@ -42,8 +42,8 @@ export default async function ProfilePage() {
     .order("report_date", { ascending: false });
 
   const doshaColor = profile?.primary_dosha
-    ? (DOSHA_COLOR[profile.primary_dosha] ?? "#4A7C44")
-    : "#4A7C44";
+    ? (DOSHA_COLOR[profile.primary_dosha] ?? "#6B46B8")
+    : "#6B46B8";
 
   const doshaLabel = profile?.primary_dosha
     ? (DOSHA_LABEL[profile.primary_dosha] ?? profile.primary_dosha)
@@ -52,12 +52,12 @@ export default async function ProfilePage() {
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
+    <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
 
       {/* Header */}
       <header
         className="px-5 pt-safe pb-6"
-        style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 70%, #3D6638 100%)" }}
+        style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}
       >
         <PageNav />
         <div className="flex items-start justify-between mt-1">
@@ -100,15 +100,15 @@ export default async function ProfilePage() {
         />
 
         {/* ── Prakriti ── */}
-        <div className="rounded-2xl px-5 py-4" style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
+        <div className="rounded-2xl px-5 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8A9085" }}>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
               Prakriti — Dosha Balance
             </p>
             <Link
               href="/profile/prakriti"
               className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold"
-              style={{ background: "#EAF2E8", color: "#4A7C44" }}
+              style={{ background: "#E7DCF7", color: "#6B46B8" }}
             >
               {profile?.prakriti_vata != null ? "Retake" : "Take Assessment"}
             </Link>
@@ -119,14 +119,14 @@ export default async function ProfilePage() {
               {[
                 { label: "Vata",  score: profile.prakriti_vata,  color: "#7B68EE", icon: "🌬️" },
                 { label: "Pitta", score: profile.prakriti_pitta, color: "#E07B39", icon: "🔥" },
-                { label: "Kapha", score: profile.prakriti_kapha, color: "#4A7C44", icon: "🌊" },
+                { label: "Kapha", score: profile.prakriti_kapha, color: "#6B46B8", icon: "🌊" },
               ].map(({ label, score, color, icon }) => (
                 <div key={label}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span style={{ color: "#5A6055" }}>{icon} {label}</span>
+                    <span style={{ color: "#625A75" }}>{icon} {label}</span>
                     <span style={{ color }}>{score}/20</span>
                   </div>
-                  <div className="rounded-full h-2" style={{ background: "#E2E1D8" }}>
+                  <div className="rounded-full h-2" style={{ background: "#E0D4F2" }}>
                     <div
                       className="h-2 rounded-full"
                       style={{ width: `${((score ?? 0) / 20) * 100}%`, background: color }}
@@ -137,23 +137,23 @@ export default async function ProfilePage() {
             </div>
           ) : (
             <div className="rounded-xl px-4 py-4 text-center"
-              style={{ background: "#F6F5EE", border: "1.5px dashed #C8C5BA" }}>
-              <p className="text-sm font-medium mb-1" style={{ color: "#1C201C" }}>
+              style={{ background: "#F3EEFA", border: "1.5px dashed #CBBDE4" }}>
+              <p className="text-sm font-medium mb-1" style={{ color: "#241C33" }}>
                 Discover your Ayurvedic constitution
               </p>
-              <p className="text-xs mb-3" style={{ color: "#8A9085" }}>
+              <p className="text-xs mb-3" style={{ color: "#6A6180" }}>
                 15 questions · takes about 3 minutes
               </p>
               <div className="flex gap-2 justify-center">
                 <Link
                   href="/profile/prakriti"
                   className="px-5 py-2 rounded-xl text-xs font-semibold text-white"
-                  style={{ background: "#1C2B1C" }}
+                  style={{ background: "#241238" }}
                 >
                   Start Assessment →
                 </Link>
                 <span className="px-4 py-2 rounded-xl text-xs font-semibold"
-                  style={{ background: "#F0EFE8", color: "#8A9085" }}>
+                  style={{ background: "#EDE7F7", color: "#6A6180" }}>
                   Skip
                 </span>
               </div>
@@ -169,12 +169,12 @@ export default async function ProfilePage() {
 
         {/* ── Family info strip ── */}
         <div className="rounded-2xl px-5 py-3 flex items-center justify-between"
-          style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
+          style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8A9085" }}>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
               Namaste, {firstName}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: "#5A6055" }}>{user?.email}</p>
+            <p className="text-xs mt-0.5" style={{ color: "#625A75" }}>{user?.email}</p>
           </div>
           <SignOutButton compact />
         </div>

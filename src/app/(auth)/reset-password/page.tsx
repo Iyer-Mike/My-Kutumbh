@@ -54,12 +54,12 @@ export default function ResetPasswordPage() {
           style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
           <p className="text-2xl mb-2">🔗</p>
           <p className="font-semibold text-sm mb-1" style={{ color: "#B91C1C" }}>Reset link has expired</p>
-          <p className="text-sm" style={{ color: "#5A6055" }}>
+          <p className="text-sm" style={{ color: "#625A75" }}>
             This link is invalid or has already been used. Please request a fresh one.
           </p>
         </div>
         <p className="text-center mt-5">
-          <Link href="/forgot-password" className="text-sm font-semibold" style={{ color: "#4A7C44" }}>
+          <Link href="/forgot-password" className="text-sm font-semibold" style={{ color: "#6B46B8" }}>
             Request new reset link →
           </Link>
         </p>
@@ -71,13 +71,13 @@ export default function ResetPasswordPage() {
     <div className="w-full max-w-sm">
       <AuthHeader subtitle="Family food & wellness, rooted in Ayurveda" />
 
-      <p className="text-sm mb-5" style={{ color: "#5A6055" }}>
+      <p className="text-sm mb-5" style={{ color: "#625A75" }}>
         Choose a new password for your account.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-1" style={{ color: "#5A6055" }}>
+          <label htmlFor="password" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
             New password
           </label>
           <input
@@ -87,13 +87,13 @@ export default function ResetPasswordPage() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E2E1D8", background: "#F3F2EB", color: "#1C201C" }}
+            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
             placeholder="Min. 8 characters"
           />
         </div>
 
         <div>
-          <label htmlFor="confirm" className="block text-sm font-medium mb-1" style={{ color: "#5A6055" }}>
+          <label htmlFor="confirm" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
             Confirm new password
           </label>
           <input
@@ -103,7 +103,7 @@ export default function ResetPasswordPage() {
             value={confirm}
             onChange={e => setConfirm(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E2E1D8", background: "#F3F2EB", color: "#1C201C" }}
+            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
             placeholder="••••••••"
           />
         </div>
@@ -118,7 +118,7 @@ export default function ResetPasswordPage() {
           type="submit"
           disabled={loading}
           className="w-full py-3.5 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-          style={{ background: "#1C2B1C" }}
+          style={{ background: "#241238" }}
         >
           {loading ? "Saving…" : "Set new password"}
         </button>

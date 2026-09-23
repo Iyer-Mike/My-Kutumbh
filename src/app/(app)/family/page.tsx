@@ -7,7 +7,7 @@ import { todayLocal } from "@/lib/dates";
 const DOSHA_COLORS: Record<string, string> = {
   vata:   "#C8832A",
   pitta:  "#D4573A",
-  kapha:  "#4A7C44",
+  kapha:  "#6B46B8",
 };
 
 export default async function FamilyPage() {
@@ -110,11 +110,11 @@ export default async function FamilyPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
+    <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
       {/* Header */}
       <header
         className="px-5 pt-safe pb-5"
-        style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 70%, #3D6638 100%)" }}
+        style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}
       >
         <PageNav />
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>My Kutumbh</p>
@@ -131,7 +131,7 @@ export default async function FamilyPage() {
           )}
         </h1>
         {kutumbhName && (
-          <p className="text-xs mt-1" style={{ color: "#8FBF88" }}>
+          <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
             {isOwner ? "You're the Prime Member of the Kutumbh" : "You're a member of the Kutumbh"}
           </p>
         )}
@@ -144,11 +144,11 @@ export default async function FamilyPage() {
           <div className="flex flex-col items-center justify-center text-center pt-16">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-5"
-              style={{ background: "#EAF2E8" }}
+              style={{ background: "#E7DCF7" }}
             >
               🏠
             </div>
-            <p className="text-sm" style={{ color: "#5A6055" }}>
+            <p className="text-sm" style={{ color: "#625A75" }}>
               Complete onboarding to set up your Kutumbh.
             </p>
           </div>
@@ -158,12 +158,12 @@ export default async function FamilyPage() {
             {isOwner && (
               <div
                 className="rounded-2xl px-5 py-4 space-y-3"
-                style={{ background: "#fff", border: "1px solid #E2E1D8" }}
+                style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}
               >
-                <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8A9085" }}>
+                <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
                   Invite a Family Member
                 </p>
-                <p className="text-xs" style={{ color: "#5A6055" }}>
+                <p className="text-xs" style={{ color: "#625A75" }}>
                   Share the link — anyone who opens it can join your family.
                 </p>
                 <InviteButton />
@@ -175,13 +175,13 @@ export default async function FamilyPage() {
               <Link
                 href="/family/dishes"
                 className="flex items-center justify-between gap-3 rounded-2xl px-5 py-4"
-                style={{ background: "#fff", border: `1.5px solid ${dishPending ? "#E4B774" : "#E2E1D8"}` }}
+                style={{ background: "#FAF7FE", border: `1.5px solid ${dishPending ? "#F2B531" : "#E0D4F2"}` }}
               >
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8A9085" }}>
+                  <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
                     Family Dishes
                   </p>
-                  <p className="text-xs mt-1" style={{ color: dishPending ? "#A5661A" : "#5A6055" }}>
+                  <p className="text-xs mt-1" style={{ color: dishPending ? "#8A5A06" : "#625A75" }}>
                     {dishPending
                       ? `${dishPending} dish${dishPending > 1 ? "es" : ""} need your details`
                       : dishTotal
@@ -189,25 +189,25 @@ export default async function FamilyPage() {
                         : "Dishes your family adds will appear here"}
                   </p>
                 </div>
-                <span className="text-lg" style={{ color: "#4A7C44" }}>›</span>
+                <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
               </Link>
             )}
 
             {/* ── Member cards ── */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#8A9085" }}>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6A6180" }}>
                 Family · {members.length} member{members.length !== 1 ? "s" : ""}
               </p>
 
               <div className="space-y-3">
                 {members.map((m) => {
-                  const dColor = m.primary_dosha ? DOSHA_COLORS[m.primary_dosha.toLowerCase()] ?? "#8A9085" : "#C5DFC2";
+                  const dColor = m.primary_dosha ? DOSHA_COLORS[m.primary_dosha.toLowerCase()] ?? "#6A6180" : "#CBB4EE";
                   const initial = m.full_name?.[0]?.toUpperCase() ?? "?";
 
                   const cardClass = "rounded-2xl px-4 py-3.5 flex items-center gap-4";
                   const cardStyle = {
-                    background: "#fff",
-                    border: m.isMe ? "1.5px solid #4A7C44" : "1px solid #E2E1D8",
+                    background: "#FAF7FE",
+                    border: m.isMe ? "1.5px solid #6B46B8" : "1px solid #E0D4F2",
                   };
 
                   const inner = (
@@ -215,7 +215,7 @@ export default async function FamilyPage() {
                       {/* Avatar */}
                       <div
                         className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-semibold flex-shrink-0"
-                        style={{ background: "#EAF2E8", color: "#4A7C44" }}
+                        style={{ background: "#E7DCF7", color: "#6B46B8" }}
                       >
                         {initial}
                       </div>
@@ -223,13 +223,13 @@ export default async function FamilyPage() {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold truncate" style={{ color: "#1C201C" }}>
+                          <p className="text-sm font-semibold truncate" style={{ color: "#241C33" }}>
                             {m.full_name ?? "Family Member"}
                           </p>
                           {m.isMe && (
                             <span
                               className="text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0"
-                              style={{ background: "#EAF2E8", color: "#4A7C44" }}
+                              style={{ background: "#E7DCF7", color: "#6B46B8" }}
                             >
                               You
                             </span>
@@ -237,7 +237,7 @@ export default async function FamilyPage() {
                           {m.role === "owner" && (
                             <span
                               className="text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0"
-                              style={{ background: "#FBEFD9", color: "#A5661A" }}
+                              style={{ background: "#FBEBCB", color: "#8A5A06" }}
                             >
                               ★ Prime Member
                             </span>
@@ -250,9 +250,9 @@ export default async function FamilyPage() {
                             </span>
                           )}
                           {m.primary_dosha && m.item_count > 0 && (
-                            <span style={{ color: "#C5DFC2" }}>·</span>
+                            <span style={{ color: "#CBB4EE" }}>·</span>
                           )}
-                          <span className="text-xs" style={{ color: "#8A9085" }}>
+                          <span className="text-xs" style={{ color: "#6A6180" }}>
                             {m.item_count > 0
                               ? `${m.item_count} item${m.item_count > 1 ? "s" : ""} today`
                               : "Nothing logged today"}
@@ -264,11 +264,11 @@ export default async function FamilyPage() {
                       {m.kcal_today > 0 && (
                         <div
                           className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold text-center"
-                          style={{ background: "#EAF2E8", color: "#4A7C44", minWidth: 60 }}
+                          style={{ background: "#E7DCF7", color: "#6B46B8", minWidth: 60 }}
                         >
                           {m.kcal_today}
                           <br />
-                          <span className="font-normal text-[10px]" style={{ color: "#8A9085" }}>kcal</span>
+                          <span className="font-normal text-[10px]" style={{ color: "#6A6180" }}>kcal</span>
                         </div>
                       )}
                     </>
@@ -278,7 +278,7 @@ export default async function FamilyPage() {
                   return isOwner ? (
                     <Link key={m.user_id} href={`/family/member/${m.user_id}`} className={cardClass} style={cardStyle}>
                       {inner}
-                      <span className="text-lg flex-shrink-0" style={{ color: "#8A9085" }}>›</span>
+                      <span className="text-lg flex-shrink-0" style={{ color: "#6A6180" }}>›</span>
                     </Link>
                   ) : (
                     <div key={m.user_id} className={cardClass} style={cardStyle}>
@@ -291,7 +291,7 @@ export default async function FamilyPage() {
 
             {/* ── Non-Prime Member: invite note ── */}
             {!isOwner && (
-              <p className="text-xs text-center" style={{ color: "#8A9085" }}>
+              <p className="text-xs text-center" style={{ color: "#6A6180" }}>
                 Ask the Prime Member to invite more members.
               </p>
             )}
@@ -301,7 +301,7 @@ export default async function FamilyPage() {
               <Link
                 href="/log"
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-semibold"
-                style={{ background: "#1C2B1C", color: "#fff" }}
+                style={{ background: "#241238", color: "#fff" }}
               >
                 <span>+</span> Log your meals
               </Link>

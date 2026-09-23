@@ -28,7 +28,7 @@ export default function SignOutButton({ compact = false }: { compact?: boolean }
     <button
       onClick={handleSignOut}
       className="w-full py-3 rounded-xl text-sm font-medium"
-      style={{ background: "#fff", border: "1.5px solid #E2E1D8", color: "#8A9085" }}
+      style={{ background: "#FAF7FE", border: "1.5px solid #E0D4F2", color: "#6A6180" }}
     >
       Sign out
     </button>

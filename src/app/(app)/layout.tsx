@@ -15,7 +15,7 @@ export default async function AppLayout({
   }
 
   return (
-    <div style={{ background: "#F6F5EE", minHeight: "100vh" }}>
+    <div style={{ background: "#F3EEFA", minHeight: "100vh" }}>
       <div
         className="mx-auto flex flex-col min-h-screen"
         style={{ maxWidth: 480, boxShadow: "0 0 40px rgba(0,0,0,0.08)" }}

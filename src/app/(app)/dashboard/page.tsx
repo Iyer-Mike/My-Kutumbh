@@ -112,12 +112,12 @@ export default async function DashboardPage() {
   const totalKcal = ((logs ?? []) as MealLog[]).reduce((s, l) => s + (l.calories ?? 0), 0);
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
+    <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
 
       {/* ── Header ── */}
       <header
         className="px-5 pt-safe"
-        style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 70%, #3D6638 100%)" }}
+        style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}
       >
         <div className="flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
@@ -126,7 +126,7 @@ export default async function DashboardPage() {
               <p className="text-xl leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
                 {kutumbhName}
               </p>
-              <p className="text-xs leading-tight" style={{ color: "#8FBF88" }}>मेरा कुटुम्ब</p>
+              <p className="text-xs leading-tight" style={{ color: "#C9B8E4" }}>मेरा कुटुम्ब</p>
             </div>
           </div>
           <div
@@ -145,14 +145,14 @@ export default async function DashboardPage() {
               <span
                 className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
                 style={isPrime
-                  ? { background: "#C8832A", color: "#fff" }
-                  : { background: "rgba(255,255,255,0.15)", color: "#DDEBD9" }}
+                  ? { background: "#F2B531", color: "#2A1646" }
+                  : { background: "rgba(255,255,255,0.15)", color: "#DDD3EF" }}
               >
                 {isPrime ? "★ Prime Member" : "Member"}
               </span>
             )}
           </div>
-          <p className="text-xs mt-1" style={{ color: "#8FBF88" }}>
+          <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
             {totalKcal > 0 ? `${Math.round(totalKcal)} kcal logged today` : "What have you eaten today?"}
           </p>
         </div>

@@ -95,7 +95,7 @@ function per100(v: string, weight: number) {
   return round1((n / weight) * 100);
 }
 
-const inputStyle = { border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" } as const;
+const inputStyle = { border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" } as const;
 
 export default function FamilyDishesEditor({
   initialDishes, creators,
@@ -232,8 +232,8 @@ export default function FamilyDishesEditor({
     return (
       <div className="text-center pt-10">
         <p className="text-3xl mb-3">🍲</p>
-        <p className="text-sm font-medium" style={{ color: "#1C201C" }}>No family dishes yet</p>
-        <p className="text-xs mt-1 max-w-xs mx-auto" style={{ color: "#8A9085" }}>
+        <p className="text-sm font-medium" style={{ color: "#241C33" }}>No family dishes yet</p>
+        <p className="text-xs mt-1 max-w-xs mx-auto" style={{ color: "#6A6180" }}>
           When anyone plans or logs a dish that isn&apos;t in the food list, it appears here for you to complete.
         </p>
       </div>
@@ -241,13 +241,13 @@ export default function FamilyDishesEditor({
   }
 
   const chip = (on: boolean) => on
-    ? { background: "#1C2B1C", color: "#fff", border: "1px solid #1C2B1C" }
-    : { background: "#fff", color: "#5A6055", border: "1px solid #E2E1D8" };
+    ? { background: "#241238", color: "#fff", border: "1px solid #241238" }
+    : { background: "#FAF7FE", color: "#625A75", border: "1px solid #E0D4F2" };
 
   return (
     <div className="space-y-3">
       {notice && (
-        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#EAF2E8", color: "#2E5A28", border: "1px solid #C5DFC2" }}>
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#E7DCF7", color: "#2E5A28", border: "1px solid #CBB4EE" }}>
           {notice}
         </div>
       )}
@@ -259,39 +259,39 @@ export default function FamilyDishesEditor({
         const kcal   = d.calories != null ? Math.round((d.calories * w) / 100) : null;
         return (
           <div key={d.id} className="rounded-2xl overflow-hidden"
-            style={{ background: "#fff", border: `1.5px solid ${d.needs_review ? "#E4B774" : "#E2E1D8"}` }}>
+            style={{ background: "#FAF7FE", border: `1.5px solid ${d.needs_review ? "#F2B531" : "#E0D4F2"}` }}>
             <button onClick={() => open(d)} className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left">
               <div className="min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: "#1C201C" }}>{d.name}</p>
-                <p className="text-xs mt-0.5" style={{ color: d.needs_review ? "#A5661A" : "#8A9085" }}>
+                <p className="text-sm font-semibold truncate" style={{ color: "#241C33" }}>{d.name}</p>
+                <p className="text-xs mt-0.5" style={{ color: d.needs_review ? "#8A5A06" : "#6A6180" }}>
                   {d.needs_review
                     ? `Needs details · added by ${d.created_by ? creators[d.created_by] ?? "Family" : "Family"}`
                     : `${kcal ?? "—"} kcal per ${unit === "g" ? "100 g" : unit}${d.iron_mg != null ? " · minerals ✓" : ""}${d.rasa?.length ? " · Ayurveda ✓" : ""}`}
                 </p>
               </div>
               <span className="text-xs font-semibold flex-shrink-0 px-2.5 py-1 rounded-full"
-                style={d.needs_review ? { background: "#FBEFD9", color: "#A5661A" } : { background: "#EAF2E8", color: "#4A7C44" }}>
+                style={d.needs_review ? { background: "#FBEBCB", color: "#8A5A06" } : { background: "#E7DCF7", color: "#6B46B8" }}>
                 {isOpen ? "Close" : d.needs_review ? "Complete" : "Edit"}
               </span>
             </button>
 
             {isOpen && (
-              <div className="px-4 pb-4 space-y-3" style={{ borderTop: "1px solid #F0EFE8" }}>
+              <div className="px-4 pb-4 space-y-3" style={{ borderTop: "1px solid #EDE7F7" }}>
                 <div className="pt-3">
-                  <label htmlFor={`name-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Dish name</label>
+                  <label htmlFor={`name-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Dish name</label>
                   <input id={`name-${d.id}`} value={draft.name} onChange={e => set("name", e.target.value)}
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle} />
                 </div>
 
                 <div>
-                  <label htmlFor={`ing-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Ingredients</label>
+                  <label htmlFor={`ing-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Ingredients</label>
                   <textarea id={`ing-${d.id}`} rows={2} value={draft.ingredients} onChange={e => set("ingredients", e.target.value)}
                     placeholder="e.g. toor dal, tamarind, drumstick, sambar powder, coconut oil"
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle} />
                 </div>
 
                 <div>
-                  <label htmlFor={`prep-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Preparation method</label>
+                  <label htmlFor={`prep-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Preparation method</label>
                   <textarea id={`prep-${d.id}`} rows={2} value={draft.preparation} onChange={e => set("preparation", e.target.value)}
                     placeholder="e.g. pressure-cooked, tempered in 1 tbsp coconut oil, low salt"
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle} />
@@ -301,7 +301,7 @@ export default function FamilyDishesEditor({
                 <div className="rounded-xl px-3 py-2.5" style={{ background: "#F3F0FB", border: "1px solid #DDD5F3" }}>
                   <button onClick={fillWithAI} disabled={estimating || !draft.name.trim()}
                     className="w-full py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
-                    style={{ background: "#fff", color: "#4B3B8C", border: "1px solid #C9BDEB" }}>
+                    style={{ background: "#FAF7FE", color: "#4B3B8C", border: "1px solid #C9BDEB" }}>
                     {estimating ? "Estimating…" : "✨ Fill with AI"}
                   </button>
                   <p className="text-[11px] mt-1.5" style={{ color: "#6E6390" }}>
@@ -313,14 +313,14 @@ export default function FamilyDishesEditor({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor={`cuisine-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Cuisine</label>
+                    <label htmlFor={`cuisine-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Cuisine</label>
                     <select id={`cuisine-${d.id}`} value={draft.cuisine} onChange={e => set("cuisine", e.target.value)}
                       className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle}>
                       {CUISINES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor={`diet-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Diet</label>
+                    <label htmlFor={`diet-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Diet</label>
                     <select id={`diet-${d.id}`} value={draft.diet} onChange={e => set("diet", e.target.value)}
                       className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle}>
                       {DIETS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
@@ -329,7 +329,7 @@ export default function FamilyDishesEditor({
                 </div>
 
                 <div>
-                  <label htmlFor={`cat-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>Dish type</label>
+                  <label htmlFor={`cat-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Dish type</label>
                   <select id={`cat-${d.id}`} value={draft.category} onChange={e => set("category", e.target.value)}
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle}>
                     {DISH_TYPES.map(c => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
@@ -338,7 +338,7 @@ export default function FamilyDishesEditor({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor={`unit-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>One serving is a…</label>
+                    <label htmlFor={`unit-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>One serving is a…</label>
                     <select id={`unit-${d.id}`} value={draft.serving_unit} onChange={e => set("serving_unit", e.target.value)}
                       className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle}>
                       {UNITS.map(u => <option key={u} value={u}>{u === "g" ? "100 g" : u}</option>)}
@@ -346,7 +346,7 @@ export default function FamilyDishesEditor({
                   </div>
                   {draft.serving_unit !== "g" && (
                     <div>
-                      <label htmlFor={`w-${d.id}`} className="text-xs" style={{ color: "#8A9085" }}>which weighs (g)</label>
+                      <label htmlFor={`w-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>which weighs (g)</label>
                       <input id={`w-${d.id}`} type="number" min="1" value={draft.serving_weight_g}
                         onChange={e => set("serving_weight_g", e.target.value)}
                         className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle} />
@@ -355,13 +355,13 @@ export default function FamilyDishesEditor({
                 </div>
 
                 <div>
-                  <p className="text-xs mb-1" style={{ color: "#8A9085" }}>
+                  <p className="text-xs mb-1" style={{ color: "#6A6180" }}>
                     Nutrition for one {draft.serving_unit === "g" ? "100 g" : draft.serving_unit}
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {MAIN.map(({ col, label }) => (
                       <div key={col}>
-                        <label htmlFor={`${col}-${d.id}`} className="text-[11px]" style={{ color: "#8A9085" }}>{label}</label>
+                        <label htmlFor={`${col}-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>{label}</label>
                         <input id={`${col}-${d.id}`} type="number" min="0" step="0.1" value={draft.nutrients[col]}
                           onChange={e => setNutrient(col, e.target.value)}
                           className="w-full rounded-lg px-2 py-1.5 text-sm" style={inputStyle} />
@@ -370,14 +370,14 @@ export default function FamilyDishesEditor({
                   </div>
                 </div>
 
-                <details className="rounded-xl px-3 py-2" style={{ background: "#F6F5EE" }}>
-                  <summary className="text-xs font-semibold cursor-pointer" style={{ color: "#5A6055" }}>
+                <details className="rounded-xl px-3 py-2" style={{ background: "#F3EEFA" }}>
+                  <summary className="text-xs font-semibold cursor-pointer" style={{ color: "#625A75" }}>
                     Minerals &amp; vitamins, per serving (optional)
                   </summary>
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     {MICRO.map(({ col, label }) => (
                       <div key={col}>
-                        <label htmlFor={`${col}-${d.id}`} className="text-[11px]" style={{ color: "#8A9085" }}>{label}</label>
+                        <label htmlFor={`${col}-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>{label}</label>
                         <input id={`${col}-${d.id}`} type="number" min="0" step="0.1" value={draft.nutrients[col]}
                           onChange={e => setNutrient(col, e.target.value)}
                           className="w-full rounded-lg px-2 py-1.5 text-sm" style={inputStyle} />
@@ -386,13 +386,13 @@ export default function FamilyDishesEditor({
                   </div>
                 </details>
 
-                <details className="rounded-xl px-3 py-2" style={{ background: "#F6F5EE" }}>
-                  <summary className="text-xs font-semibold cursor-pointer" style={{ color: "#5A6055" }}>
+                <details className="rounded-xl px-3 py-2" style={{ background: "#F3EEFA" }}>
+                  <summary className="text-xs font-semibold cursor-pointer" style={{ color: "#625A75" }}>
                     Ayurvedic qualities (optional)
                   </summary>
                   <div className="space-y-2.5 mt-2">
                     <div>
-                      <p className="text-[11px] mb-1" style={{ color: "#8A9085" }}>Rasa (tastes)</p>
+                      <p className="text-[11px] mb-1" style={{ color: "#6A6180" }}>Rasa (tastes)</p>
                       <div className="flex flex-wrap gap-1.5">
                         {RASAS.map(r => (
                           <button key={r} type="button" onClick={() => toggleIn("rasa", r)}
@@ -401,7 +401,7 @@ export default function FamilyDishesEditor({
                       </div>
                     </div>
                     <div>
-                      <p className="text-[11px] mb-1" style={{ color: "#8A9085" }}>Guna (qualities)</p>
+                      <p className="text-[11px] mb-1" style={{ color: "#6A6180" }}>Guna (qualities)</p>
                       <div className="flex flex-wrap gap-1.5">
                         {GUNAS.map(g => (
                           <button key={g} type="button" onClick={() => toggleIn("guna", g)}
@@ -411,7 +411,7 @@ export default function FamilyDishesEditor({
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label htmlFor={`vipaka-${d.id}`} className="text-[11px]" style={{ color: "#8A9085" }}>Vipaka</label>
+                        <label htmlFor={`vipaka-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>Vipaka</label>
                         <select id={`vipaka-${d.id}`} value={draft.vipaka} onChange={e => set("vipaka", e.target.value)}
                           className="w-full rounded-lg px-2 py-1.5 text-xs" style={inputStyle}>
                           <option value="">—</option>
@@ -421,7 +421,7 @@ export default function FamilyDishesEditor({
                         </select>
                       </div>
                       <div>
-                        <label htmlFor={`virya-${d.id}`} className="text-[11px]" style={{ color: "#8A9085" }}>Virya</label>
+                        <label htmlFor={`virya-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>Virya</label>
                         <select id={`virya-${d.id}`} value={draft.virya} onChange={e => set("virya", e.target.value)}
                           className="w-full rounded-lg px-2 py-1.5 text-xs" style={inputStyle}>
                           <option value="">—</option>
@@ -434,7 +434,7 @@ export default function FamilyDishesEditor({
                     <div className="grid grid-cols-3 gap-2">
                       {([["vata", "Vata"], ["pitta", "Pitta"], ["kapha", "Kapha"]] as const).map(([k, label]) => (
                         <div key={k}>
-                          <label htmlFor={`${k}-${d.id}`} className="text-[11px]" style={{ color: "#8A9085" }}>{label}</label>
+                          <label htmlFor={`${k}-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>{label}</label>
                           <select id={`${k}-${d.id}`} value={draft[k]} onChange={e => set(k, e.target.value)}
                             className="w-full rounded-lg px-2 py-1.5 text-xs" style={inputStyle}>
                             {EFFECTS.map(v => <option key={v} value={v}>{v[0].toUpperCase() + v.slice(1)}</option>)}
@@ -447,7 +447,7 @@ export default function FamilyDishesEditor({
 
                 <button onClick={() => save(d)} disabled={saving}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
-                  style={{ background: "#1C2B1C" }}>
+                  style={{ background: "#241238" }}>
                   {saving ? "Saving…" : "Save dish ✓"}
                 </button>
               </div>

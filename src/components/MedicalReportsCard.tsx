@@ -258,16 +258,16 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
 
       {/* Header */}
       <div className="px-5 py-4 flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8A9085" }}>
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
             Medical Reports
           </p>
           {records.length > 0 && (
-            <p className="text-xs mt-0.5" style={{ color: "#8A9085" }}>
+            <p className="text-xs mt-0.5" style={{ color: "#6A6180" }}>
               {records.length} report{records.length > 1 ? "s" : ""} on file
             </p>
           )}
@@ -281,13 +281,13 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
             <button
               onClick={() => cameraRef.current?.click()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: "#EAF2E8", color: "#4A7C44" }}>
+              style={{ background: "#E7DCF7", color: "#6B46B8" }}>
               📷 Scan
             </button>
             <button
               onClick={() => fileRef.current?.click()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: "#EAF2E8", color: "#4A7C44" }}>
+              style={{ background: "#E7DCF7", color: "#6B46B8" }}>
               📄 Upload
             </button>
           </div>
@@ -296,14 +296,14 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
 
       {/* Upload / Parse form */}
       {showForm && (
-        <div className="px-5 pb-5 space-y-4" style={{ borderTop: "1px solid #F0EFE8" }}>
+        <div className="px-5 pb-5 space-y-4" style={{ borderTop: "1px solid #EDE7F7" }}>
 
           {/* Parsing indicator */}
           {parsing && (
             <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl mt-4"
-              style={{ background: "#EAF2E8", border: "1px solid #C5DFC2" }}>
+              style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}>
               <span className="text-base animate-spin" style={{ display: "inline-block" }}>🔄</span>
-              <span className="text-sm font-medium" style={{ color: "#4A7C44" }}>Reading your report…</span>
+              <span className="text-sm font-medium" style={{ color: "#6B46B8" }}>Reading your report…</span>
             </div>
           )}
 
@@ -311,7 +311,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
             <>
               {parseMsg && (
                 <div className="rounded-xl px-4 py-3 mt-4 text-sm"
-                  style={{ background: "#FBEFD9", color: "#7A4C12", border: "1px solid #E4B774" }}>
+                  style={{ background: "#FBEBCB", color: "#7A5A06", border: "1px solid #F2B531" }}>
                   {parseMsg}
                 </div>
               )}
@@ -319,38 +319,38 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
               {/* File name */}
               {pendingFile && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl mt-4"
-                  style={{ background: "#F0EFE8" }}>
+                  style={{ background: "#EDE7F7" }}>
                   <span className="text-sm">📄</span>
-                  <span className="text-xs truncate flex-1" style={{ color: "#5A6055" }}>{pendingFile.name}</span>
+                  <span className="text-xs truncate flex-1" style={{ color: "#625A75" }}>{pendingFile.name}</span>
                   <button onClick={() => { setPendingFile(null); if (fileRef.current) fileRef.current.value = ""; if (cameraRef.current) cameraRef.current.value = ""; }}
-                    className="text-xs" style={{ color: "#8A9085" }}>✕</button>
+                    className="text-xs" style={{ color: "#6A6180" }}>✕</button>
                 </div>
               )}
 
               {/* Report type + date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs" style={{ color: "#8A9085" }}>Report type</label>
+                  <label className="text-xs" style={{ color: "#6A6180" }}>Report type</label>
                   <select value={draftType} onChange={e => setDraftType(e.target.value)}
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-                    style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}>
+                    style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}>
                     {Object.entries(REPORT_TYPE_LABEL).map(([v, l]) => (
                       <option key={v} value={v}>{l}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs" style={{ color: "#8A9085" }}>Report date</label>
+                  <label className="text-xs" style={{ color: "#6A6180" }}>Report date</label>
                   <input type="date" value={draftDate} onChange={e => setDraftDate(e.target.value)}
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-                    style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
+                    style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }} />
                 </div>
               </div>
 
               {/* Extracted values — editable */}
               {Object.keys(draftValues).filter(k => !k.endsWith("_ref")).length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold mb-2" style={{ color: "#4A7C44" }}>
+                  <p className="text-xs font-semibold mb-2" style={{ color: "#6B46B8" }}>
                     ✨ Extracted values — verify &amp; edit
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -361,8 +361,8 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                         const refKey = `${k}_ref`;
                         return (
                           <div key={k} className="rounded-xl px-3 py-2.5"
-                            style={{ background: "#F0F7EF", border: "1px solid #D5EBD2" }}>
-                            <p className="text-xs font-medium mb-1" style={{ color: "#4A7C44" }}>
+                            style={{ background: "#F5F0FD", border: "1px solid #DDCCF6" }}>
+                            <p className="text-xs font-medium mb-1" style={{ color: "#6B46B8" }}>
                               {meta?.label ?? k.replace(/_/g, " ")}
                             </p>
                             <div className="flex items-center gap-1.5">
@@ -371,14 +371,14 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                                 value={draftValues[k] ?? ""}
                                 onChange={e => setDraftValues(p => ({ ...p, [k]: e.target.value }))}
                                 className="flex-1 min-w-0 text-sm font-semibold rounded-lg px-2 py-1"
-                                style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C201C", outline: "none" }}
+                                style={{ border: "1.5px solid #CBB4EE", background: "#FAF7FE", color: "#241C33", outline: "none" }}
                               />
                               {meta?.unit && (
-                                <span className="text-xs shrink-0" style={{ color: "#8A9085" }}>{meta.unit}</span>
+                                <span className="text-xs shrink-0" style={{ color: "#6A6180" }}>{meta.unit}</span>
                               )}
                             </div>
                             {draftValues[refKey] && (
-                              <p className="text-xs mt-1" style={{ color: "#8A9085" }}>
+                              <p className="text-xs mt-1" style={{ color: "#6A6180" }}>
                                 Ref: {draftValues[refKey]}
                               </p>
                             )}
@@ -391,11 +391,11 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
 
               {/* Notes */}
               <div>
-                <label className="text-xs" style={{ color: "#8A9085" }}>Notes (optional)</label>
+                <label className="text-xs" style={{ color: "#6A6180" }}>Notes (optional)</label>
                 <input type="text" value={draftNotes} onChange={e => setDraftNotes(e.target.value)}
                   placeholder="e.g. Fasting sample · Dr Sharma's lab"
                   className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-                  style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
+                  style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }} />
               </div>
 
               {/* Save / Later */}
@@ -404,13 +404,13 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                   onClick={saveRecord}
                   disabled={saving || uploading}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
-                  style={{ background: "#1C2B1C" }}>
+                  style={{ background: "#241238" }}>
                   {uploading ? "Uploading…" : saving ? "Saving…" : "Save Report ✓"}
                 </button>
                 <button
                   onClick={resetDraft}
                   className="px-4 py-2.5 rounded-xl text-sm font-semibold"
-                  style={{ background: "#F0EFE8", color: "#5A6055" }}>
+                  style={{ background: "#EDE7F7", color: "#625A75" }}>
                   Later…
                 </button>
               </div>
@@ -422,7 +422,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
       {/* Past reports list */}
       {records.length === 0 && !showForm && (
         <div className="px-5 pb-5">
-          <p className="text-sm text-center py-6" style={{ color: "#8A9085" }}>
+          <p className="text-sm text-center py-6" style={{ color: "#6A6180" }}>
             No reports uploaded yet.<br />
             <span style={{ fontSize: "11px" }}>Upload a lab report to track your health values over time.</span>
           </p>
@@ -437,24 +437,24 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
 
         return (
           <div key={rec.id}
-            style={{ borderTop: idx === 0 && !showForm ? "1px solid #F0EFE8" : "1px solid #F0EFE8" }}>
+            style={{ borderTop: idx === 0 && !showForm ? "1px solid #EDE7F7" : "1px solid #EDE7F7" }}>
             {/* Report header row */}
             <button
               onClick={() => setExpandedId(isExpanded ? null : rec.id)}
               className="w-full flex items-center gap-3 px-5 py-3 text-left"
-              style={{ background: isExpanded ? "#F0F7EF" : "#fff" }}>
+              style={{ background: isExpanded ? "#F5F0FD" : "#fff" }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0"
-                style={{ background: "#EAF2E8" }}>🧪</div>
+                style={{ background: "#E7DCF7" }}>🧪</div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ color: "#1C201C" }}>{typeLabel}</p>
-                <p className="text-xs" style={{ color: "#8A9085" }}>
+                <p className="text-sm font-semibold" style={{ color: "#241C33" }}>{typeLabel}</p>
+                <p className="text-xs" style={{ color: "#6A6180" }}>
                   {rec.report_date
                     ? new Date(rec.report_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
                     : "Date not recorded"}
                   {rec.notes ? ` · ${rec.notes}` : ""}
                 </p>
               </div>
-              <span className="text-xs shrink-0" style={{ color: "#4A7C44" }}>
+              <span className="text-xs shrink-0" style={{ color: "#6B46B8" }}>
                 {isExpanded ? "▲ Less" : "▼ More"}
               </span>
             </button>
@@ -462,7 +462,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
             {/* Key values preview / full view */}
             {labKeys.length > 0 && (
               <div className="px-5 pb-3"
-                style={{ background: isExpanded ? "#F0F7EF" : "#FAFAF8" }}>
+                style={{ background: isExpanded ? "#F5F0FD" : "#FAF7FE" }}>
                 <div className="grid grid-cols-2 gap-2">
                   {keyVals.map(k => {
                     const meta   = LAB_META[k];
@@ -470,15 +470,15 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                     const val    = rec.extracted_values![k];
                     return (
                       <div key={k} className="rounded-xl px-3 py-2"
-                        style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
-                        <p className="text-xs" style={{ color: "#8A9085" }}>
+                        style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+                        <p className="text-xs" style={{ color: "#6A6180" }}>
                           {meta?.label ?? k.replace(/_/g, " ")}
                         </p>
-                        <p className="text-sm font-semibold mt-0.5" style={{ color: "#1C201C" }}>
+                        <p className="text-sm font-semibold mt-0.5" style={{ color: "#241C33" }}>
                           {String(val)}{meta?.unit ? ` ${meta.unit}` : ""}
                         </p>
                         {!!rec.extracted_values![refKey] && (
-                          <p className="text-xs" style={{ color: "#8A9085" }}>
+                          <p className="text-xs" style={{ color: "#6A6180" }}>
                             Ref: {String(rec.extracted_values![refKey])}
                           </p>
                         )}
@@ -488,7 +488,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                 </div>
                 {!isExpanded && labKeys.length > 4 && (
                   <button onClick={() => setExpandedId(rec.id)}
-                    className="text-xs mt-2" style={{ color: "#4A7C44" }}>
+                    className="text-xs mt-2" style={{ color: "#6B46B8" }}>
                     +{labKeys.length - 4} more values ▼
                   </button>
                 )}
@@ -496,11 +496,11 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
             )}
 
             {isExpanded && (
-              <div className="px-5 pb-3 flex flex-wrap items-center justify-between gap-2" style={{ background: "#F0F7EF" }}>
+              <div className="px-5 pb-3 flex flex-wrap items-center justify-between gap-2" style={{ background: "#F5F0FD" }}>
                 {rec.file_url ? (
                   <button onClick={() => openOriginal(rec)}
                     className="text-xs font-semibold px-3 py-1.5 rounded-lg truncate max-w-full"
-                    style={{ background: "#fff", color: "#4A7C44", border: "1px solid #C5DFC2" }}>
+                    style={{ background: "#FAF7FE", color: "#6B46B8", border: "1px solid #CBB4EE" }}>
                     📄 View original{rec.file_name ? ` · ${rec.file_name}` : ""}
                   </button>
                 ) : <span />}

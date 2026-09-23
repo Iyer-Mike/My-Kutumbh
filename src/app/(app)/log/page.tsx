@@ -493,10 +493,10 @@ export default function LogPage() {
     const unitLabel = UNIT_LABEL[food.serving_unit] ?? food.serving_unit;
     return (
       <div key={rowKey} className="rounded-xl overflow-hidden"
-        style={{ background: isOn ? "#EAF2E8" : "#fff", border: `1.5px solid ${isOn ? "#4A7C44" : "#E2E1D8"}` }}>
+        style={{ background: isOn ? "#E7DCF7" : "#fff", border: `1.5px solid ${isOn ? "#6B46B8" : "#E0D4F2"}` }}>
         <button onClick={() => toggle(rowKey, food)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
           <div className="shrink-0 w-5 h-5 rounded flex items-center justify-center"
-            style={{ background: isOn ? "#4A7C44" : "#fff", border: `2px solid ${isOn ? "#4A7C44" : "#C8C5BA"}` }}>
+            style={{ background: isOn ? "#6B46B8" : "#fff", border: `2px solid ${isOn ? "#6B46B8" : "#CBBDE4"}` }}>
             {isOn && (
               <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                 <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -505,10 +505,10 @@ export default function LogPage() {
           </div>
           <span className="text-lg shrink-0" aria-hidden>{dishTypeOf(food.category).icon}</span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate flex items-center gap-1.5" style={{ color: "#1C201C" }}>
+            <p className="text-sm font-medium truncate flex items-center gap-1.5" style={{ color: "#241C33" }}>
               <DietMark diet={food.diet} /><span className="truncate">{food.name}</span>
             </p>
-            <p className="text-xs truncate" style={{ color: food.needs_review ? "#A5661A" : "#8A9085" }}>
+            <p className="text-xs truncate" style={{ color: food.needs_review ? "#8A5A06" : "#6A6180" }}>
               {food.needs_review ? `Family dish · ${perServingText(food)}` : perServingText(food)}
             </p>
           </div>
@@ -517,15 +517,15 @@ export default function LogPage() {
         {isOn && (
           <div className="px-3 pb-3 space-y-2">
             {(food.ingredients || food.preparation) && (
-              <div className="rounded-lg px-2.5 py-1.5 space-y-0.5" style={{ background: "#F6F5EE" }}>
+              <div className="rounded-lg px-2.5 py-1.5 space-y-0.5" style={{ background: "#F3EEFA" }}>
                 {food.ingredients && (
-                  <p className="text-xs leading-snug" style={{ color: "#5A6055" }}>
-                    <span className="font-semibold" style={{ color: "#8A9085" }}>Ingredients: </span>{food.ingredients}
+                  <p className="text-xs leading-snug" style={{ color: "#625A75" }}>
+                    <span className="font-semibold" style={{ color: "#6A6180" }}>Ingredients: </span>{food.ingredients}
                   </p>
                 )}
                 {food.preparation && (
-                  <p className="text-xs leading-snug" style={{ color: "#5A6055" }}>
-                    <span className="font-semibold" style={{ color: "#8A9085" }}>Prep: </span>{food.preparation}
+                  <p className="text-xs leading-snug" style={{ color: "#625A75" }}>
+                    <span className="font-semibold" style={{ color: "#6A6180" }}>Prep: </span>{food.preparation}
                   </p>
                 )}
               </div>
@@ -536,8 +536,8 @@ export default function LogPage() {
                 <button key={q} onClick={() => setQty(rowKey, q)}
                   className="flex-1 py-1.5 rounded-lg text-xs font-semibold"
                   style={qty === q
-                    ? { background: "#1C2B1C", color: "#fff" }
-                    : { background: "#fff", color: "#2E5C28", border: "1px solid #C5DFC2" }}>
+                    ? { background: "#241238", color: "#fff" }
+                    : { background: "#FAF7FE", color: "#4B2D7A", border: "1px solid #CBB4EE" }}>
                   {fmtQty(q)}{food.serving_unit === "g" ? " g" : ""}
                 </button>
               ))}
@@ -545,16 +545,16 @@ export default function LogPage() {
             <div className="flex items-center gap-3">
               <button onClick={() => adjustQty(rowKey, -1)} aria-label="Less"
                 className="w-8 h-8 rounded-full text-lg font-bold flex items-center justify-center"
-                style={{ background: "#fff", color: "#2E5C28", border: "1px solid #C5DFC2" }}>−</button>
-              <p className="text-sm font-semibold min-w-[4.5rem] text-center" style={{ color: "#1C201C" }}>
+                style={{ background: "#FAF7FE", color: "#4B2D7A", border: "1px solid #CBB4EE" }}>−</button>
+              <p className="text-sm font-semibold min-w-[4.5rem] text-center" style={{ color: "#241C33" }}>
                 {fmtQty(qty)} {unitLabel}
               </p>
               <button onClick={() => adjustQty(rowKey, 1)} aria-label="More"
                 className="w-8 h-8 rounded-full text-lg font-bold flex items-center justify-center"
-                style={{ background: "#fff", color: "#2E5C28", border: "1px solid #C5DFC2" }}>+</button>
-              <p className="ml-auto text-xs font-semibold text-right" style={{ color: n.estimated ? "#A5661A" : "#4A7C44" }}>
+                style={{ background: "#FAF7FE", color: "#4B2D7A", border: "1px solid #CBB4EE" }}>+</button>
+              <p className="ml-auto text-xs font-semibold text-right" style={{ color: n.estimated ? "#8A5A06" : "#6B46B8" }}>
                 {n.estimated ? `~${n.kcal} kcal est.` : `${n.kcal} kcal`}
-                {n.protein != null && <span className="block font-normal" style={{ color: "#8A9085" }}>{n.protein} g protein</span>}
+                {n.protein != null && <span className="block font-normal" style={{ color: "#6A6180" }}>{n.protein} g protein</span>}
               </p>
             </div>
           </div>
@@ -565,10 +565,10 @@ export default function LogPage() {
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
+    <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
 
       {/* Header */}
-      <header style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 70%, #3D6638 100%)" }}>
+      <header style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}>
         <div className="px-5 py-4">
           <PageNav />
           <p className="text-xs mb-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -576,7 +576,7 @@ export default function LogPage() {
           </p>
           <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Log Food</h1>
           {totalCal > 0 && (
-            <p className="text-sm mt-0.5" style={{ color: "#8FBF88" }}>{totalCal} kcal logged today</p>
+            <p className="text-sm mt-0.5" style={{ color: "#C9B8E4" }}>{totalCal} kcal logged today</p>
           )}
         </div>
       </header>
@@ -589,15 +589,15 @@ export default function LogPage() {
           const isCollapsed = collapsedSlots.has(key);
           return (
             <div key={key} className="rounded-2xl overflow-hidden"
-              style={{ background: "#fff", border: "1px solid #E2E1D8", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+              style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
               <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#EAF2E8" }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#E7DCF7" }}>
                     {icon}
                   </div>
                   <div>
-                    <p className="font-semibold text-sm" style={{ color: "#1C201C" }}>{label}</p>
-                    <p className="text-xs" style={{ color: slotLogs.length > 0 ? "#4A7C44" : "#8A9085" }}>
+                    <p className="font-semibold text-sm" style={{ color: "#241C33" }}>{label}</p>
+                    <p className="text-xs" style={{ color: slotLogs.length > 0 ? "#6B46B8" : "#6A6180" }}>
                       {slotLogs.length > 0
                         ? `${slotLogs.length} item${slotLogs.length > 1 ? "s" : ""}${slotCal > 0 ? ` · ${slotCal} kcal` : ""}`
                         : time}
@@ -609,7 +609,7 @@ export default function LogPage() {
                     <button
                       onClick={() => toggleSlotCollapse(key)}
                       className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-semibold"
-                      style={{ background: isCollapsed ? "#EAF2E8" : "#1C2B1C", color: isCollapsed ? "#4A7C44" : "#fff" }}
+                      style={{ background: isCollapsed ? "#E7DCF7" : "#241238", color: isCollapsed ? "#6B46B8" : "#fff" }}
                       aria-label={isCollapsed ? "Expand" : "Collapse"}
                     >
                       {isCollapsed ? "+" : "−"}
@@ -617,35 +617,35 @@ export default function LogPage() {
                   )}
                   <button onClick={() => openSlot(key)} aria-label={`Log ${label}`}
                     className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
-                    style={{ background: "#EAF2E8", color: "#4A7C44" }}>✎</button>
+                    style={{ background: "#E7DCF7", color: "#6B46B8" }}>✎</button>
                 </div>
               </div>
               {slotLogs.length > 0 && !isCollapsed && (
-                <div style={{ borderTop: "1px solid #F0EFE8" }}>
+                <div style={{ borderTop: "1px solid #EDE7F7" }}>
                   {slotLogs.map(log => (
-                    <div key={log.id} style={{ borderBottom: "1px solid #F6F5EE" }}>
+                    <div key={log.id} style={{ borderBottom: "1px solid #F3EEFA" }}>
                       {editingId === log.id ? (
                         <div className="px-4 py-3 space-y-2">
                           <input
                             type="text" value={editName} onChange={e => setEditName(e.target.value)} autoFocus
                             className="w-full rounded-xl px-3 py-2 text-sm"
-                            style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
+                            style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: "#241C33", outline: "none" }}
                           />
                           <div className="flex items-center gap-2">
                             <button onClick={() => setEditQty(q => String(Math.max(0.5, parseFloat(q) - 0.5)))}
                               className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
-                              style={{ background: "#EAF2E8", color: "#1C2B1C" }}>−</button>
+                              style={{ background: "#E7DCF7", color: "#241238" }}>−</button>
                             <input
                               type="number" min="0.5" step="0.5" value={editQty}
                               onChange={e => setEditQty(e.target.value)}
                               className="w-16 text-center rounded-lg px-2 py-1.5 text-sm font-semibold"
-                              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
+                              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }} />
                             <button onClick={() => setEditQty(q => String(parseFloat(q) + 0.5))}
                               className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
-                              style={{ background: "#EAF2E8", color: "#1C2B1C" }}>+</button>
+                              style={{ background: "#E7DCF7", color: "#241238" }}>+</button>
                             <select value={editUnit} onChange={e => setEditUnit(e.target.value)}
                               className="flex-1 rounded-lg px-2 py-1.5 text-xs"
-                              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}>
+                              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}>
                               <option value="serving">serving</option>
                               <option value="piece">piece(s)</option>
                               <option value="bowl">bowl</option>
@@ -658,12 +658,12 @@ export default function LogPage() {
                           <div className="flex gap-2 pt-1">
                             <button onClick={saveEdit} disabled={saving || !editName.trim()}
                               className="flex-1 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40"
-                              style={{ background: "#1C2B1C" }}>
+                              style={{ background: "#241238" }}>
                               {saving ? "Saving…" : "Save ✓"}
                             </button>
                             <button onClick={() => setEditingId(null)}
                               className="px-4 py-2 rounded-xl text-xs font-semibold"
-                              style={{ background: "#F0EFE8", color: "#5A6055" }}>
+                              style={{ background: "#EDE7F7", color: "#625A75" }}>
                               Cancel
                             </button>
                           </div>
@@ -671,8 +671,8 @@ export default function LogPage() {
                       ) : (
                         <div className="flex items-center justify-between px-4 py-2.5">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm truncate" style={{ color: "#1C201C" }}>{log.food_name}</p>
-                            <p className="text-xs" style={{ color: "#8A9085" }}>
+                            <p className="text-sm truncate" style={{ color: "#241C33" }}>{log.food_name}</p>
+                            <p className="text-xs" style={{ color: "#6A6180" }}>
                               {log.quantity_g} {log.quantity_unit ?? "serving"}
                               {log.calories  != null ? (log.nutrition_estimated ? ` · ~${log.calories} kcal est.` : ` · ${log.calories} kcal`) : ""}
                               {log.protein_g != null ? ` · ${log.protein_g}g protein` : ""}
@@ -681,10 +681,10 @@ export default function LogPage() {
                           <div className="flex items-center gap-1.5 ml-2">
                             <button onClick={() => startEdit(log)} aria-label="Edit"
                               className="w-7 h-7 flex items-center justify-center rounded-lg"
-                              style={{ background: "#EAF2E8" }}>
+                              style={{ background: "#E7DCF7" }}>
                               <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
-                                <path d="M9 1.5L11.5 4L4.5 11H2v-2.5L9 1.5Z" stroke="#4A7C44" strokeWidth="1.5" strokeLinejoin="round"/>
-                                <path d="M7.5 3L10 5.5" stroke="#4A7C44" strokeWidth="1.5"/>
+                                <path d="M9 1.5L11.5 4L4.5 11H2v-2.5L9 1.5Z" stroke="#6B46B8" strokeWidth="1.5" strokeLinejoin="round"/>
+                                <path d="M7.5 3L10 5.5" stroke="#6B46B8" strokeWidth="1.5"/>
                               </svg>
                             </button>
                             <button onClick={() => deleteLog(log.id)} aria-label="Delete"
@@ -706,22 +706,22 @@ export default function LogPage() {
       {activeSlot && (
         <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "rgba(0,0,0,0.4)" }}>
           <button className="flex-1 min-h-[6vh]" onClick={closePanel} aria-label="Close" />
-          <div className="rounded-t-3xl flex flex-col overflow-hidden" style={{ background: "#F6F5EE", maxHeight: "90vh" }}>
+          <div className="rounded-t-3xl flex flex-col overflow-hidden" style={{ background: "#F3EEFA", maxHeight: "90vh" }}>
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0"
-              style={{ borderBottom: "1px solid #E2E1D8" }}>
+              style={{ borderBottom: "1px solid #E0D4F2" }}>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A9085" }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#6A6180" }}>
                   What did you eat?
                 </p>
-                <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-dm-serif)", color: "#1C201C" }}>
+                <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-dm-serif)", color: "#241C33" }}>
                   {slotLabel(activeSlot)}
                 </h2>
               </div>
               <button onClick={closePanel} aria-label="Close"
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
-                style={{ background: "#E2E1D8", color: "#5A6055" }}>✕</button>
+                style={{ background: "#E0D4F2", color: "#625A75" }}>✕</button>
             </div>
 
             {/* Single scroll area */}
@@ -730,10 +730,10 @@ export default function LogPage() {
               {/* Family pool */}
               {poolRows.length > 0 && (
                 <section>
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#4A7C44" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#6B46B8" }}>
                     {poolName}
                   </p>
-                  <p className="text-xs mb-2" style={{ color: "#8A9085" }}>
+                  <p className="text-xs mb-2" style={{ color: "#6A6180" }}>
                     {planners.length ? `Planned by ${planners.join(", ")} · ` : ""}tap what you ate and set your portion
                   </p>
                   <div className="space-y-1.5">
@@ -745,7 +745,7 @@ export default function LogPage() {
               {/* Ticked items that scrolled out of view */}
               {offscreen.length > 0 && (
                 <section>
-                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#8A9085" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6A6180" }}>
                     Also on your plate
                   </p>
                   <div className="space-y-1.5">
@@ -758,33 +758,33 @@ export default function LogPage() {
               <section>
                 {poolRows.length > 0 && (
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
-                    <span className="text-xs" style={{ color: "#8A9085" }}>add something else</span>
-                    <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
+                    <div className="flex-1 h-px" style={{ background: "#E0D4F2" }} />
+                    <span className="text-xs" style={{ color: "#6A6180" }}>add something else</span>
+                    <div className="flex-1 h-px" style={{ background: "#E0D4F2" }} />
                   </div>
                 )}
                 <input type="search" value={query} onChange={e => { setQuery(e.target.value); setDishPicker(false); }}
                   aria-label="Search food"
                   placeholder="Search food…"
                   className="w-full rounded-xl px-4 py-2.5 text-sm mb-2"
-                  style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }} />
+                  style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }} />
                 {query.trim().length < 2 && (
                   <div className="mb-2"><FoodFilterBar value={filter} onChange={setFilter} idPrefix="log" slot={activeSlot} /></div>
                 )}
 
                 <div className="space-y-1.5">
-                  {searching && <p className="text-xs text-center py-3" style={{ color: "#8A9085" }}>Loading…</p>}
+                  {searching && <p className="text-xs text-center py-3" style={{ color: "#6A6180" }}>Loading…</p>}
                   {!searching && results
                     .filter(f => !poolKeys.has(f.id))
                     .map(f => foodRow(f.id, f))}
                   {!searching && typed.length >= 2 && !exactMatch && (
                     kutumbhId ? (
                       <div className="rounded-xl px-3 py-2.5"
-                        style={{ background: "#FBEFD9", border: "1.5px dashed #E4B774", color: "#7A4C12" }}>
+                        style={{ background: "#FBEBCB", border: "1.5px dashed #F2B531", color: "#7A5A06" }}>
                         {!dishPicker ? (
                           <button onClick={() => setDishPicker(true)} className="w-full text-left text-sm">
                             ＋ Add <b>“{typed}”</b> as a Family Dish
-                            <span className="block text-xs mt-0.5" style={{ color: "#A5661A" }}>
+                            <span className="block text-xs mt-0.5" style={{ color: "#8A5A06" }}>
                               The Prime Member will add its exact nutrition, ingredients and preparation
                             </span>
                           </button>
@@ -795,7 +795,7 @@ export default function LogPage() {
                               {DISH_TYPES.map(c => (
                                 <button key={c.key} onClick={() => addFamilyDish(c.key)} disabled={addingDish}
                                   className="px-2.5 py-1.5 rounded-full text-xs font-medium disabled:opacity-50"
-                                  style={{ background: "#fff", color: "#5A4012", border: "1px solid #E4B774" }}>
+                                  style={{ background: "#FAF7FE", color: "#5E4405", border: "1px solid #F2B531" }}>
                                   {c.icon} {c.label}
                                 </button>
                               ))}
@@ -804,7 +804,7 @@ export default function LogPage() {
                         )}
                       </div>
                     ) : results.length === 0 ? (
-                      <p className="text-xs text-center py-3" style={{ color: "#8A9085" }}>No items found</p>
+                      <p className="text-xs text-center py-3" style={{ color: "#6A6180" }}>No items found</p>
                     ) : null
                   )}
                 </div>
@@ -818,15 +818,15 @@ export default function LogPage() {
                   onChange={handlePhotoChange} className="hidden" />
 
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
-                  <span className="text-xs" style={{ color: "#8A9085" }}>ate outside?</span>
-                  <div className="flex-1 h-px" style={{ background: "#E2E1D8" }} />
+                  <div className="flex-1 h-px" style={{ background: "#E0D4F2" }} />
+                  <span className="text-xs" style={{ color: "#6A6180" }}>ate outside?</span>
+                  <div className="flex-1 h-px" style={{ background: "#E0D4F2" }} />
                 </div>
 
                 {photoPreview && (
                   <div className="mb-3">
                     <div className="relative rounded-2xl overflow-hidden"
-                      style={{ background: "#1C201C", minHeight: "160px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      style={{ background: "#241C33", minHeight: "160px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={photoPreview} alt="Food photo"
                         style={{ width: "100%", maxHeight: "220px", objectFit: "contain", display: "block" }} />
@@ -841,65 +841,65 @@ export default function LogPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <button onClick={() => cameraRef.current?.click()}
                       className="flex flex-col items-center gap-2 py-4 rounded-2xl"
-                      style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
+                      style={{ background: "#FAF7FE", border: "1.5px dashed #CBB4EE" }}>
                       <span className="text-2xl">📷</span>
-                      <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>Take Photo</span>
+                      <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>Take Photo</span>
                     </button>
                     <button onClick={() => galleryRef.current?.click()}
                       className="flex flex-col items-center gap-2 py-4 rounded-2xl"
-                      style={{ background: "#fff", border: "1.5px dashed #C5DFC2" }}>
+                      style={{ background: "#FAF7FE", border: "1.5px dashed #CBB4EE" }}>
                       <span className="text-2xl">🖼️</span>
-                      <span className="text-xs font-medium" style={{ color: "#4A7C44" }}>From Gallery</span>
+                      <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>From Gallery</span>
                     </button>
                   </div>
                 )}
 
                 {analyzing && (
                   <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
-                    style={{ background: "#EAF2E8", border: "1px solid #C5DFC2" }}>
+                    style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}>
                     <span className="text-base animate-spin" style={{ display: "inline-block" }}>🔄</span>
-                    <span className="text-sm font-medium" style={{ color: "#4A7C44" }}>Identifying dishes…</span>
+                    <span className="text-sm font-medium" style={{ color: "#6B46B8" }}>Identifying dishes…</span>
                   </div>
                 )}
 
                 {aiSuggestions && aiSuggestions.length > 0 && !analyzing && (
-                  <div className="rounded-2xl overflow-hidden" style={{ border: "1.5px solid #C5DFC2", background: "#F0F7EF" }}>
+                  <div className="rounded-2xl overflow-hidden" style={{ border: "1.5px solid #CBB4EE", background: "#F5F0FD" }}>
                     <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#4A7C44" }}>
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#6B46B8" }}>
                         ✨ {aiSuggestions.length} item{aiSuggestions.length > 1 ? "s" : ""} identified
                       </p>
-                      <p className="text-xs" style={{ color: "#8A9085" }}>uncheck to remove</p>
+                      <p className="text-xs" style={{ color: "#6A6180" }}>uncheck to remove</p>
                     </div>
                     {aiSuggestions.map((item, i) => {
                       const isOn = aiChecked.has(item);
                       return (
-                        <div key={item} style={{ borderTop: i > 0 ? "1px solid #D5EBD2" : undefined }}>
-                          <div className="flex items-center gap-3 px-4 py-2.5" style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
+                        <div key={item} style={{ borderTop: i > 0 ? "1px solid #DDCCF6" : undefined }}>
+                          <div className="flex items-center gap-3 px-4 py-2.5" style={{ background: isOn ? "#E7DCF7" : "#fff" }}>
                             <button
                               onClick={() => { const n = new Set(aiChecked); if (isOn) n.delete(item); else n.add(item); setAiChecked(n); }}
                               className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center"
-                              style={{ background: isOn ? "#4A7C44" : "#fff", border: `2px solid ${isOn ? "#4A7C44" : "#B0C4AE"}` }}>
+                              style={{ background: isOn ? "#6B46B8" : "#fff", border: `2px solid ${isOn ? "#6B46B8" : "#B0C4AE"}` }}>
                               {isOn && <svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                             </button>
                             <input id={`ai-${i}`} type="text" value={aiEdits[item] ?? item}
                               onChange={e => setAiEdits(p => ({ ...p, [item]: e.target.value }))}
                               className="flex-1 text-sm font-medium bg-transparent rounded-lg px-2 py-1"
-                              style={{ color: isOn ? "#1C2B1C" : "#8A9085", border: "1.5px solid #D5EBD2", outline: "none", minWidth: 0 }} />
+                              style={{ color: isOn ? "#241238" : "#6A6180", border: "1.5px solid #DDCCF6", outline: "none", minWidth: 0 }} />
                           </div>
-                          <div className="flex items-center gap-2 px-4 pb-3" style={{ background: isOn ? "#EAF2E8" : "#fff" }}>
+                          <div className="flex items-center gap-2 px-4 pb-3" style={{ background: isOn ? "#E7DCF7" : "#fff" }}>
                             <button onClick={() => setAiQtys(p => ({ ...p, [item]: Math.max(0.5, (p[item] ?? 1) - 0.5) }))}
                               className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
-                              style={{ background: "#D5EBD2", color: "#1C2B1C" }}>−</button>
-                            <span className="text-sm font-semibold w-8 text-center" style={{ color: "#1C2B1C" }}>
+                              style={{ background: "#DDCCF6", color: "#241238" }}>−</button>
+                            <span className="text-sm font-semibold w-8 text-center" style={{ color: "#241238" }}>
                               {aiQtys[item] ?? 1}
                             </span>
                             <button onClick={() => setAiQtys(p => ({ ...p, [item]: (p[item] ?? 1) + 0.5 }))}
                               className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
-                              style={{ background: "#D5EBD2", color: "#1C2B1C" }}>+</button>
+                              style={{ background: "#DDCCF6", color: "#241238" }}>+</button>
                             <select value={aiUnits[item] ?? "serving"}
                               onChange={e => setAiUnits(p => ({ ...p, [item]: e.target.value }))}
                               className="rounded-lg px-2 py-1.5 text-xs"
-                              style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none", width: "5.5rem" }}>
+                              style={{ border: "1.5px solid #CBB4EE", background: "#FAF7FE", color: "#241238", outline: "none", width: "5.5rem" }}>
                               {["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"].map(u => <option key={u} value={u}>{u}</option>)}
                             </select>
                             <div className="flex items-center gap-1 ml-auto">
@@ -907,17 +907,17 @@ export default function LogPage() {
                                 onChange={e => setAiCals(p => ({ ...p, [item]: e.target.value }))}
                                 placeholder="kcal"
                                 className="w-14 rounded-lg px-2 py-1.5 text-xs text-center"
-                                style={{ border: "1.5px solid #C5DFC2", background: "#fff", color: "#1C2B1C", outline: "none" }} />
-                              <span className="text-xs" style={{ color: "#8A9085" }}>kcal</span>
+                                style={{ border: "1.5px solid #CBB4EE", background: "#FAF7FE", color: "#241238", outline: "none" }} />
+                              <span className="text-xs" style={{ color: "#6A6180" }}>kcal</span>
                             </div>
                           </div>
                         </div>
                       );
                     })}
-                    <div className="px-4 py-3" style={{ borderTop: "1px solid #D5EBD2" }}>
+                    <div className="px-4 py-3" style={{ borderTop: "1px solid #DDCCF6" }}>
                       <button onClick={saveAiItems} disabled={saving || aiChecked.size === 0}
                         className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
-                        style={{ background: "#1C2B1C" }}>
+                        style={{ background: "#241238" }}>
                         {saving ? "Saving…" : aiChecked.size === 0 ? "Select at least one item"
                           : `Log ${aiChecked.size} outside item${aiChecked.size > 1 ? "s" : ""} ✓`}
                       </button>
@@ -929,12 +929,12 @@ export default function LogPage() {
 
             {/* Always-visible action bar */}
             <div className="shrink-0 px-4 pt-3" style={{
-              background: "#F6F5EE", borderTop: "1px solid #E2E1D8",
+              background: "#F3EEFA", borderTop: "1px solid #E0D4F2",
               paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
             }}>
               <button onClick={saveItems} disabled={saving || pickedCount === 0}
                 className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
-                style={{ background: "#1C2B1C" }}>
+                style={{ background: "#241238" }}>
                 {saving
                   ? "Saving…"
                   : pickedCount === 0

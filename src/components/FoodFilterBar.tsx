@@ -77,7 +77,7 @@ export function DietMark({ diet }: { diet: string | null | undefined }) {
 }
 
 const selectStyle = {
-  border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none",
+  border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none",
 } as const;
 
 export default function FoodFilterBar({ value, onChange, idPrefix, slot }: {
@@ -86,19 +86,19 @@ export default function FoodFilterBar({ value, onChange, idPrefix, slot }: {
   const meal = slotLabel(slot);
   return (
     <div className="grid gap-2">
-      <div className="flex rounded-full p-0.5 text-xs font-semibold" style={{ background: "#E2E1D8" }} role="group" aria-label="Which dishes to show">
+      <div className="flex rounded-full p-0.5 text-xs font-semibold" style={{ background: "#E0D4F2" }} role="group" aria-label="Which dishes to show">
         {[{ on: true, label: `${meal} dishes` }, { on: false, label: "All meals" }].map((o) => (
           <button key={o.label} type="button" onClick={() => onChange({ ...value, mealOnly: o.on })}
             aria-pressed={value.mealOnly === o.on}
             className="flex-1 py-1.5 rounded-full"
-            style={value.mealOnly === o.on ? { background: "#1C2B1C", color: "#fff" } : { color: "#5A6055" }}>
+            style={value.mealOnly === o.on ? { background: "#241238", color: "#fff" } : { color: "#625A75" }}>
             {o.label}
           </button>
         ))}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label htmlFor={`${idPrefix}-cuisine`} className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#8A9085" }}>
+          <label htmlFor={`${idPrefix}-cuisine`} className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#6A6180" }}>
             Cuisine
           </label>
           <select id={`${idPrefix}-cuisine`} value={value.cuisine}
@@ -115,7 +115,7 @@ export default function FoodFilterBar({ value, onChange, idPrefix, slot }: {
           </select>
         </div>
         <div>
-          <label htmlFor={`${idPrefix}-diet`} className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#8A9085" }}>
+          <label htmlFor={`${idPrefix}-diet`} className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#6A6180" }}>
             Diet
           </label>
           <select id={`${idPrefix}-diet`} value={value.diet}
@@ -134,8 +134,8 @@ export default function FoodFilterBar({ value, onChange, idPrefix, slot }: {
             aria-pressed={value.type === t.key}
             className="shrink-0 px-2.5 py-1.5 rounded-full text-xs font-medium"
             style={value.type === t.key
-              ? { background: "#1C2B1C", color: "#fff" }
-              : { background: "#E2E1D8", color: "#5A6055" }}>
+              ? { background: "#241238", color: "#fff" }
+              : { background: "#E0D4F2", color: "#625A75" }}>
             {t.icon ? `${t.icon} ` : ""}{t.label}
           </button>
         ))}

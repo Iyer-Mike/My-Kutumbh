@@ -74,10 +74,10 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
   const name = profile?.full_name ?? "Family member";
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
+    <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
       <header
         className="px-5 pt-safe pb-5"
-        style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 70%, #3D6638 100%)" }}
+        style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}
       >
         <PageNav />
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -85,7 +85,7 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
         </p>
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>{name}</h1>
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-          <p className="text-xs" style={{ color: "#8FBF88" }}>
+          <p className="text-xs" style={{ color: "#C9B8E4" }}>
             {loggedDays.length ? `Avg ${avgKcal} kcal on ${loggedDays.length} logged day${loggedDays.length > 1 ? "s" : ""}` : "Nothing logged this week"}
           </p>
           {goal && <p className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>Goal {goal} kcal</p>}
@@ -106,28 +106,28 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
         {days.map((day) => {
           const over = goal != null && day.kcal > goal;
           return (
-            <section key={day.date} className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
+            <section key={day.date} className="rounded-2xl overflow-hidden" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
               <div className="flex items-center justify-between px-4 py-3">
-                <p className="text-sm font-semibold" style={{ color: "#1C201C" }}>{dayLabel(day.date)}</p>
-                <p className="text-xs font-semibold" style={{ color: day.logs.length ? (over ? "#C8632A" : "#4A7C44") : "#B5B0A8" }}>
+                <p className="text-sm font-semibold" style={{ color: "#241C33" }}>{dayLabel(day.date)}</p>
+                <p className="text-xs font-semibold" style={{ color: day.logs.length ? (over ? "#C8632A" : "#6B46B8") : "#A79BC0" }}>
                   {day.logs.length ? `${day.kcal} kcal · ${day.logs.length} item${day.logs.length > 1 ? "s" : ""}` : "Not logged"}
                 </p>
               </div>
 
               {day.logs.length > 0 && (
-                <div style={{ borderTop: "1px solid #F0EFE8" }}>
+                <div style={{ borderTop: "1px solid #EDE7F7" }}>
                   {[...SLOTS.map((s) => s.key as string), "other"].map((slot) => {
                     const slotLogs = day.logs.filter((l) => l.meal_slot === slot);
                     if (!slotLogs.length) return null;
                     return (
-                      <div key={slot} className="px-4 py-2" style={{ borderBottom: "1px solid #F6F5EE" }}>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "#8A9085" }}>
+                      <div key={slot} className="px-4 py-2" style={{ borderBottom: "1px solid #F3EEFA" }}>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "#6A6180" }}>
                           {slot === "other" ? "Other" : slotLabel(slot)}
                         </p>
                         {slotLogs.map((l) => (
                           <div key={l.id} className="flex items-center justify-between py-0.5">
-                            <p className="text-sm truncate" style={{ color: "#1C201C" }}>{l.food_name}</p>
-                            <p className="text-xs flex-shrink-0 ml-3" style={{ color: "#8A9085" }}>
+                            <p className="text-sm truncate" style={{ color: "#241C33" }}>{l.food_name}</p>
+                            <p className="text-xs flex-shrink-0 ml-3" style={{ color: "#6A6180" }}>
                               {l.quantity_g} {l.quantity_unit ?? "serving"}
                               {l.calories == null
                                 ? " · — kcal"

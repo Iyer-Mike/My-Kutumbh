@@ -5,42 +5,42 @@
   --font-sans: var(--font-dm-sans);
 
   /* My Kutumbh palette */
-  --color-nav:          #1C2B1C;
-  --color-sage:         #4A7C44;
-  --color-sage-light:   #EAF2E8;
-  --color-page:         #F6F5EE;
-  --color-card:         #F3F2EB;
+  --color-nav:          #241238;
+  --color-sage:         #6B46B8;
+  --color-sage-light:   #E7DCF7;
+  --color-page:         #F3EEFA;
+  --color-card:         #F0EAFA;
   --color-amber:        #C8832A;
-  --color-border:       #E2E1D8;
-  --color-text:         #1C201C;
-  --color-muted:        #5A6055;
-  --color-subtle:       #8A9085;
+  --color-border:       #E0D4F2;
+  --color-text:         #241C33;
+  --color-muted:        #625A75;
+  --color-subtle:       #6A6180;
 }
 
 :root {
-  --background: #F6F5EE;
-  --foreground: #1C201C;
-  --accent:     #4A7C44;
+  --background: #F3EEFA;
+  --foreground: #241C33;
+  --accent:     #6B46B8;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #111810;
-    --foreground: #E8EDE6;
-    --accent:     #6AAD63;
+    --background: #181226;
+    --foreground: #E9E3F4;
+    --accent:     #A98AE0;
   }
 }
 
 :root[data-theme="dark"] {
-  --background: #111810;
-  --foreground: #E8EDE6;
-  --accent:     #6AAD63;
+  --background: #181226;
+  --foreground: #E9E3F4;
+  --accent:     #A98AE0;
 }
 
 :root[data-theme="light"] {
-  --background: #F6F5EE;
-  --foreground: #1C201C;
-  --accent:     #4A7C44;
+  --background: #F3EEFA;
+  --foreground: #241C33;
+  --accent:     #6B46B8;
 }
 
 body {

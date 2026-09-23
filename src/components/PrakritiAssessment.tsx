@@ -70,7 +70,7 @@ const QUESTIONS = [
 ];
 
 const DOSHA_LABELS = ["Vata", "Pitta", "Kapha"];
-const DOSHA_COLORS = ["#7B68EE", "#E07B39", "#4A7C44"];
+const DOSHA_COLORS = ["#7B68EE", "#E07B39", "#6B46B8"];
 const DOSHA_ICONS  = ["🌬️", "🔥", "🌊"];
 
 function computePrakriti(answers: number[]) {
@@ -154,11 +154,11 @@ export default function PrakritiAssessment({ userId }: Props) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: "#F6F5EE" }}>
+    <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
 
       {/* Header */}
       <header className="px-5 py-4 flex items-center justify-between"
-        style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 70%, #3D6638 100%)" }}>
+        style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}>
         <div>
           <p className="text-xs mb-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>Prakriti Assessment</p>
           <h1 className="text-xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
@@ -176,26 +176,26 @@ export default function PrakritiAssessment({ userId }: Props) {
       {step === "quiz" && (
         <main className="flex-1 px-5 py-5 space-y-5 pb-24">
 
-          <p className="text-xs" style={{ color: "#8A9085" }}>
+          <p className="text-xs" style={{ color: "#6A6180" }}>
             {answered} of {QUESTIONS.length} answered — choose the option that best describes you most of the time.
           </p>
 
           {/* Progress bar */}
-          <div className="rounded-full h-1.5" style={{ background: "#E2E1D8" }}>
+          <div className="rounded-full h-1.5" style={{ background: "#E0D4F2" }}>
             <div className="h-1.5 rounded-full transition-all"
-              style={{ width: `${(answered / QUESTIONS.length) * 100}%`, background: "#4A7C44" }} />
+              style={{ width: `${(answered / QUESTIONS.length) * 100}%`, background: "#6B46B8" }} />
           </div>
 
           {QUESTIONS.map((item, qi) => (
             <div key={qi} className="rounded-2xl overflow-hidden"
-              style={{ background: "#fff", border: `1.5px solid ${answers[qi] >= 0 ? "#4A7C44" : "#E2E1D8"}` }}>
+              style={{ background: "#FAF7FE", border: `1.5px solid ${answers[qi] >= 0 ? "#6B46B8" : "#E0D4F2"}` }}>
               <div className="px-4 pt-3 pb-2">
-                <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#8A9085" }}>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#6A6180" }}>
                   Q{qi + 1}
                 </p>
-                <p className="text-sm font-medium" style={{ color: "#1C201C" }}>{item.q}</p>
+                <p className="text-sm font-medium" style={{ color: "#241C33" }}>{item.q}</p>
               </div>
-              <div style={{ borderTop: "1px solid #F0EFE8" }}>
+              <div style={{ borderTop: "1px solid #EDE7F7" }}>
                 {item.opts.map((opt, oi) => {
                   const selected = answers[qi] === oi;
                   return (
@@ -204,17 +204,17 @@ export default function PrakritiAssessment({ userId }: Props) {
                       onClick={() => pick(qi, oi)}
                       className="w-full flex items-start gap-3 px-4 py-3 text-left"
                       style={{
-                        borderTop: oi > 0 ? "1px solid #F0EFE8" : undefined,
-                        background: selected ? "#EAF2E8" : "#fff",
+                        borderTop: oi > 0 ? "1px solid #EDE7F7" : undefined,
+                        background: selected ? "#E7DCF7" : "#fff",
                       }}>
                       <div className="shrink-0 w-5 h-5 rounded-full mt-0.5 flex items-center justify-center"
                         style={{
                           background: selected ? DOSHA_COLORS[oi] : "#fff",
-                          border: `2px solid ${selected ? DOSHA_COLORS[oi] : "#C8C5BA"}`,
+                          border: `2px solid ${selected ? DOSHA_COLORS[oi] : "#CBBDE4"}`,
                         }}>
                         {selected && <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3L3 5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                       </div>
-                      <span className="text-sm leading-snug" style={{ color: selected ? "#1C201C" : "#5A6055" }}>
+                      <span className="text-sm leading-snug" style={{ color: selected ? "#241C33" : "#625A75" }}>
                         {opt}
                       </span>
                     </button>
@@ -226,12 +226,12 @@ export default function PrakritiAssessment({ userId }: Props) {
 
           {/* Fixed bottom bar */}
           <div className="fixed bottom-0 left-0 right-0 px-5 py-4"
-            style={{ background: "#F6F5EE", borderTop: "1px solid #E2E1D8" }}>
+            style={{ background: "#F3EEFA", borderTop: "1px solid #E0D4F2" }}>
             <button
               onClick={submit}
               disabled={!allAnswered}
               className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
-              style={{ background: "#1C2B1C" }}>
+              style={{ background: "#241238" }}>
               {allAnswered ? "See My Prakriti →" : `Answer all ${QUESTIONS.length - answered} remaining`}
             </button>
           </div>
@@ -243,33 +243,33 @@ export default function PrakritiAssessment({ userId }: Props) {
 
           {/* Primary Dosha */}
           <div className="rounded-2xl px-5 py-5 text-center"
-            style={{ background: "#1C2B1C" }}>
+            style={{ background: "#241238" }}>
             <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>Your Prakriti</p>
             <p className="text-3xl mb-1" style={{ fontFamily: "var(--font-dm-serif)", color: "#fff" }}>
               {DOSHA_LABEL_MAP[result.primary] ?? result.primary}
             </p>
-            <p className="text-xs" style={{ color: "#8FBF88" }}>Dominant constitution</p>
+            <p className="text-xs" style={{ color: "#C9B8E4" }}>Dominant constitution</p>
           </div>
 
           {/* Score bars */}
           <div className="rounded-2xl px-5 py-4 space-y-4"
-            style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8A9085" }}>
+            style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
               Dosha Balance
             </p>
             {[
               { label: "Vata",  score: result.vata,  color: "#7B68EE", icon: "🌬️" },
               { label: "Pitta", score: result.pitta, color: "#E07B39", icon: "🔥" },
-              { label: "Kapha", score: result.kapha, color: "#4A7C44", icon: "🌊" },
+              { label: "Kapha", score: result.kapha, color: "#6B46B8", icon: "🌊" },
             ].map(({ label, score, color, icon }) => (
               <div key={label}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-medium" style={{ color: "#1C201C" }}>
+                  <span className="text-sm font-medium" style={{ color: "#241C33" }}>
                     {icon} {label}
                   </span>
                   <span className="text-sm font-semibold" style={{ color }}>{score}/20</span>
                 </div>
-                <div className="rounded-full h-2" style={{ background: "#E2E1D8" }}>
+                <div className="rounded-full h-2" style={{ background: "#E0D4F2" }}>
                   <div className="h-2 rounded-full transition-all"
                     style={{ width: `${(score / 20) * 100}%`, background: color }} />
                 </div>
@@ -279,8 +279,8 @@ export default function PrakritiAssessment({ userId }: Props) {
 
           {/* Brief description */}
           <div className="rounded-2xl px-5 py-4"
-            style={{ background: "#EAF2E8", border: "1px solid #C5DFC2" }}>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#4A7C44" }}>
+            style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#6B46B8" }}>
               What this means
             </p>
             <p className="text-sm leading-relaxed" style={{ color: "#2D5228" }}>
@@ -295,13 +295,13 @@ export default function PrakritiAssessment({ userId }: Props) {
               onClick={saveAndReturn}
               disabled={saving}
               className="flex-1 py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
-              style={{ background: "#1C2B1C" }}>
+              style={{ background: "#241238" }}>
               {saving ? "Saving…" : "Save to Profile ✓"}
             </button>
             <button
               onClick={() => setStep("quiz")}
               className="px-4 py-3 rounded-xl text-sm font-semibold"
-              style={{ background: "#F0EFE8", color: "#5A6055" }}>
+              style={{ background: "#EDE7F7", color: "#625A75" }}>
               Retake
             </button>
           </div>

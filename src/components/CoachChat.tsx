@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const INK = "#141814";
+const INK = "#1F1A2B";
 
 /** Light formatting for coach replies: paragraphs, "- " bullets and **bold**. */
 function Reply({ text }: { text: string }) {
@@ -79,7 +79,7 @@ export default function CoachChat({ memberId, firstName, viewingOther }: {
     <div className="grid gap-3">
       {messages.length === 0 && (
         <>
-          <p className="text-sm" style={{ color: "#3A4238" }}>
+          <p className="text-sm" style={{ color: "#3D3550" }}>
             Ask anything about food, your lab results or daily habits. Answers use {viewingOther ? `${firstName}'s` : "your"} profile,
             meals, lab report and your family&apos;s dishes.
           </p>
@@ -87,7 +87,7 @@ export default function CoachChat({ memberId, firstName, viewingOther }: {
             {suggestions.map((s) => (
               <button key={s} onClick={() => send(s)} disabled={busy}
                 className="text-left text-sm px-3 py-2 rounded-xl disabled:opacity-50"
-                style={{ background: "#EEF2EC", color: "#1F3D1F", border: "1px solid #CFDCCB" }}>
+                style={{ background: "#EFE8FA", color: "#33215C", border: "1px solid #D3C4EF" }}>
                 {s}
               </button>
             ))}
@@ -100,18 +100,18 @@ export default function CoachChat({ memberId, firstName, viewingOther }: {
           {messages.map((m, i) => (
             m.role === "user" ? (
               <div key={i} className="justify-self-end max-w-[85%] rounded-2xl rounded-br-md px-3.5 py-2 text-sm"
-                style={{ background: "#1C2B1C", color: "#fff" }}>
+                style={{ background: "#241238", color: "#fff" }}>
                 {m.content}
               </div>
             ) : (
               <div key={i} className="justify-self-start max-w-[92%] rounded-2xl rounded-bl-md px-3.5 py-2.5"
-                style={{ background: "#F3F5F0", border: "1px solid #DDE5D8" }}>
+                style={{ background: "#F6F2FC", border: "1px solid #DFD3F2" }}>
                 <Reply text={m.content} />
               </div>
             )
           ))}
           {busy && (
-            <div className="justify-self-start rounded-2xl px-3.5 py-2 text-sm" style={{ background: "#F3F5F0", color: "#5F675C" }}>
+            <div className="justify-self-start rounded-2xl px-3.5 py-2 text-sm" style={{ background: "#F6F2FC", color: "#6A6180" }}>
               Thinking about {who === "me" ? "your" : `${firstName}'s`} data…
             </div>
           )}
@@ -129,15 +129,15 @@ export default function CoachChat({ memberId, firstName, viewingOther }: {
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(draft); } }}
           placeholder={viewingOther ? `Ask about ${firstName}…` : "Ask a question…"} maxLength={2000}
           className="flex-1 rounded-xl px-3 py-2 text-sm resize-none"
-          style={{ border: "1.5px solid #CFDCCB", background: "#fff", color: INK, outline: "none" }} />
+          style={{ border: "1.5px solid #D3C4EF", background: "#FAF7FE", color: INK, outline: "none" }} />
         <button type="submit" disabled={busy || !draft.trim()}
           className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
-          style={{ background: "#1C2B1C" }}>
+          style={{ background: "#241238" }}>
           {busy ? "…" : "Ask"}
         </button>
       </form>
 
-      <p className="text-xs" style={{ color: "#5F675C" }}>
+      <p className="text-xs" style={{ color: "#6A6180" }}>
         The coach gives general guidance, not medical advice, and never changes medicines. For symptoms or treatment, speak to your doctor.
       </p>
     </div>

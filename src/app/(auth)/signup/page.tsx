@@ -54,7 +54,7 @@ function SignupForm() {
       <div className="w-full max-w-sm text-center">
         <div
           className="rounded-3xl px-6 pt-10 pb-8 mb-6"
-          style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 60%, #3D6638 100%)" }}
+          style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 60%, #4E3080 100%)" }}
         >
           <div className="flex justify-center mb-4">
             <KutumbhLogo size={52} color="#ffffff" />
@@ -65,7 +65,7 @@ function SignupForm() {
           <p className="text-sm mt-3" style={{ color: "rgba(255,255,255,0.65)" }}>
             We sent a confirmation link to
           </p>
-          <p className="text-sm font-semibold mt-1" style={{ color: "#8FBF88" }}>{email}</p>
+          <p className="text-sm font-semibold mt-1" style={{ color: "#C9B8E4" }}>{email}</p>
           <p className="text-sm mt-3" style={{ color: "rgba(255,255,255,0.55)" }}>
             Click the link, then come back here to sign in.
           </p>
@@ -73,7 +73,7 @@ function SignupForm() {
         <Link
           href={loginHref}
           className="block w-full py-3.5 rounded-xl font-semibold text-sm text-white text-center"
-          style={{ background: "#1C2B1C" }}
+          style={{ background: "#241238" }}
         >
           Go to Sign in
         </Link>
@@ -87,7 +87,7 @@ function SignupForm() {
 
       <form onSubmit={handleSignup} className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1" style={{ color: "#5A6055" }}>
+          <label htmlFor="name" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
             Your name
           </label>
           <input
@@ -97,13 +97,13 @@ function SignupForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E2E1D8", background: "#F3F2EB", color: "#1C201C" }}
+            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
             placeholder="Mohan Iyer"
           />
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: "#5A6055" }}>
+          <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
             Email
           </label>
           <input
@@ -113,13 +113,13 @@ function SignupForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E2E1D8", background: "#F3F2EB", color: "#1C201C" }}
+            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
             placeholder="you@email.com"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-1" style={{ color: "#5A6055" }}>
+          <label htmlFor="password" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
             Password
           </label>
           <input
@@ -130,7 +130,7 @@ function SignupForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E2E1D8", background: "#F3F2EB", color: "#1C201C" }}
+            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
             placeholder="Min. 8 characters"
           />
         </div>
@@ -145,15 +145,15 @@ function SignupForm() {
           type="submit"
           disabled={loading}
           className="w-full py-3.5 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-          style={{ background: "#1C2B1C" }}
+          style={{ background: "#241238" }}
         >
           {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
 
-      <p className="text-center text-sm mt-6" style={{ color: "#8A9085" }}>
+      <p className="text-center text-sm mt-6" style={{ color: "#6A6180" }}>
         Already have an account?{" "}
-        <Link href={loginHref} className="font-semibold" style={{ color: "#4A7C44" }}>
+        <Link href={loginHref} className="font-semibold" style={{ color: "#6B46B8" }}>
           Sign in
         </Link>
       </p>

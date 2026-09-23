@@ -107,7 +107,7 @@ function computeDosha(answers: Record<number, string>) {
 const DOSHA_DESC: Record<string, { title: string; desc: string; color: string }> = {
   vata:          { title: "Vata",        desc: "Creative, quick-moving, light. Governed by Air & Space.",      color: "#7B68EE" },
   pitta:         { title: "Pitta",       desc: "Focused, driven, warm. Governed by Fire & Water.",             color: "#E07B39" },
-  kapha:         { title: "Kapha",       desc: "Grounded, nurturing, steady. Governed by Earth & Water.",      color: "#4A7C44" },
+  kapha:         { title: "Kapha",       desc: "Grounded, nurturing, steady. Governed by Earth & Water.",      color: "#6B46B8" },
   "vata-pitta":  { title: "Vata-Pitta", desc: "Lively and sharp — quick mind with strong drive.",             color: "#9B6EC9" },
   "pitta-kapha": { title: "Pitta-Kapha",desc: "Strong and steady with natural leadership.",                   color: "#5A8F5A" },
   "vata-kapha":  { title: "Vata-Kapha", desc: "Creative and enduring — light yet grounded.",                  color: "#6B8CAE" },
@@ -116,9 +116,9 @@ const DOSHA_DESC: Record<string, { title: string; desc: string; color: string }>
 
 // ── Shared styles ─────────────────────────────────────────────────
 const inputStyle = {
-  border: "1.5px solid #E2E1D8",
-  background: "#fff",
-  color: "#1C201C",
+  border: "1.5px solid #E0D4F2",
+  background: "#FAF7FE",
+  color: "#241C33",
   borderRadius: "12px",
   padding: "10px 14px",
   fontSize: "14px",
@@ -131,8 +131,8 @@ const inputStyle = {
 function Wrap({ step, children }: { step: number; children: React.ReactNode }) {
   const progress = Math.min(step / 4, 1) * 100;
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#F6F5EE" }}>
-      <header style={{ background: "linear-gradient(160deg, #1C2B1C 0%, #2E4A2C 70%, #3D6638 100%)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "#F3EEFA" }}>
+      <header style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}>
         <div className="max-w-md mx-auto px-5 pt-safe pb-4">
           <div className="flex items-center gap-2 mb-4">
             <KutumbhLogo size={30} />
@@ -140,13 +140,13 @@ function Wrap({ step, children }: { step: number; children: React.ReactNode }) {
               <p className="text-base text-white leading-tight" style={{ fontFamily: "var(--font-dm-serif)" }}>
                 My Kutumbh
               </p>
-              <p className="text-xs leading-tight" style={{ color: "#8FBF88" }}>मेरा कुटुम्ब</p>
+              <p className="text-xs leading-tight" style={{ color: "#C9B8E4" }}>मेरा कुटुम्ब</p>
             </div>
           </div>
           <div className="rounded-full h-1.5" style={{ background: "rgba(255,255,255,0.15)" }}>
             <div
               className="h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%`, background: "#8FBF88" }}
+              style={{ width: `${progress}%`, background: "#C9B8E4" }}
             />
           </div>
           <p className="text-xs mt-1.5" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -333,15 +333,15 @@ export default function OnboardingPage() {
   // ══ STEP 1 — Kutumbh name ══════════════════════════════════════
   if (step === 1) return (
     <Wrap step={step}>
-      <h2 className="text-xl mb-1" style={{ fontFamily: "var(--font-dm-serif)", color: "#1C201C" }}>
+      <h2 className="text-xl mb-1" style={{ fontFamily: "var(--font-dm-serif)", color: "#241C33" }}>
         Name your Kutumbh
       </h2>
-      <p className="text-sm mb-5" style={{ color: "#5A6055" }}>
+      <p className="text-sm mb-5" style={{ color: "#625A75" }}>
         Your family's identity in the app — suffix "Kutumbh" is added automatically.
       </p>
       <form onSubmit={handleKutumbh} className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>
+          <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#6A6180" }}>
             Family name
           </label>
           <input
@@ -353,7 +353,7 @@ export default function OnboardingPage() {
             placeholder="e.g. Iyer"
           />
           {kutumbhName && (
-            <p className="text-sm mt-2 font-medium" style={{ color: "#4A7C44" }}>
+            <p className="text-sm mt-2 font-medium" style={{ color: "#6B46B8" }}>
               → {kutumbhName.trim().endsWith("Kutumbh") ? kutumbhName.trim() : `${kutumbhName.trim()} Kutumbh`}
             </p>
           )}
@@ -361,7 +361,7 @@ export default function OnboardingPage() {
         <button
           type="submit"
           className="w-full py-3 rounded-xl font-semibold text-sm text-white"
-          style={{ background: "#1C2B1C" }}
+          style={{ background: "#241238" }}
         >
           Continue →
         </button>
@@ -372,10 +372,10 @@ export default function OnboardingPage() {
   // ══ STEP 2 — Health basics ═════════════════════════════════════
   if (step === 2) return (
     <Wrap step={step}>
-      <h2 className="text-xl mb-1" style={{ fontFamily: "var(--font-dm-serif)", color: "#1C201C" }}>
+      <h2 className="text-xl mb-1" style={{ fontFamily: "var(--font-dm-serif)", color: "#241C33" }}>
         Your health basics
       </h2>
-      <p className="text-sm mb-5" style={{ color: "#5A6055" }}>
+      <p className="text-sm mb-5" style={{ color: "#625A75" }}>
         Used for calorie targets and Ayurvedic analysis. All fields optional.
       </p>
       <form onSubmit={handleProfile} className="space-y-4">
@@ -383,7 +383,7 @@ export default function OnboardingPage() {
         {/* DOB + Gender side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>
+            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#6A6180" }}>
               Date of birth
             </label>
             <input
@@ -394,7 +394,7 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>
+            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#6A6180" }}>
               Gender
             </label>
             <select
@@ -413,7 +413,7 @@ export default function OnboardingPage() {
         {/* Height + Weight side by side */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>
+            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#6A6180" }}>
               Height (cm)
             </label>
             <input
@@ -425,7 +425,7 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>
+            <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#6A6180" }}>
               Weight (kg)
             </label>
             <input
@@ -440,7 +440,7 @@ export default function OnboardingPage() {
 
         {/* Activity level — dropdown */}
         <div>
-          <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#8A9085" }}>
+          <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "#6A6180" }}>
             Activity level
           </label>
           <select
@@ -460,7 +460,7 @@ export default function OnboardingPage() {
         <button
           type="submit"
           className="w-full py-3 rounded-xl font-semibold text-sm text-white"
-          style={{ background: "#1C2B1C" }}
+          style={{ background: "#241238" }}
         >
           Continue →
         </button>
@@ -468,7 +468,7 @@ export default function OnboardingPage() {
           type="button"
           onClick={() => setStep(1)}
           className="w-full py-2 text-sm"
-          style={{ color: "#8A9085" }}
+          style={{ color: "#6A6180" }}
         >
           ← Back
         </button>
@@ -479,17 +479,17 @@ export default function OnboardingPage() {
   // ══ STEP 3 — Prakriti quiz ═════════════════════════════════════
   if (step === 3) return (
     <Wrap step={step}>
-      <h2 className="text-xl mb-1" style={{ fontFamily: "var(--font-dm-serif)", color: "#1C201C" }}>
+      <h2 className="text-xl mb-1" style={{ fontFamily: "var(--font-dm-serif)", color: "#241C33" }}>
         Discover your Prakriti
       </h2>
-      <p className="text-sm mb-4" style={{ color: "#5A6055" }}>
+      <p className="text-sm mb-4" style={{ color: "#625A75" }}>
         Choose what best describes your <em>natural</em> tendencies — not your current state, but across most of your life.
       </p>
 
       <div className="space-y-5 pb-24">
         {QUESTIONS.map((q, qi) => (
           <div key={qi}>
-            <p className="text-sm font-semibold mb-2" style={{ color: "#1C201C" }}>
+            <p className="text-sm font-semibold mb-2" style={{ color: "#241C33" }}>
               {qi + 1}. {q.q}
             </p>
             <div className="space-y-1.5">
@@ -502,9 +502,9 @@ export default function OnboardingPage() {
                     onClick={() => selectAnswer(qi, opt.dosha)}
                     className="w-full px-3 py-2.5 rounded-xl text-left text-sm"
                     style={{
-                      background: selected ? "#EAF2E8" : "#fff",
-                      border: `1.5px solid ${selected ? "#4A7C44" : "#E2E1D8"}`,
-                      color: selected ? "#2E5C28" : "#3A3F38",
+                      background: selected ? "#E7DCF7" : "#fff",
+                      border: `1.5px solid ${selected ? "#6B46B8" : "#E0D4F2"}`,
+                      color: selected ? "#4B2D7A" : "#3A3F38",
                       fontWeight: selected ? 500 : 400,
                     }}
                   >
@@ -522,10 +522,10 @@ export default function OnboardingPage() {
       {/* Fixed bottom bar */}
       <div
         className="fixed bottom-0 left-0 right-0 px-5 py-4"
-        style={{ background: "#F6F5EE", borderTop: "1px solid #E2E1D8" }}
+        style={{ background: "#F3EEFA", borderTop: "1px solid #E0D4F2" }}
       >
         <div className="max-w-md mx-auto">
-          <p className="text-xs text-center mb-2" style={{ color: "#8A9085" }}>
+          <p className="text-xs text-center mb-2" style={{ color: "#6A6180" }}>
             {Object.keys(answers).length} of {QUESTIONS.length} answered
           </p>
           <button
@@ -533,7 +533,7 @@ export default function OnboardingPage() {
             onClick={handlePrakriti}
             className="w-full py-3 rounded-xl font-semibold text-sm text-white"
             style={{
-              background: "#1C2B1C",
+              background: "#241238",
               opacity: Object.keys(answers).length < QUESTIONS.length ? 0.5 : 1,
             }}
           >
@@ -544,7 +544,7 @@ export default function OnboardingPage() {
             onClick={handleSkipPrakriti}
             disabled={saving}
             className="w-full py-2 text-sm mt-2"
-            style={{ color: "#8A9085" }}
+            style={{ color: "#6A6180" }}
           >
             {saving ? "Saving…" : "Skip for now"}
           </button>
@@ -558,10 +558,10 @@ export default function OnboardingPage() {
     const info = DOSHA_DESC[result.primary] ?? DOSHA_DESC["tridosha"];
     return (
       <Wrap step={step}>
-        <h2 className="text-xl mb-1" style={{ fontFamily: "var(--font-dm-serif)", color: "#1C201C" }}>
+        <h2 className="text-xl mb-1" style={{ fontFamily: "var(--font-dm-serif)", color: "#241C33" }}>
           Your Prakriti
         </h2>
-        <p className="text-sm mb-4" style={{ color: "#5A6055" }}>
+        <p className="text-sm mb-4" style={{ color: "#625A75" }}>
           Your primary constitution is:
         </p>
 
@@ -579,14 +579,14 @@ export default function OnboardingPage() {
           {[
             { label: "Vata",  score: result.v, color: "#7B68EE" },
             { label: "Pitta", score: result.p, color: "#E07B39" },
-            { label: "Kapha", score: result.k, color: "#4A7C44" },
+            { label: "Kapha", score: result.k, color: "#6B46B8" },
           ].map(({ label, score, color }) => (
             <div key={label}>
               <div className="flex justify-between text-sm mb-1">
-                <span style={{ color: "#5A6055" }}>{label}</span>
+                <span style={{ color: "#625A75" }}>{label}</span>
                 <span style={{ color }}>{score}/20</span>
               </div>
-              <div className="rounded-full h-2" style={{ background: "#E2E1D8" }}>
+              <div className="rounded-full h-2" style={{ background: "#E0D4F2" }}>
                 <div
                   className="h-2 rounded-full"
                   style={{ width: `${(score / 20) * 100}%`, background: color }}
@@ -606,7 +606,7 @@ export default function OnboardingPage() {
           onClick={handleSave}
           disabled={saving}
           className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-          style={{ background: "#1C2B1C" }}
+          style={{ background: "#241238" }}
         >
           {saving ? "Setting up your Kutumbh…" : "Enter My Kutumbh →"}
         </button>

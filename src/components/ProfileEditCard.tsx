@@ -133,20 +133,20 @@ export default function ProfileEditCard(props: Props) {
   const dietLabel = DIET_OPTIONS.find(d => d.value === props.dietType)?.label;
 
   return (
-    <div className="rounded-2xl px-5 py-4" style={{ background: "#fff", border: "1px solid #E2E1D8" }}>
+    <div className="rounded-2xl px-5 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8A9085" }}>
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
           Health Basics
         </p>
         {!editing && (
           <button
             onClick={() => setEditing(true)}
             className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold"
-            style={{ background: "#EAF2E8", color: "#4A7C44" }}
+            style={{ background: "#E7DCF7", color: "#6B46B8" }}
           >
             <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
-              <path d="M9 1.5L11.5 4L4.5 11H2v-2.5L9 1.5Z" stroke="#4A7C44" strokeWidth="1.5" strokeLinejoin="round"/>
-              <path d="M7.5 3L10 5.5" stroke="#4A7C44" strokeWidth="1.5"/>
+              <path d="M9 1.5L11.5 4L4.5 11H2v-2.5L9 1.5Z" stroke="#6B46B8" strokeWidth="1.5" strokeLinejoin="round"/>
+              <path d="M7.5 3L10 5.5" stroke="#6B46B8" strokeWidth="1.5"/>
             </svg>
             Edit
           </button>
@@ -157,21 +157,21 @@ export default function ProfileEditCard(props: Props) {
         <div className="space-y-3">
           {/* Name */}
           <div>
-            <label className="text-xs" style={{ color: "#8A9085" }}>Full name</label>
+            <label className="text-xs" style={{ color: "#6A6180" }}>Full name</label>
             <input
               type="text" value={fullName} onChange={e => setFullName(e.target.value)}
               className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-              style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
+              style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: "#241C33", outline: "none" }}
             />
           </div>
 
           {/* Gender */}
           <div>
-            <label className="text-xs" style={{ color: "#8A9085" }}>Gender</label>
+            <label className="text-xs" style={{ color: "#6A6180" }}>Gender</label>
             <select
               value={gender} onChange={e => setGender(e.target.value)}
               className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
             >
               <option value="">— select —</option>
               <option value="male">Male</option>
@@ -182,41 +182,41 @@ export default function ProfileEditCard(props: Props) {
 
           {/* DOB */}
           <div>
-            <label className="text-xs" style={{ color: "#8A9085" }}>Date of birth</label>
+            <label className="text-xs" style={{ color: "#6A6180" }}>Date of birth</label>
             <input
               type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)}
               className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
             />
           </div>
 
           {/* Height + Weight */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs" style={{ color: "#8A9085" }}>Height (cm)</label>
+              <label className="text-xs" style={{ color: "#6A6180" }}>Height (cm)</label>
               <input
                 type="number" value={heightCm} onChange={e => setHeightCm(e.target.value)}
                 className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-                style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+                style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
               />
             </div>
             <div>
-              <label className="text-xs" style={{ color: "#8A9085" }}>Weight (kg)</label>
+              <label className="text-xs" style={{ color: "#6A6180" }}>Weight (kg)</label>
               <input
                 type="number" value={weightKg} onChange={e => setWeightKg(e.target.value)}
                 className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-                style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+                style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
               />
             </div>
           </div>
 
           {/* Activity level */}
           <div>
-            <label className="text-xs" style={{ color: "#8A9085" }}>Activity level</label>
+            <label className="text-xs" style={{ color: "#6A6180" }}>Activity level</label>
             <select
               value={activityLevel} onChange={e => setActivityLevel(e.target.value)}
               className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
             >
               <option value="">— select —</option>
               {ACTIVITY_OPTIONS.map(o => (
@@ -227,11 +227,11 @@ export default function ProfileEditCard(props: Props) {
 
           {/* Diet type */}
           <div>
-            <label className="text-xs" style={{ color: "#8A9085" }}>Diet type</label>
+            <label className="text-xs" style={{ color: "#6A6180" }}>Diet type</label>
             <select
               value={dietType} onChange={e => setDietType(e.target.value)}
               className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
             >
               <option value="">— select —</option>
               {DIET_OPTIONS.map(o => (
@@ -242,8 +242,8 @@ export default function ProfileEditCard(props: Props) {
 
           {/* Conditions checklist */}
           <div>
-            <label className="text-xs block mb-2" style={{ color: "#8A9085" }}>
-              Health conditions <span style={{ color: "#B5B0A8" }}>(select all that apply)</span>
+            <label className="text-xs block mb-2" style={{ color: "#6A6180" }}>
+              Health conditions <span style={{ color: "#A79BC0" }}>(select all that apply)</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {COMMON_CONDITIONS.map(c => {
@@ -255,9 +255,9 @@ export default function ProfileEditCard(props: Props) {
                     onClick={() => toggleCondition(c)}
                     className="px-3 py-1 rounded-full text-xs font-medium transition-colors"
                     style={{
-                      background: on ? "#1C2B1C" : "#F3F2EB",
-                      color: on ? "#fff" : "#5A6055",
-                      border: `1.5px solid ${on ? "#1C2B1C" : "#E2E1D8"}`,
+                      background: on ? "#241238" : "#F0EAFA",
+                      color: on ? "#fff" : "#625A75",
+                      border: `1.5px solid ${on ? "#241238" : "#E0D4F2"}`,
                     }}
                   >
                     {on && "✓ "}{c}
@@ -269,9 +269,9 @@ export default function ProfileEditCard(props: Props) {
 
           {/* Allergies */}
           <div>
-            <label className="text-xs" style={{ color: "#8A9085" }}>
+            <label className="text-xs" style={{ color: "#6A6180" }}>
               Allergies / intolerances{" "}
-              <span style={{ color: "#B5B0A8" }}>(comma-separated, e.g. peanuts, gluten)</span>
+              <span style={{ color: "#A79BC0" }}>(comma-separated, e.g. peanuts, gluten)</span>
             </label>
             <input
               type="text"
@@ -279,15 +279,15 @@ export default function ProfileEditCard(props: Props) {
               onChange={e => setAllergiesText(e.target.value)}
               placeholder="peanuts, shellfish, gluten…"
               className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
             />
           </div>
 
           {/* Medications */}
           <div>
-            <label htmlFor="medications" className="text-xs" style={{ color: "#8A9085" }}>
+            <label htmlFor="medications" className="text-xs" style={{ color: "#6A6180" }}>
               Regular medications{" "}
-              <span style={{ color: "#B5B0A8" }}>(comma-separated, e.g. metformin, amlodipine)</span>
+              <span style={{ color: "#A79BC0" }}>(comma-separated, e.g. metformin, amlodipine)</span>
             </label>
             <input
               id="medications"
@@ -296,18 +296,18 @@ export default function ProfileEditCard(props: Props) {
               onChange={e => setMedsText(e.target.value)}
               placeholder="metformin, thyroxine…"
               className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
             />
-            <p className="text-[11px] mt-1" style={{ color: "#B5B0A8" }}>
+            <p className="text-[11px] mt-1" style={{ color: "#A79BC0" }}>
               Used to spot food–medicine interactions in your insights. Shared only within your Kutumbh.
             </p>
           </div>
 
           {/* Daily kcal goal */}
           <div>
-            <label className="text-xs" style={{ color: "#8A9085" }}>
+            <label className="text-xs" style={{ color: "#6A6180" }}>
               Daily calorie goal{" "}
-              <span style={{ color: "#B5B0A8" }}>(kcal — optional, enables dashboard progress bar)</span>
+              <span style={{ color: "#A79BC0" }}>(kcal — optional, enables dashboard progress bar)</span>
             </label>
             <input
               type="number"
@@ -316,7 +316,7 @@ export default function ProfileEditCard(props: Props) {
               placeholder="e.g. 1800"
               min={500} max={5000}
               className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-              style={{ border: "1.5px solid #E2E1D8", background: "#fff", color: "#1C201C", outline: "none" }}
+              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
             />
           </div>
 
@@ -325,14 +325,14 @@ export default function ProfileEditCard(props: Props) {
             <button
               onClick={save} disabled={saving}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
-              style={{ background: "#1C2B1C" }}
+              style={{ background: "#241238" }}
             >
               {saving ? "Saving…" : "Save ✓"}
             </button>
             <button
               onClick={cancel}
               className="px-5 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "#F0EFE8", color: "#5A6055" }}
+              style={{ background: "#EDE7F7", color: "#625A75" }}
             >
               Cancel
             </button>
@@ -347,36 +347,36 @@ export default function ProfileEditCard(props: Props) {
               { label: "Height", value: props.heightCm ? `${props.heightCm} cm` : "—" },
               { label: "Weight", value: props.weightKg ? `${props.weightKg} kg` : "—" },
             ].map(({ label, value }) => (
-              <div key={label} className="rounded-xl px-3 py-3" style={{ background: "#F3F2EB" }}>
-                <p className="text-xs" style={{ color: "#8A9085" }}>{label}</p>
-                <p className="text-base font-semibold mt-0.5" style={{ color: "#1C201C" }}>{value}</p>
+              <div key={label} className="rounded-xl px-3 py-3" style={{ background: "#F0EAFA" }}>
+                <p className="text-xs" style={{ color: "#6A6180" }}>{label}</p>
+                <p className="text-base font-semibold mt-0.5" style={{ color: "#241C33" }}>{value}</p>
               </div>
             ))}
           </div>
 
           {props.activityLevel && (
-            <div className="rounded-xl px-3 py-3" style={{ background: "#F3F2EB" }}>
-              <p className="text-xs" style={{ color: "#8A9085" }}>Activity level</p>
-              <p className="text-sm font-medium mt-0.5 capitalize" style={{ color: "#1C201C" }}>
+            <div className="rounded-xl px-3 py-3" style={{ background: "#F0EAFA" }}>
+              <p className="text-xs" style={{ color: "#6A6180" }}>Activity level</p>
+              <p className="text-sm font-medium mt-0.5 capitalize" style={{ color: "#241C33" }}>
                 {props.activityLevel.replace(/_/g, " ")}
               </p>
             </div>
           )}
 
           {dietLabel && (
-            <div className="rounded-xl px-3 py-3" style={{ background: "#F3F2EB" }}>
-              <p className="text-xs" style={{ color: "#8A9085" }}>Diet type</p>
-              <p className="text-sm font-medium mt-0.5" style={{ color: "#1C201C" }}>{dietLabel}</p>
+            <div className="rounded-xl px-3 py-3" style={{ background: "#F0EAFA" }}>
+              <p className="text-xs" style={{ color: "#6A6180" }}>Diet type</p>
+              <p className="text-sm font-medium mt-0.5" style={{ color: "#241C33" }}>{dietLabel}</p>
             </div>
           )}
 
           {props.conditions && props.conditions.length > 0 && (
             <div>
-              <p className="text-xs mb-2" style={{ color: "#8A9085" }}>Health conditions</p>
+              <p className="text-xs mb-2" style={{ color: "#6A6180" }}>Health conditions</p>
               <div className="flex flex-wrap gap-1.5">
                 {props.conditions.map(c => (
                   <span key={c} className="px-2.5 py-1 rounded-full text-xs font-medium"
-                    style={{ background: "#1C2B1C", color: "#fff" }}>
+                    style={{ background: "#241238", color: "#fff" }}>
                     {c}
                   </span>
                 ))}
@@ -386,7 +386,7 @@ export default function ProfileEditCard(props: Props) {
 
           {props.allergies && props.allergies.length > 0 && (
             <div>
-              <p className="text-xs mb-2" style={{ color: "#8A9085" }}>Allergies / intolerances</p>
+              <p className="text-xs mb-2" style={{ color: "#6A6180" }}>Allergies / intolerances</p>
               <div className="flex flex-wrap gap-1.5">
                 {props.allergies.map(a => (
                   <span key={a} className="px-2.5 py-1 rounded-full text-xs font-medium"
@@ -400,7 +400,7 @@ export default function ProfileEditCard(props: Props) {
 
           {props.medications && props.medications.length > 0 && (
             <div>
-              <p className="text-xs mb-2" style={{ color: "#8A9085" }}>Medications</p>
+              <p className="text-xs mb-2" style={{ color: "#6A6180" }}>Medications</p>
               <div className="flex flex-wrap gap-1.5">
                 {props.medications.map(m => (
                   <span key={m} className="px-2.5 py-1 rounded-full text-xs font-medium"
@@ -413,9 +413,9 @@ export default function ProfileEditCard(props: Props) {
           )}
 
           {props.dailyKcalGoal && (
-            <div className="rounded-xl px-3 py-3" style={{ background: "#F3F2EB" }}>
-              <p className="text-xs" style={{ color: "#8A9085" }}>Daily calorie goal</p>
-              <p className="text-base font-semibold mt-0.5" style={{ color: "#1C201C" }}>
+            <div className="rounded-xl px-3 py-3" style={{ background: "#F0EAFA" }}>
+              <p className="text-xs" style={{ color: "#6A6180" }}>Daily calorie goal</p>
+              <p className="text-base font-semibold mt-0.5" style={{ color: "#241C33" }}>
                 {props.dailyKcalGoal} kcal
               </p>
             </div>

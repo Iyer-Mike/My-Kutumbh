@@ -211,10 +211,10 @@ export default function PlanSlotCard({
       <button key={s.id} type="button" disabled={already} onClick={() => toggleChosen(s)}
         aria-pressed={isOn}
         className="w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2 disabled:opacity-50"
-        style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, color: "#1C201C", background: isOn ? "#EAF2E8" : undefined }}>
+        style={{ borderTop: i > 0 ? "1px solid #F0EAFA" : undefined, color: "#241C33", background: isOn ? "#E7DCF7" : undefined }}>
         <span className="min-w-0 flex items-center gap-2">
           <span className="shrink-0 w-4 h-4 rounded flex items-center justify-center"
-            style={{ background: isOn ? "#4A7C44" : "#fff", border: `2px solid ${isOn ? "#4A7C44" : "#C8C5BA"}` }}>
+            style={{ background: isOn ? "#6B46B8" : "#fff", border: `2px solid ${isOn ? "#6B46B8" : "#CBBDE4"}` }}>
             {isOn && (
               <svg width="8" height="7" viewBox="0 0 10 8" fill="none" aria-hidden>
                 <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -224,9 +224,9 @@ export default function PlanSlotCard({
           <span aria-hidden className="shrink-0">{dishTypeOf(s.category).icon}</span>
           <DietMark diet={s.diet} />
           <span className="truncate">{s.name}</span>
-          {s.kutumbh_id && <span className="shrink-0 text-[10px] font-semibold" style={{ color: "#A5661A" }}>FAMILY</span>}
+          {s.kutumbh_id && <span className="shrink-0 text-[10px] font-semibold" style={{ color: "#8A5A06" }}>FAMILY</span>}
         </span>
-        <span className="text-xs flex-shrink-0" style={{ color: "#8A9085" }}>
+        <span className="text-xs flex-shrink-0" style={{ color: "#6A6180" }}>
           {already ? "on menu" : k != null ? `${k} kcal / ${s.serving_unit === "g" ? "100 g" : (s.serving_unit ?? "serving")}` : ""}
         </span>
       </button>
@@ -262,20 +262,20 @@ export default function PlanSlotCard({
   return (
     <div
       className="rounded-2xl overflow-visible mb-3"
-      style={{ background: "#fff", border: "1px solid #E2E1D8", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+      style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
     >
       {/* Slot header */}
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-            style={{ background: hasItems ? "#EAF2E8" : "#F3F2EB" }}
+            style={{ background: hasItems ? "#E7DCF7" : "#F0EAFA" }}
           >
             {icon}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-sm" style={{ color: "#1C201C" }}>{name}</p>
-            <p className="text-xs mt-0.5" style={{ color: hasItems ? "#4A7C44" : "#8A9085" }}>
+            <p className="font-semibold text-sm" style={{ color: "#241C33" }}>{name}</p>
+            <p className="text-xs mt-0.5" style={{ color: hasItems ? "#6B46B8" : "#6A6180" }}>
               {hasItems ? `${items.length} dish${items.length > 1 ? "es" : ""} on the menu` : `${time} · Nothing planned`}
             </p>
           </div>
@@ -283,7 +283,7 @@ export default function PlanSlotCard({
         <button
           onClick={adding ? cancelAdd : openAdd}
           className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0"
-          style={{ background: adding ? "#1C2B1C" : "#EAF2E8", color: adding ? "#fff" : "#4A7C44" }}
+          style={{ background: adding ? "#241238" : "#E7DCF7", color: adding ? "#fff" : "#6B46B8" }}
           aria-label={adding ? "Done adding" : "Add dish"}
         >
           {adding ? "✓" : "+"}
@@ -303,16 +303,16 @@ export default function PlanSlotCard({
                 maxLength={40}
                 aria-label="Menu name"
                 className="flex-1 rounded-lg px-2 py-1 text-xs"
-                style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
+                style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: "#241C33", outline: "none" }}
               />
-              <button onClick={savePoolName} className="text-xs font-semibold" style={{ color: "#4A7C44" }}>Save</button>
-              <button onClick={() => setRenaming(false)} className="text-xs" style={{ color: "#8A9085" }}>Cancel</button>
+              <button onClick={savePoolName} className="text-xs font-semibold" style={{ color: "#6B46B8" }}>Save</button>
+              <button onClick={() => setRenaming(false)} className="text-xs" style={{ color: "#6A6180" }}>Cancel</button>
             </div>
           ) : (
             <button onClick={() => { setDraftName(poolName); setRenaming(true); }} className="text-left" aria-label="Rename this menu">
-              <span className="text-xs font-semibold" style={{ color: "#1C2B1C" }}>{poolName}</span>
-              <span className="text-xs" style={{ color: "#8A9085" }}> · planned by {planners.join(", ")} </span>
-              <span className="text-xs" style={{ color: "#4A7C44" }}>✎</span>
+              <span className="text-xs font-semibold" style={{ color: "#241238" }}>{poolName}</span>
+              <span className="text-xs" style={{ color: "#6A6180" }}> · planned by {planners.join(", ")} </span>
+              <span className="text-xs" style={{ color: "#6B46B8" }}>✎</span>
             </button>
           )}
         </div>
@@ -320,7 +320,7 @@ export default function PlanSlotCard({
 
       {/* Menu items */}
       {hasItems && (
-        <div style={{ borderTop: "1px solid #EAF2E8" }}>
+        <div style={{ borderTop: "1px solid #E7DCF7" }}>
           {items.map((item, i) => {
             const mine = item.user_id === userId;
             const hint = servingHint(item);
@@ -328,18 +328,18 @@ export default function PlanSlotCard({
               <div
                 key={item.id}
                 className="flex items-center justify-between px-4 py-2.5"
-                style={{ borderTop: i > 0 ? "1px solid #F3F2EB" : undefined, background: "#FAFAF8" }}
+                style={{ borderTop: i > 0 ? "1px solid #F0EAFA" : undefined, background: "#FAF7FE" }}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#4A7C44" }} />
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#6B46B8" }} />
                   <div className="min-w-0">
-                    <p className="text-sm truncate" style={{ color: "#1C201C" }}>{item.food_name}</p>
+                    <p className="text-sm truncate" style={{ color: "#241C33" }}>{item.food_name}</p>
                     {item.needs_review ? (
-                      <p className="text-[10px] font-medium" style={{ color: "#A5661A" }}>
+                      <p className="text-[10px] font-medium" style={{ color: "#8A5A06" }}>
                         Family dish · awaiting Prime Member&apos;s details{hint ? ` · ${hint}` : ""}
                       </p>
                     ) : hint ? (
-                      <p className="text-[10px]" style={{ color: "#8A9085" }}>{hint}</p>
+                      <p className="text-[10px]" style={{ color: "#6A6180" }}>{hint}</p>
                     ) : null}
                   </div>
                 </div>
@@ -353,7 +353,7 @@ export default function PlanSlotCard({
                     ✕
                   </button>
                 ) : (
-                  <span className="text-[10px] flex-shrink-0 ml-3" style={{ color: "#B5B0A8" }}>
+                  <span className="text-[10px] flex-shrink-0 ml-3" style={{ color: "#A79BC0" }}>
                     {memberNames[item.user_id] ?? ""}
                   </span>
                 )}
@@ -365,7 +365,7 @@ export default function PlanSlotCard({
 
       {/* Add dish panel */}
       {adding && (
-        <div className="px-4 py-3 space-y-2" style={{ borderTop: "1px solid #EAF2E8", background: "#FAFAF8" }}>
+        <div className="px-4 py-3 space-y-2" style={{ borderTop: "1px solid #E7DCF7", background: "#FAF7FE" }}>
           <input
             ref={inputRef}
             type="text"
@@ -379,16 +379,16 @@ export default function PlanSlotCard({
             placeholder="Search, or type a new dish name"
             aria-label="Dish name"
             className="w-full rounded-xl px-3 py-2 text-sm"
-            style={{ border: "1.5px solid #4A7C44", background: "#fff", color: "#1C201C", outline: "none" }}
+            style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: "#241C33", outline: "none" }}
           />
 
           {/* Browse by filters — tick as many as you like */}
           {!typed && (
             <div className="space-y-2">
               <FoodFilterBar value={filter} onChange={setFilter} idPrefix={`plan-${slotKey}`} slot={slotKey} />
-              <div className="rounded-xl overflow-y-auto" style={{ background: "#fff", border: "1px solid #E2E1D8", maxHeight: 300 }}>
+              <div className="rounded-xl overflow-y-auto" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", maxHeight: 300 }}>
                 {browse.length === 0
-                  ? <p className="text-xs text-center py-3" style={{ color: "#8A9085" }}>No dishes match these filters</p>
+                  ? <p className="text-xs text-center py-3" style={{ color: "#6A6180" }}>No dishes match these filters</p>
                   : browse.map(dishRow)}
               </div>
             </div>
@@ -396,7 +396,7 @@ export default function PlanSlotCard({
 
           {/* Search results — also tickable */}
           {typed && suggestions.length > 0 && (
-            <div className="rounded-xl overflow-y-auto" style={{ background: "#fff", border: "1px solid #E2E1D8", maxHeight: 300 }}>
+            <div className="rounded-xl overflow-y-auto" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", maxHeight: 300 }}>
               {suggestions.map(dishRow)}
             </div>
           )}
@@ -407,7 +407,7 @@ export default function PlanSlotCard({
               {chosen.map(c => (
                 <button key={c.id} type="button" onClick={() => toggleChosen(c)}
                   className="px-2.5 py-1 rounded-full text-xs font-medium"
-                  style={{ background: "#EAF2E8", color: "#2E5C28", border: "1px solid #C5DFC2" }}
+                  style={{ background: "#E7DCF7", color: "#4B2D7A", border: "1px solid #CBB4EE" }}
                   aria-label={`Untick ${c.name}`}>
                   {c.name} ✕
                 </button>
@@ -418,7 +418,7 @@ export default function PlanSlotCard({
           {/* New dish → what kind is it? */}
           {isNewDish && kutumbhId && (
             <div>
-              <p className="text-xs mb-1.5" style={{ color: "#5A6055" }}>
+              <p className="text-xs mb-1.5" style={{ color: "#625A75" }}>
                 New dish — what kind is <b>{typed}</b>?
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -428,14 +428,14 @@ export default function PlanSlotCard({
                     onClick={() => setNewCategory(c.key)}
                     className="px-2.5 py-1.5 rounded-full text-xs font-medium"
                     style={newCategory === c.key
-                      ? { background: "#1C2B1C", color: "#fff" }
-                      : { background: "#fff", color: "#5A6055", border: "1px solid #E2E1D8" }}
+                      ? { background: "#241238", color: "#fff" }
+                      : { background: "#FAF7FE", color: "#625A75", border: "1px solid #E0D4F2" }}
                   >
                     {c.icon} {c.label}
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] mt-1.5" style={{ color: "#A5661A" }}>
+              <p className="text-[11px] mt-1.5" style={{ color: "#8A5A06" }}>
                 Saved as a Family Dish. The Prime Member will add its exact nutrition, ingredients and preparation.
               </p>
             </div>
@@ -445,7 +445,7 @@ export default function PlanSlotCard({
             onClick={addChosen}
             disabled={saving || !addCount}
             className="w-full py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40"
-            style={{ background: "#1C2B1C" }}
+            style={{ background: "#241238" }}
           >
             {saving ? "Adding…"
               : addCount ? `Add ${addCount} dish${addCount > 1 ? "es" : ""} to menu ✓`

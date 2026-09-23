@@ -45,7 +45,7 @@ export default function InviteButton() {
           onClick={generate}
           disabled={loading}
           className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-          style={{ background: "#1C2B1C" }}
+          style={{ background: "#241238" }}
         >
           {loading ? "Generating…" : "🔗 Create Invite Link"}
         </button>
@@ -62,12 +62,12 @@ export default function InviteButton() {
     <div className="space-y-3">
       <div
         className="rounded-xl px-4 py-3"
-        style={{ background: "#EAF2E8", border: "1px solid #C5DFC2" }}
+        style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}
       >
-        <p className="text-xs font-semibold mb-1" style={{ color: "#4A7C44" }}>Invite link (valid 7 days)</p>
+        <p className="text-xs font-semibold mb-1" style={{ color: "#6B46B8" }}>Invite link (valid 7 days)</p>
         <p
           className="text-xs break-all font-mono"
-          style={{ color: "#1C2B1C" }}
+          style={{ color: "#241238" }}
           aria-label="Invite link"
         >
           {link}
@@ -78,14 +78,14 @@ export default function InviteButton() {
         <button
           onClick={copy}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: copied ? "#4A7C44" : "#1C2B1C", color: "#fff" }}
+          style={{ background: copied ? "#6B46B8" : "#241238", color: "#fff" }}
         >
           {copied ? "Copied ✓" : "Copy Link"}
         </button>
         <button
           onClick={generate}
           className="px-4 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "#F0EFE8", color: "#5A6055", border: "1px solid #E2E1D8" }}
+          style={{ background: "#EDE7F7", color: "#625A75", border: "1px solid #E0D4F2" }}
           title="Generate a new link (deactivates the old one)"
         >
           ↺

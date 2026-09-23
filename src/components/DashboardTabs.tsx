@@ -52,8 +52,8 @@ export default function DashboardTabs({
             onClick={() => setTab(t)}
             className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
             style={{
-              background: tab === t ? "#1C2B1C" : "transparent",
-              color:      tab === t ? "#fff"    : "#8A9085",
+              background: tab === t ? "#241238" : "transparent",
+              color:      tab === t ? "#fff"    : "#6A6180",
             }}
           >
             {t === "log" ? "Log" : "Plan"}
@@ -63,7 +63,7 @@ export default function DashboardTabs({
 
       {tab === "log" ? (
         <>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#8A9085" }}>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6A6180" }}>
             Today&apos;s Meals
           </p>
 
@@ -81,7 +81,7 @@ export default function DashboardTabs({
           </div>
 
           {/* Summary strip */}
-          <div className="rounded-2xl px-4 py-4 mt-3" style={{ background: "#1C2B1C" }}>
+          <div className="rounded-2xl px-4 py-4 mt-3" style={{ background: "#241238" }}>
             <div className="flex items-center justify-between mb-2">
               <div>
                 <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Today&apos;s total</p>
@@ -93,14 +93,14 @@ export default function DashboardTabs({
                 {dailyKcalGoal ? (
                   <>
                     <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Daily goal</p>
-                    <p className="text-sm font-medium mt-0.5" style={{ color: "#8FBF88" }}>
+                    <p className="text-sm font-medium mt-0.5" style={{ color: "#C9B8E4" }}>
                       {dailyKcalGoal} kcal
                     </p>
                   </>
                 ) : (
                   <>
                     <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Items logged</p>
-                    <p className="text-sm font-medium mt-0.5" style={{ color: "#8FBF88" }}>
+                    <p className="text-sm font-medium mt-0.5" style={{ color: "#C9B8E4" }}>
                       {logs.length > 0 ? `${logs.length} item${logs.length > 1 ? "s" : ""}` : "— log to start"}
                     </p>
                   </>
@@ -114,7 +114,7 @@ export default function DashboardTabs({
                     className="h-2 rounded-full transition-all"
                     style={{
                       width: `${Math.min(100, Math.round((totalKcal / dailyKcalGoal) * 100))}%`,
-                      background: totalKcal >= dailyKcalGoal ? "#E07B39" : "#8FBF88",
+                      background: totalKcal >= dailyKcalGoal ? "#E07B39" : "#C9B8E4",
                     }}
                   />
                 </div>
@@ -129,7 +129,7 @@ export default function DashboardTabs({
         </>
       ) : (
         <>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#8A9085" }}>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6A6180" }}>
             Today&apos;s Plan
           </p>
 

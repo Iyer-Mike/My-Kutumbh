@@ -69,11 +69,10 @@ export async function POST(req: NextRequest) {
   const client = new Anthropic({ apiKey });
   try {
     const response = await client.beta.messages.parse({
-      model: "claude-opus-5",
+      // Haiku reads a printed bill well and costs a fraction of Opus
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 8000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "medium", format: betaZodOutputFormat(Bill) },
+      output_config: { format: betaZodOutputFormat(Bill) },
       system: SYSTEM,
       messages: [{
         role: "user",

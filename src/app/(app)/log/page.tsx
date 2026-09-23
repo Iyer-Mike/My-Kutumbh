@@ -12,7 +12,7 @@ import { todayLocal, longDateLocal } from "@/lib/dates";
 // ── Types ─────────────────────────────────────────────────────────
 type FoodItem = {
   id: string; name: string; name_ta: string | null; category: string;
-  cuisine?: string | null; diet?: string | null; meal_hint?: string[] | null;
+  cuisine?: string | null; diet?: string | null; meal_hint?: string[] | null; recipe_id?: number | null;
   calories: number | null; protein_g: number | null;
   serving_unit: string; serving_weight_g: number;
   ingredients: string | null; preparation: string | null;
@@ -34,7 +34,7 @@ const UNIT_LABEL: Record<string, string> = {
 };
 
 const FOOD_COLS =
-  "id,name,name_ta,category,cuisine,diet,meal_hint,calories,protein_g,serving_unit,serving_weight_g,ingredients,preparation,needs_review";
+  "id,name,name_ta,category,cuisine,diet,meal_hint,recipe_id,calories,protein_g,serving_unit,serving_weight_g,ingredients,preparation,needs_review";
 
 function stepFor(unit: string) { return unit === "g" ? 25 : unit === "tbsp" ? 1 : 0.5; }
 function defaultQty(unit: string) { return unit === "g" ? 100 : 1; }
@@ -517,6 +517,13 @@ export default function LogPage() {
 
         {isOn && (
           <div className="px-3 pb-3 space-y-2">
+            {food.recipe_id != null && (
+              <a href={`/recipes/${food.recipe_id}`}
+                className="inline-block text-xs font-semibold px-3 py-1.5 rounded-lg"
+                style={{ background: "#E7DCF7", color: "#6B46B8" }}>
+                📖 See the recipe
+              </a>
+            )}
             {(food.ingredients || food.preparation) && (
               <div className="rounded-lg px-2.5 py-1.5 space-y-0.5" style={{ background: "#F3EEFA" }}>
                 {food.ingredients && (

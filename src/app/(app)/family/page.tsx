@@ -227,6 +227,23 @@ export default async function FamilyPage() {
               <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
             </Link>
 
+            {/* ── Recipes ── */}
+            <Link
+              href="/recipes"
+              className="flex items-center justify-between gap-3 rounded-2xl px-5 py-4"
+              style={{ background: "#FAF7FE", border: "1.5px solid #E0D4F2" }}
+            >
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
+                  Recipes
+                </p>
+                <p className="text-xs mt-1" style={{ color: "#625A75" }}>
+                  How every dish on the menu is cooked
+                </p>
+              </div>
+              <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
+            </Link>
+
             {/* ── Member cards ── */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6A6180" }}>

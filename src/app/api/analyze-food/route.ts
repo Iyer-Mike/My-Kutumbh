@@ -52,11 +52,10 @@ export async function POST(req: NextRequest) {
   const client = new Anthropic({ apiKey });
   try {
     const response = await client.beta.messages.parse({
-      model: "claude-opus-5",
+      // Haiku reads a plate of food well and costs a fraction of Opus
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 4000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "low", format: betaZodOutputFormat(PhotoItems) },
+      output_config: { format: betaZodOutputFormat(PhotoItems) },
       system: SYSTEM,
       messages: [{
         role: "user",

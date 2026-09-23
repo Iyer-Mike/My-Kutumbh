@@ -1,89 +1,92 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { z } from "zod/v4";
+import { createClient } from "@/lib/supabase/server";
+
+const UNITS = ["piece", "serving", "plate", "bowl", "katori", "cup", "glass", "tbsp", "tsp", "g"] as const;
+
+const PhotoItems = z.object({
+  items: z.array(z.object({
+    name: z.string(),
+    quantity: z.number(),
+    unit: z.enum(UNITS),
+    calories: z.number(),
+  })),
+});
+
+const SYSTEM = `You identify Indian home food in a photo of a plate or table, for a family food log.
+
+Name each dish the way a family would say it (1–4 words, title case): Idli, Medu Vada, Coconut Chutney, Rajma, Curd Rice. Use the regional name when the dish is clearly regional.
+
+For each dish give the quantity visible, its natural unit (2 idli = 2 piece; sambar = 1 bowl; chutney = 2 tbsp; rice = 1 cup) and the calories for that quantity, using Indian Food Composition Tables and normal home cooking, including the oil or ghee you can see.
+
+List up to 6 dishes, the most prominent first. Include only food and drink you can actually see; if the photo has no food, return an empty list.`;
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 503 });
+    return NextResponse.json({ error: "Photo analysis isn't configured on the server yet." }, { status: 503 });
   }
 
-  let body: { imageBase64: string; mediaType: string };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
+
+  let body: { imageBase64?: string; mediaType?: string };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
   const { imageBase64, mediaType } = body;
   if (!imageBase64 || !mediaType) {
-    return NextResponse.json({ error: "Missing imageBase64 or mediaType" }, { status: 400 });
+    return NextResponse.json({ error: "No photo received. Please try again." }, { status: 400 });
+  }
+  if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(mediaType)) {
+    return NextResponse.json({ error: "That image type isn't supported. Use a JPEG or PNG photo." }, { status: 400 });
   }
 
   const client = new Anthropic({ apiKey });
-
-  const message = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 600,
-    messages: [
-      {
+  try {
+    const response = await client.beta.messages.parse({
+      model: "claude-opus-5",
+      max_tokens: 4000,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      output_config: { effort: "low", format: betaZodOutputFormat(PhotoItems) },
+      system: SYSTEM,
+      messages: [{
         role: "user",
         content: [
           {
             type: "image",
-            source: {
-              type: "base64",
-              media_type: mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
-              data: imageBase64,
-            },
+            source: { type: "base64", media_type: mediaType as "image/jpeg", data: imageBase64 },
           },
-          {
-            type: "text",
-            text: `You are a South Indian food recognition and nutrition assistant.
-
-Look at this food photo. Identify every dish or food item visible.
-
-For each item, estimate:
-- The food name (1–4 words, title-cased)
-- The typical serving quantity visible in the photo
-- The most natural unit (piece, serving, cup, bowl, glass, tbsp, g)
-- The approximate calories for that quantity
-
-Return ONLY a JSON array of objects — no explanation, no markdown, no extra text.
-List up to 6 items, most prominent first.
-
-Example output:
-[
-  {"name":"Idli","quantity":2,"unit":"piece","calories":160},
-  {"name":"Coconut Chutney","quantity":2,"unit":"tbsp","calories":60},
-  {"name":"Sambar","quantity":1,"unit":"cup","calories":120}
-]`,
-          },
+          { type: "text", text: "What food is on this plate, and roughly how much?" },
         ],
-      },
-    ],
-  });
+      }],
+    });
 
-  const text = message.content[0].type === "text" ? message.content[0].text.trim() : "[]";
-  const match = text.match(/\[[\s\S]*\]/);
-
-  type AiItem = { name: string; quantity: number; unit: string; calories: number | null };
-  let items: AiItem[] = [];
-
-  if (match) {
-    try {
-      const parsed = JSON.parse(match[0]);
-      if (Array.isArray(parsed)) {
-        items = parsed.map((i: Partial<AiItem>) => ({
-          name:     typeof i.name     === "string" ? i.name.trim()  : "Unknown",
-          quantity: typeof i.quantity === "number" ? i.quantity      : 1,
-          unit:     typeof i.unit     === "string" ? i.unit.trim()   : "serving",
-          calories: typeof i.calories === "number" ? Math.round(i.calories) : null,
-        }));
-      }
-    } catch {
-      items = [];
+    if (response.stop_reason === "refusal" || !response.parsed_output) {
+      return NextResponse.json({ error: "Couldn't read that photo. Please add the dishes by hand." }, { status: 422 });
     }
-  }
 
-  return NextResponse.json({ items });
+    const items = response.parsed_output.items.slice(0, 6).map((i) => ({
+      name: i.name.trim().slice(0, 60) || "Unknown",
+      quantity: i.quantity > 0 ? Math.round(i.quantity * 2) / 2 : 1,
+      unit: i.unit,
+      calories: Math.max(0, Math.round(i.calories)),
+    }));
+    return NextResponse.json({ items });
+  } catch (error) {
+    if (error instanceof Anthropic.RateLimitError) {
+      return NextResponse.json({ error: "The photo service is busy. Try again in a minute." }, { status: 429 });
+    }
+    if (error instanceof Anthropic.APIError) {
+      return NextResponse.json({ error: `Photo service error (${error.status}). Please try again.` }, { status: 502 });
+    }
+    return NextResponse.json({ error: "Couldn't reach the photo service. Check your connection." }, { status: 502 });
+  }
 }

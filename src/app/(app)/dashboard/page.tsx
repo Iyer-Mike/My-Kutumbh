@@ -48,6 +48,7 @@ export default async function DashboardPage() {
     .from("kutumbh_members")
     .select("kutumbh_id, role, kutumbhs(name)")
     .eq("user_id", user!.id)
+    .limit(1)
     .maybeSingle();
 
   const kutumbhId = membership?.kutumbh_id ?? null;

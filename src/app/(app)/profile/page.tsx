@@ -49,7 +49,6 @@ export default async function ProfilePage() {
     ? (DOSHA_LABEL[profile.primary_dosha] ?? profile.primary_dosha)
     : null;
 
-  const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
@@ -167,17 +166,6 @@ export default async function ProfilePage() {
           initialRecords={medRecords ?? []}
         />
 
-        {/* ── Family info strip ── */}
-        <div className="rounded-2xl px-5 py-3 flex items-center justify-between"
-          style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
-              Namaste, {firstName}
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: "#625A75" }}>{user?.email}</p>
-          </div>
-          <SignOutButton compact />
-        </div>
 
       </main>
     </div>

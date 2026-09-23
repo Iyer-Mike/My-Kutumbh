@@ -310,6 +310,7 @@ export default function LogPage() {
         .from("kutumbh_members")
         .select("kutumbh_id")
         .eq("user_id", data.user.id)
+        .limit(1)
         .maybeSingle();
       const kid = mem?.kutumbh_id ?? null;
       setKutumbhId(kid);

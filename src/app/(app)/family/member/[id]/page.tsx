@@ -44,6 +44,7 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
     .select("user_id")
     .eq("kutumbh_id", me.kutumbh_id)
     .eq("user_id", memberId)
+    .limit(1)
     .maybeSingle();
 
   if (!member) redirect("/family");

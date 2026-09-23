@@ -107,14 +107,15 @@ export default async function JoinPage({ params }: Props) {
     .from("kutumbh_invites")
     .select("kutumbh_id, expires_at, is_active, kutumbhs(name)")
     .eq("invite_code", clean)
-    .single();
+    .maybeSingle();
 
   // Check if already a member of any kutumbh
   const { data: existingMember } = await supabase
     .from("kutumbh_members")
     .select("kutumbh_id")
     .eq("user_id", user.id)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   const kutumbhName = (invite?.kutumbhs as unknown as { name: string } | null)?.name;
   const expired = invite && new Date(invite.expires_at) < new Date();

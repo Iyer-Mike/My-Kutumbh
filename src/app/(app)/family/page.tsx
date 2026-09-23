@@ -109,6 +109,19 @@ export default async function FamilyPage() {
     dishPending = (dishes ?? []).filter((d) => d.needs_review).length;
   }
 
+  // Pantry Shelf, at a glance
+  let shelfCount = 0;
+  let toBuy = 0;
+  if (kutumbhId) {
+    const [{ count: shelf }, { count: buying }] = await Promise.all([
+      supabase.from("pantry_items").select("id", { count: "exact", head: true }).eq("kutumbh_id", kutumbhId),
+      supabase.from("shopping_items").select("id", { count: "exact", head: true })
+        .eq("kutumbh_id", kutumbhId).eq("status", "open"),
+    ]);
+    shelfCount = shelf ?? 0;
+    toBuy = buying ?? 0;
+  }
+
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
       {/* Header */}
@@ -192,6 +205,27 @@ export default async function FamilyPage() {
                 <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
               </Link>
             )}
+
+            {/* ── Pantry Shelf (everyone: anyone can flag what's low) ── */}
+            <Link
+              href="/pantry"
+              className="flex items-center justify-between gap-3 rounded-2xl px-5 py-4"
+              style={{ background: "#FAF7FE", border: `1.5px solid ${toBuy ? "#F2B531" : "#E0D4F2"}` }}
+            >
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
+                  Pantry Shelf
+                </p>
+                <p className="text-xs mt-1" style={{ color: toBuy ? "#8A5A06" : "#625A75" }}>
+                  {toBuy
+                    ? `${toBuy} thing${toBuy > 1 ? "s" : ""} to buy`
+                    : shelfCount
+                      ? `${shelfCount} item${shelfCount > 1 ? "s" : ""} on the shelf · nothing to buy`
+                      : "What the kitchen holds, and what needs buying"}
+                </p>
+              </div>
+              <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
+            </Link>
 
             {/* ── Member cards ── */}
             <div>

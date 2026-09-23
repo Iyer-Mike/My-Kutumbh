@@ -35,6 +35,25 @@ describe("reading an ingredient line", () => {
     ]);
     assert.deepEqual(names, ["Toor dal", "Curry leaves"]);
   });
+
+  test("one chilli or many, it is one trip", () => {
+    assert.deepEqual(
+      ingredientNames(["Green chilli — 2", "Green chillies, slit — 3"]),
+      ["Green chilli"],
+    );
+  });
+
+  test("two things joined by 'and' are two things", () => {
+    assert.deepEqual(
+      ingredientNames(["Lemon juice and coriander to finish"]),
+      ["Lemon juice", "coriander"],
+    );
+  });
+
+  test("water is never on the list", () => {
+    assert.equal(ingredientName("Water to knead — as needed"), null);
+    assert.equal(ingredientName("Water — 4 cups"), null);
+  });
 });
 
 describe("is it on the shelf", () => {

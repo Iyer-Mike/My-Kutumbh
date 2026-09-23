@@ -43,35 +43,48 @@ export function ingredientName(line: string): string | null {
        .replace(/\s+(?:and|or|plus)$/i, "");
 
   if (s.length < 2) return null;
-  if (/^(salt|water)$/i.test(s)) return null;        // nobody shops for these
+  if (/^salt$/i.test(s) || /^water\b/i.test(s)) return null;   // nobody shops for these
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+/** "Lemon juice and coriander" is two trips to the shop, not one. */
+function splitAnd(name: string): string[] {
+  const parts = name.split(/\s+and\s+/i).map((p) => p.trim()).filter((p) => p.length >= 3);
+  return parts.length === 2 && parts.every((p) => p.length <= 20) ? parts : [name];
+}
+
+/** Plural or not, chilli or chillies, it is the same trip. */
+// "es" before "s", so chillies → chilli (not chill) and tomatoes → tomato
+const sameThing = (s: string) =>
+  s.toLowerCase().replace(/[^a-z ]/g, "").replace(/\b(\w{2,}?)(?:es|s)\b/g, "$1").replace(/\s+/g, " ").trim();
 
 /** Every buyable name in a recipe, in order, without repeats. */
 export function ingredientNames(lines: string[] | null | undefined): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
   for (const line of lines ?? []) {
-    const name = ingredientName(line);
-    if (!name) continue;
-    const key = name.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(name);
+    const parsed = ingredientName(line);
+    if (!parsed) continue;
+    for (const name of splitAnd(parsed)) {
+      const key = sameThing(name);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(name);
+    }
   }
   return out;
 }
 
 /** Loose match: "Toor dal" is on a shelf holding "Toor dal 1kg"; "Moong dal" is not. */
 export function haveIt(name: string, shelfNames: string[]): boolean {
-  const a = name.toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+  const a = sameThing(name);
   if (!a) return false;
   return shelfNames.some((raw) => {
-    const b = raw.toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+    const b = sameThing(raw);
     if (!b) return false;
     if (a === b) return true;
     const long = a.length >= b.length ? a : b;
     const short = a.length >= b.length ? b : a;
-    return short.length >= 4 && new RegExp(`\\b${short.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(long);
+    return short.length >= 3 && new RegExp(`\\b${short.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(long);
   });
 }

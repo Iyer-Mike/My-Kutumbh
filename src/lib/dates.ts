@@ -13,6 +13,11 @@ export function todayLocal(now: Date = new Date()): string {
   return ymd.format(now);
 }
 
+/** The India date n days ahead of today, as YYYY-MM-DD. */
+export function daysAheadLocal(n: number, now: Date = new Date()): string {
+  return daysAgoLocal(-n, now);
+}
+
 /** The India date n days before today, as YYYY-MM-DD. */
 export function daysAgoLocal(n: number, now: Date = new Date()): string {
   const [y, m, d] = todayLocal(now).split("-").map(Number);

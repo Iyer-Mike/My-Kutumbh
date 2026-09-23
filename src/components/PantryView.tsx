@@ -64,10 +64,11 @@ function inShelfUnit(qty: number, from: Unit | null, to: Unit | null): number | 
 }
 
 export default function PantryView({
-  kutumbhId, userId, isPrime, initialItems, initialShopping, memberNames, today,
+  kutumbhId, userId, isPrime, initialItems, initialShopping, fromMenu, memberNames, today,
 }: {
   kutumbhId: string; userId: string; isPrime: boolean;
   initialItems: PantryItem[]; initialShopping: ShoppingItem[];
+  fromMenu: { name: string; dishes: string[] }[];
   memberNames: Record<string, string>; today: string;
 }) {
   const supabase = createClient();
@@ -77,6 +78,7 @@ export default function PantryView({
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ name: "", category: "grain", quantity: "", unit: "kg" as Unit, low_when: "" });
   const [buyName, setBuyName] = useState("");
+  const [addedFromMenu, setAddedFromMenu] = useState<string[]>([]);
 
   // Reading a shop bill
   const billRef = useRef<HTMLInputElement>(null);
@@ -173,6 +175,32 @@ export default function PantryView({
     if (error) return fail("add that to the list", error.message);
     setShopping((prev) => [data as ShoppingItem, ...prev]);
     setBuyName("");
+    setBusy(false);
+  }
+
+  /** An ingredient the menu needs but the kitchen hasn't got. */
+  async function addFromMenu(name: string) {
+    if (busy) return;
+    setBusy(true);
+    const { data, error } = await supabase.from("shopping_items")
+      .insert({ kutumbh_id: kutumbhId, name, source: "menu", requested_by: userId })
+      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at").single();
+    if (error) return fail("add that to the list", error.message);
+    setShopping((prev) => [data as ShoppingItem, ...prev]);
+    setAddedFromMenu((prev) => [...prev, name]);
+    setBusy(false);
+  }
+
+  async function addAllFromMenu() {
+    const rest = fromMenu.filter((m) => !addedFromMenu.includes(m.name));
+    if (!rest.length || busy) return;
+    setBusy(true);
+    const { data, error } = await supabase.from("shopping_items")
+      .insert(rest.map((m) => ({ kutumbh_id: kutumbhId, name: m.name, source: "menu", requested_by: userId })))
+      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at");
+    if (error) return fail("add those to the list", error.message);
+    setShopping((prev) => [...((data ?? []) as ShoppingItem[]), ...prev]);
+    setAddedFromMenu((prev) => [...prev, ...rest.map((m) => m.name)]);
     setBusy(false);
   }
 
@@ -490,6 +518,52 @@ export default function PantryView({
           </button>
         </div>
       </section>
+
+      {/* What the next three days' menu needs */}
+      {fromMenu.length > 0 && (
+        <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
+                The menu needs
+              </h2>
+              <p className="text-[11px]" style={{ color: B.muted2 }}>
+                Planned for the next three days, not on the shelf
+              </p>
+            </div>
+            {fromMenu.some((m) => !addedFromMenu.includes(m.name)) && (
+              <button onClick={addAllFromMenu} disabled={busy}
+                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50"
+                style={{ background: B.tint, color: B.violet }}>
+                Add all
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
+            {fromMenu.map((m) => {
+              const added = addedFromMenu.includes(m.name);
+              return (
+                <button key={m.name} onClick={() => addFromMenu(m.name)} disabled={busy || added}
+                  title={`For ${m.dishes.join(", ")}`}
+                  className="px-2.5 py-1.5 rounded-full text-xs font-medium disabled:opacity-60"
+                  style={added
+                    ? { background: B.goldTint, color: B.goldInk }
+                    : { background: B.field, color: B.ink, border: `1px solid ${B.cardEdge}` }}>
+                  {added ? "✓ " : "＋ "}{m.name}
+                  {m.dishes.length > 1 && <span style={{ color: B.muted2 }}> ×{m.dishes.length}</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="text-[11px]" style={{ color: B.muted2 }}>
+            For {[...new Set(fromMenu.flatMap((m) => m.dishes))].slice(0, 6).join(", ")}
+            {[...new Set(fromMenu.flatMap((m) => m.dishes))].length > 6 ? " and more" : ""}.
+            Amounts are left to you — a family pot is never one recipe.
+          </p>
+        </section>
+      )}
 
       {/* Shopped? Photograph the bill — Prime Member only */}
       {isPrime && (

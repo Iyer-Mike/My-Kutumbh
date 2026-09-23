@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import PantryView, { type PantryItem, type ShoppingItem } from "@/components/PantryView";
 import { BRAND as B } from "@/lib/brand";
-import { todayLocal } from "@/lib/dates";
+import { daysAheadLocal, todayLocal } from "@/lib/dates";
+import { haveIt, ingredientNames } from "@/lib/ingredients";
 
 export default async function PantryPage() {
   const supabase = await createClient();
@@ -21,6 +22,7 @@ export default async function PantryPage() {
 
   let items: PantryItem[] = [];
   let shopping: ShoppingItem[] = [];
+  let needed: { name: string; dishes: string[] }[] = [];
   const names: Record<string, string> = {};
 
   if (kutumbhId) {
@@ -40,6 +42,45 @@ export default async function PantryPage() {
     for (const p of people ?? []) {
       const full = (p.profiles as unknown as { full_name: string | null } | null)?.full_name;
       names[p.user_id] = full?.split(" ")[0] ?? "Family";
+    }
+
+    // What the next three days' menu needs that the shelf hasn't got
+    const { data: plans } = await supabase
+      .from("meal_plans")
+      .select("food_name, food_items(recipe_id)")
+      .eq("kutumbh_id", kutumbhId)
+      .gte("planned_date", todayLocal())
+      .lte("planned_date", daysAheadLocal(2));
+
+    const recipeIds = [...new Set(
+      (plans ?? [])
+        .map((p) => (p.food_items as unknown as { recipe_id: number | null } | null)?.recipe_id)
+        .filter((id): id is number => id != null),
+    )];
+
+    if (recipeIds.length) {
+      const { data: recipes } = await supabase
+        .from("recipes").select("id, name, ingredients").in("id", recipeIds);
+
+      const onShelf = items.map((i) => i.name);
+      const openNames = shopping.filter((s) => s.status === "open").map((s) => s.name);
+      const wanted = new Map<string, Set<string>>();
+
+      for (const r of recipes ?? []) {
+        for (const ing of ingredientNames(r.ingredients)) {
+          if (haveIt(ing, onShelf) || haveIt(ing, openNames)) continue;   // have it, or already listed
+          const key = ing.toLowerCase();
+          if (!wanted.has(key)) wanted.set(key, new Set());
+          wanted.get(key)!.add(r.name);
+        }
+      }
+      needed = [...wanted.entries()]
+        .map(([key, dishes]) => ({
+          name: key.charAt(0).toUpperCase() + key.slice(1),
+          dishes: [...dishes],
+        }))
+        .sort((a, b) => b.dishes.length - a.dishes.length || a.name.localeCompare(b.name))
+        .slice(0, 30);
     }
   }
 
@@ -62,6 +103,7 @@ export default async function PantryPage() {
             isPrime={isPrime}
             initialItems={items}
             initialShopping={shopping}
+            fromMenu={needed}
             memberNames={names}
             today={todayLocal()}
           />

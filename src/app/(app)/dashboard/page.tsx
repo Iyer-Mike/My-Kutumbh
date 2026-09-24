@@ -61,7 +61,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const kutumbhName = membership.kutumbhName ?? "My Kutumbh";
   const day = clampDay(date, 30, 6, timeZone);
   const today = todayLocal(timeZone);
-  const isToday = day === today;
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
 
@@ -71,7 +70,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .eq("planned_date", day)
     .order("created_at", { ascending: true });
 
-  const [{ data: logs }, { data: planRows }, poolRes, rosterRes, todayRes] = await Promise.all([
+  const [{ data: logs }, { data: planRows }, poolRes, rosterRes] = await Promise.all([
     supabase
       .from("meal_logs")
       .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated")
@@ -86,10 +85,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     kutumbhId
       ? supabase.from("family_roster").select("id, full_name")
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
-    // The greeting always speaks of today, whichever day is being read
-    isToday
-      ? Promise.resolve({ data: null })
-      : supabase.from("meal_logs").select("calories").eq("user_id", user!.id).eq("logged_date", today),
   ]);
 
   const plans = ((planRows ?? []) as MealPlanRow[]).map(({ food_items, ...p }) => {
@@ -112,9 +107,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   for (const p of rosterRes.data ?? []) memberNames[p.id] = p.full_name?.split(" ")[0] ?? "Family";
 
   const totalKcal = ((logs ?? []) as MealLog[]).reduce((s, l) => s + (l.calories ?? 0), 0);
-  const todayKcal = isToday
-    ? totalKcal
-    : (todayRes.data ?? []).reduce((s, l) => s + (l.calories ?? 0), 0);
 
   // A day still ahead can only be planned, so it opens on the Plan
   return (
@@ -162,11 +154,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </span>
             )}
           </div>
-          <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
-            {todayKcal > 0
-              ? `${Math.round(todayKcal)} kcal logged today`
-              : "What have you eaten today?"}
-          </p>
         </div>
 
         <DashboardDayNav date={day} />

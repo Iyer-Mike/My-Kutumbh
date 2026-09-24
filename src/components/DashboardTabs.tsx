@@ -4,6 +4,7 @@ import { useState } from "react";
 import DashboardSlotCard from "./DashboardSlotCard";
 import PlanSlotCard, { type PlanItem } from "./PlanSlotCard";
 import { SLOTS } from "@/lib/meal-slots";
+import { dayLabel } from "@/lib/dates";
 
 type MealLog = {
   id: string;
@@ -26,10 +27,11 @@ type Props = {
   memberNames: Record<string, string>;
   userId: string;
   kutumbhId: string | null;
+  day: string;
 };
 
 export default function DashboardTabs({
-  logs, totalKcal, dailyKcalGoal, initialPlans, poolNames, memberNames, userId, kutumbhId,
+  logs, totalKcal, dailyKcalGoal, initialPlans, poolNames, memberNames, userId, kutumbhId, day,
 }: Props) {
   const [tab, setTab] = useState<"plan" | "log">("log");
 
@@ -64,7 +66,7 @@ export default function DashboardTabs({
       {tab === "log" ? (
         <>
           <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6A6180" }}>
-            Today&apos;s Meals
+            {dayLabel(day)}&apos;s Meals
           </p>
 
           <div className="space-y-3">
@@ -76,6 +78,7 @@ export default function DashboardTabs({
                 icon={icon}
                 time={time}
                 items={slotLogs[key] ?? []}
+                day={day}
               />
             ))}
           </div>
@@ -84,7 +87,7 @@ export default function DashboardTabs({
           <div className="rounded-2xl px-4 py-4 mt-3" style={{ background: "#241238" }}>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Today&apos;s total</p>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{dayLabel(day)}&apos;s total</p>
                 <p className="text-lg font-semibold text-white mt-0.5">
                   {Math.round(totalKcal)} kcal
                 </p>
@@ -130,7 +133,7 @@ export default function DashboardTabs({
       ) : (
         <>
           <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6A6180" }}>
-            Today&apos;s Plan
+            {dayLabel(day)}&apos;s Plan
           </p>
 
           {SLOTS.map(({ key, label, icon, time }) => (
@@ -142,6 +145,7 @@ export default function DashboardTabs({
               time={time}
               userId={userId}
               kutumbhId={kutumbhId}
+              plannedDate={day}
               initialItems={slotPlans[key] ?? []}
               initialPoolName={poolNames[key] ?? null}
               memberNames={memberNames}

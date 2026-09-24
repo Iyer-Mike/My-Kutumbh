@@ -20,11 +20,12 @@ type Props = {
   icon: string;
   time: string;
   items: MealLog[];
+  day?: string;
 };
 
 const UNITS = ["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"];
 
-export default function DashboardSlotCard({ slotKey, name, icon, time, items }: Props) {
+export default function DashboardSlotCard({ slotKey, name, icon, time, items, day }: Props) {
   const router   = useRouter();
   const supabase = createClient();
 
@@ -112,7 +113,7 @@ export default function DashboardSlotCard({ slotKey, name, icon, time, items }: 
           )}
           {/* Go to Log — opens this slot's panel directly */}
           <Link
-            href={`/log?slot=${slotKey}`}
+            href={day ? `/log?slot=${slotKey}&date=${day}` : `/log?slot=${slotKey}`}
             className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
             style={{ background: "#E7DCF7", color: "#6B46B8" }}
             aria-label="Log food"

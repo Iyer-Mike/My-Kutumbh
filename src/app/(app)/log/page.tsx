@@ -7,7 +7,8 @@ import PageNav from "@/components/PageNav";
 import { SLOTS, isSlot, slotLabel, defaultPoolName, type Slot } from "@/lib/meal-slots";
 import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
 import FoodFilterBar, { applyFoodFilter, sortForSlot, useMyFoodFilter, DietMark } from "@/components/FoodFilterBar";
-import { todayLocal, longDateLocal } from "@/lib/dates";
+import { clampDay, dayLabel, todayLocal } from "@/lib/dates";
+import DayNav from "@/components/DayNav";
 
 // ── Types ─────────────────────────────────────────────────────────
 type FoodItem = {
@@ -85,7 +86,9 @@ function perServingText(food: FoodItem) {
 export default function LogPage() {
   const supabase     = createClient();
   const searchParams = useSearchParams();
-  const today        = todayLocal();
+  // Meals are logged for a day, usually today — but last night counts too
+  const today        = clampDay(searchParams.get("date"), 30, 0);
+  const isToday      = today === todayLocal();
 
   const [userId, setUserId]         = useState<string | null>(null);
   const [kutumbhId, setKutumbhId]   = useState<string | null>(null);
@@ -579,12 +582,12 @@ export default function LogPage() {
       <header style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}>
         <div className="px-5 py-4">
           <PageNav />
-          <p className="text-xs mb-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>
-            {longDateLocal()}
-          </p>
-          <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Log Food</h1>
+          <h1 className="text-2xl text-white mb-2" style={{ fontFamily: "var(--font-dm-serif)" }}>Log Food</h1>
+          <DayNav date={today} back={30} ahead={0} path="/log" onDark />
           {totalCal > 0 && (
-            <p className="text-sm mt-0.5" style={{ color: "#C9B8E4" }}>{totalCal} kcal logged today</p>
+            <p className="text-sm mt-2 text-center" style={{ color: "#C9B8E4" }}>
+              {totalCal} kcal logged {isToday ? "today" : dayLabel(today).toLowerCase()}
+            </p>
           )}
         </div>
       </header>

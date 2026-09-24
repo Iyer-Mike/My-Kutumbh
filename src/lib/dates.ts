@@ -74,16 +74,6 @@ export function dayLabel(date: string, tz: string = DEFAULT_TIME_ZONE, now: Date
   });
 }
 
-/**
- * "Tomorrow" or "Yesterday" when the day is one either side of today, and
- * nothing otherwise — for a line that already carries the full date and
- * should not say it twice.
- */
-export function nearbyDay(date: string, tz: string = DEFAULT_TIME_ZONE, now: Date = new Date()): string | null {
-  const off = daysFromToday(date, tz, now);
-  return off === 1 ? "Tomorrow" : off === -1 ? "Yesterday" : null;
-}
-
 /** The full date of a given day, e.g. "Tuesday, 24 September". */
 export function longDateFor(date: string): string {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", {

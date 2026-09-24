@@ -3,7 +3,7 @@ import KutumbhLogo from "@/components/KutumbhLogo";
 import DashboardTabs from "@/components/DashboardTabs";
 import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
-import { clampDay, dayLabel, longDateFor, nearbyDay, todayLocal } from "@/lib/dates";
+import { clampDay, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
 import DashboardDayNav from "@/components/DashboardDayNav";
 import { DashTabProvider } from "@/lib/dash-tab";
@@ -71,7 +71,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .eq("planned_date", day)
     .order("created_at", { ascending: true });
 
-  const [{ data: logs }, { data: planRows }, poolRes, rosterRes] = await Promise.all([
+  const [{ data: logs }, { data: planRows }, poolRes, rosterRes, todayRes] = await Promise.all([
     supabase
       .from("meal_logs")
       .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated")
@@ -86,6 +86,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     kutumbhId
       ? supabase.from("family_roster").select("id, full_name")
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+    // The greeting always speaks of today, whichever day is being read
+    isToday
+      ? Promise.resolve({ data: null })
+      : supabase.from("meal_logs").select("calories").eq("user_id", user!.id).eq("logged_date", today),
   ]);
 
   const plans = ((planRows ?? []) as MealPlanRow[]).map(({ food_items, ...p }) => {
@@ -108,6 +112,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   for (const p of rosterRes.data ?? []) memberNames[p.id] = p.full_name?.split(" ")[0] ?? "Family";
 
   const totalKcal = ((logs ?? []) as MealLog[]).reduce((s, l) => s + (l.calories ?? 0), 0);
+  const todayKcal = isToday
+    ? totalKcal
+    : (todayRes.data ?? []).reduce((s, l) => s + (l.calories ?? 0), 0);
 
   // A day still ahead can only be planned, so it opens on the Plan
   return (
@@ -138,10 +145,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
 
         <div className="rounded-2xl px-4 py-4 mb-4" style={{ background: "rgba(255,255,255,0.08)" }}>
-          {/* The date, written once: "Wednesday, 30 September", and a day
-              either side of today says so as well */}
+          {/* A greeting belongs to today, whichever day is being read below */}
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>
-            {[nearbyDay(day, timeZone), longDateFor(day)].filter(Boolean).join(" · ")}
+            {longDateFor(today)}
           </p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <p className="text-xl font-medium text-white">Namaste, {firstName} 🙏</p>
@@ -157,9 +163,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             )}
           </div>
           <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
-            {totalKcal > 0
-              ? `${Math.round(totalKcal)} kcal logged ${isToday ? "today" : dayLabel(day, timeZone).toLowerCase()}`
-              : isToday ? "What have you eaten today?" : "Nothing logged for this day"}
+            {todayKcal > 0
+              ? `${Math.round(todayKcal)} kcal logged today`
+              : "What have you eaten today?"}
           </p>
         </div>
 

@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { clampDay, dayLabel, daysAgoLocal, daysAheadLocal, daysFromToday, nearbyDay, todayLocal } from "./dates.ts";
+import { clampDay, dayLabel, daysAgoLocal, daysAheadLocal, daysFromToday, todayLocal } from "./dates.ts";
 
 const IN = "Asia/Kolkata";
 const NJ = "America/New_York";
@@ -73,12 +73,5 @@ describe("naming a day", () => {
 
   test("further out shows the date", () => {
     assert.match(dayLabel("2026-09-20", IN, NOW), /20 Sep/);
-  });
-
-  test("a line carrying the full date only names the day either side", () => {
-    assert.equal(nearbyDay("2026-09-25", IN, NOW), "Tomorrow");
-    assert.equal(nearbyDay("2026-09-23", IN, NOW), "Yesterday");
-    assert.equal(nearbyDay("2026-09-24", IN, NOW), null);
-    assert.equal(nearbyDay("2026-09-30", IN, NOW), null);
   });
 });

@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Kutumbh — How the App Works</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap">
+<style>
+  :root {
+    --violet-deep: #241238; --violet-mid: #3A2260; --violet: #4B2D7A; --violet-link: #6B46B8;
+    --gold: #F2B531; --gold-ink: #8A5A06; --gold-tint: #FBEBCB;
+    --page: #F3EEFA; --card: #FAF7FE; --edge: #E0D4F2; --tint: #E7DCF7;
+    --ink: #241C33; --ink2: #3D3550; --muted: #625A75; --muted2: #6A6180;
+    --green: #2F7A35; --red: #B23A26; --blue: #2E64A0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+    font-size: 15px; line-height: 1.6;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 20px 64px; }
+
+  header.hero {
+    background: linear-gradient(160deg, #241238 0%, #3A2260 68%, #4E3080 100%);
+    color: #fff; padding: 44px 0 38px; margin-bottom: 32px;
+  }
+  header.hero .wrap { padding-bottom: 0; }
+  .mark {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 11px; background: var(--gold);
+    color: #2A1646; font-family: "DM Serif Display", Georgia, serif; font-size: 20px;
+  }
+  .brand { display: flex; align-items: center; gap: 11px; margin-bottom: 20px; }
+  .brand b { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 19px; }
+  .brand span { display: block; font-size: 11px; color: #C9B8E4; letter-spacing: .04em; }
+  h1 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 38px; line-height: 1.15; margin: 0 0 10px; }
+  h1 em { font-style: italic; color: var(--gold); }
+  header.hero p { margin: 0; color: #CFC0E8; font-size: 15px; max-width: 60ch; }
+
+  h2 {
+    font-family: "DM Serif Display", Georgia, serif; font-weight: 400;
+    font-size: 26px; margin: 46px 0 6px; color: var(--violet-deep);
+  }
+  h2 .num { color: var(--gold-ink); font-size: 15px; font-family: "DM Sans", sans-serif; display: block; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 4px; }
+  h3 { font-size: 15px; margin: 26px 0 8px; color: var(--violet); text-transform: uppercase; letter-spacing: .08em; }
+  p.lede { color: var(--muted); margin: 0 0 18px; max-width: 68ch; }
+
+  /* ── flow diagram ── */
+  .flow { display: grid; gap: 0; margin: 18px 0 8px; }
+  .node {
+    background: var(--card); border: 1.5px solid var(--edge); border-radius: 14px;
+    padding: 12px 16px;
+  }
+  .node b { display: block; font-size: 15px; color: var(--ink); }
+  .node small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .node.start { background: var(--violet-deep); border-color: var(--violet-deep); }
+  .node.start b, .node.start small { color: #fff; }
+  .node.start small { color: #CFC0E8; }
+  .node.decide { background: var(--gold-tint); border-color: var(--gold); }
+  .node.decide b { color: #6E4A05; }
+  .node.decide small { color: var(--gold-ink); }
+  .node.done { background: #E3F0E2; border-color: #BBD9B8; }
+  .node.done b { color: var(--green); }
+  .node.done small { color: #3F6B42; }
+  .arrow {
+    justify-self: center; width: 2px; height: 22px; background: var(--edge); position: relative;
+  }
+  .arrow::after {
+    content: ""; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--edge);
+  }
+  .arrow span {
+    position: absolute; left: 12px; top: 2px; white-space: nowrap;
+    font-size: 12px; color: var(--muted2); background: var(--page); padding: 0 4px;
+  }
+  .branch { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .branch { grid-template-columns: 1fr; } }
+
+  /* ── tables & notes ── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--edge); vertical-align: top; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted2); font-weight: 600; }
+  td code { font-size: 12.5px; background: var(--tint); color: var(--violet); padding: 1px 6px; border-radius: 5px; }
+  .note {
+    background: var(--gold-tint); border: 1px solid var(--gold); border-radius: 12px;
+    padding: 12px 15px; margin: 16px 0; font-size: 14px; color: #6E4A05;
+  }
+  .note b { color: #5E4405; }
+  .rule { border: 0; border-top: 1px solid var(--edge); margin: 40px 0 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 0; font-size: 13px; color: var(--muted); }
+  .key { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--edge); }
+  footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--edge); font-size: 13px; color: var(--muted2); }
+
+  @media print {
+    body { background: #fff; font-size: 11.5pt; }
+    header.hero { background: #241238 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .node, .note, table { -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; }
+    h2 { break-after: avoid; }
+    .wrap { max-width: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">क</span>
+      <span><b>My Kutumbh</b><span>मेरा कुटुम्ब</span></span>
+    </div>
+    <h1>How the app<br><em>actually works</em></h1>
+    <p>Every path through My Kutumbh — who gets in, who may change what, how a menu becomes a meal,
+       and how meals and lab reports become advice. Written from the code as it stands.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="legend">
+    <span class="key"><span class="swatch" style="background:#241238;border-color:#241238"></span> where a path starts</span>
+    <span class="key"><span class="swatch" style="background:#FBEBCB;border-color:#F2B531"></span> a decision</span>
+    <span class="key"><span class="swatch" style="background:#FAF7FE"></span> a step</span>
+    <span class="key"><span class="swatch" style="background:#E3F0E2;border-color:#BBD9B8"></span> where it ends</span>
+  </div>
+
+  <!-- ══════════ 1 ══════════ -->
+  <h2><span class="num">One</span>Getting in</h2>
+  <p class="lede">One set of rules decides where a person lands, kept in a single place so nobody
+     falls between two of them. An invitation always takes precedence over wherever they were headed.</p>
+
+  <div class="flow">
+    <div class="node start"><b>Someone opens a link</b><small>The landing page, an invite, or any page of the app</small></div>
+    <div class="arrow"></div>
+    <div class="node decide"><b>Are they signed in?</b></div>
+    <div class="arrow"><span>no</span></div>
+    <div class="node"><b>Show the landing page, or the invite</b><small>Both work without an account. The page they asked for is remembered.</small></div>
+    <div class="arrow"></div>
+    <div class="node"><b>Create an account, or sign in</b><small>Sign-in fills in the last email used on that phone. The password is never stored.</small></div>
+    <div class="arrow"><span>new account</span></div>
+    <div class="node"><b>Confirm by email</b><small>The link returns to exactly where they were going, invite included</small></div>
+    <div class="arrow"></div>
+    <div class="node decide"><b>Is an invitation waiting?</b></div>
+  </div>
+
+  <div class="branch" style="margin-top:14px">
+    <div class="node done"><b>Yes → join that Kutumbh</b><small>They become a member of an existing family</small></div>
+    <div class="node done"><b>No → set up their own</b><small>Name the Kutumbh, add height, weight, diet, Prakriti</small></div>
+  </div>
+
+  <div class="note">
+    <b>The fault this fixed.</b> The confirmation email used to lose the invitation, so an invited
+    member was asked to start a family of their own — and then couldn't join, because nobody may leave
+    a Kutumbh. Now the invite waits on their phone, and a person alone in a Kutumbh of their own can
+    close it to accept an invitation. A family with other people in it is never left this way.
+  </div>
+
+  <!-- ══════════ 2 ══════════ -->
+  <h2><span class="num">Two</span>Who may change what</h2>
+  <p class="lede">Every family has one <b>Prime Member</b> — the person who created it. The difference
+     is deliberately small: the Prime Member looks after shared things, everyone owns their own.</p>
+
+  <table>
+    <tr><th>Thing</th><th>Any member</th><th>Prime Member only</th></tr>
+    <tr><td>The day's menu</td><td>Add dishes, remove their own</td><td>Same</td></tr>
+    <tr><td>Their own meals</td><td>Log, edit, delete</td><td>Cannot log for anyone else</td></tr>
+    <tr><td>Family dishes</td><td>Add a name when logging</td><td>Completes its real nutrition</td></tr>
+    <tr><td>Medical reports</td><td>Their own only</td><td>May read every member's</td></tr>
+    <tr><td>Insights</td><td>Their own</td><td>May open any member's</td></tr>
+    <tr><td>Pantry Shelf</td><td>Flag "running low"</td><td>Keeps the shelf, reads bills</td></tr>
+    <tr><td>Shopping list</td><td>Add, tick off</td><td>Same, plus remove anything</td></tr>
+  </table>
+  <p class="lede" style="font-size:14px">These are enforced by the database, not only by the screen, so
+     a rule holds even if someone reaches past the app.</p>
+
+  <!-- ══════════ 3 ══════════ -->
+  <h2><span class="num">Three</span>Menu → portion → nutrition</h2>
+  <p class="lede">The heart of the app. A menu is dish <em>names</em>; the portion is each person's own;
+     nutrition follows from the two. Nobody has to weigh anything for the family.</p>
+
+  <div class="flow">
+    <div class="node start"><b>Anyone puts up the day's menu</b><small>Plan tab · "Sambar, rice, poriyal" · today or up to a week ahead</small></div>
+    <div class="arrow"><span>each person, separately</span></div>
+    <div class="node"><b>They log what they actually ate</b><small>Log tab · pick from the menu, tick several dishes, set the portion</small></div>
+    <div class="arrow"></div>
+    <div class="node decide"><b>Does the dish have real nutrition?</b></div>
+  </div>
+
+  <div class="branch" style="margin-top:14px">
+    <div class="node"><b>Yes — from the food list</b><small>Nutrition per 100 g × the grams eaten</small></div>
+    <div class="node"><b>No — a new family dish</b><small>Counted at its dish type's average, marked as an estimate</small></div>
+  </div>
+
+  <div class="flow" style="margin-top:14px">
+    <div class="arrow"></div>
+    <div class="node"><b>The Prime Member completes the dish once</b><small>Family Dishes · by hand, or "Fill with AI" then checked</small></div>
+    <div class="arrow"></div>
+    <div class="node done"><b>Old estimates are replaced</b><small>Meals already logged are corrected to the real values</small></div>
+  </div>
+
+  <h3>How a dish is found</h3>
+  <p class="lede">Roughly 600 dishes would be unusable as one list, so three filters narrow it,
+     and the meal itself narrows it first.</p>
+  <table>
+    <tr><th>Layer</th><th>Choices</th></tr>
+    <tr><td><b>Meal</b></td><td>Breakfast · Morning snack · Lunch · Evening snack · Dinner — the list opens on the meal being planned</td></tr>
+    <tr><td><b>Cuisine</b></td><td>South, North, West, East, North-East, All-India, then Asian, Middle Eastern, African, European, Latin American</td></tr>
+    <tr><td><b>Diet</b></td><td>Vegan → Veg → Egg → Non-veg. A dish carries the strictest diet it fits; you see everything at or below your own</td></tr>
+    <tr><td><b>Dish type</b></td><td>Staple, Main, Dal/Sambar/Rasam, Curry, Side, Snack, Salad, Fruit, Dairy, Drink, Dessert, Soup, Chutney, Pickle, Podi, Extras</td></tr>
+  </table>
+
+  <!-- ══════════ 4 ══════════ -->
+  <h2><span class="num">Four</span>From meals and reports to advice</h2>
+  <p class="lede">Insights are worked out fresh each time from what is already stored. Nothing is
+     pre-computed, so a meal logged a minute ago counts immediately.</p>
+
+  <div class="flow">
+    <div class="node start"><b>What goes in</b><small>Profile · 30 days of meals · the latest lab report · the family's dishes</small></div>
+    <div class="arrow"></div>
+    <div class="node"><b>Four readings, each on its own</b>
+      <small><b>Needs</b> — ICMR-NIN targets for age, sex, weight and activity<br>
+             <b>Intake</b> — what was actually eaten, per day and averaged<br>
+             <b>Ayurveda</b> — tastes, heating or cooling, effect on the person's Prakriti<br>
+             <b>Labs</b> — each reading against its normal range, grouped by concern</small></div>
+    <div class="arrow"></div>
+    <div class="node"><b>Cross-checks that connect them</b>
+      <small>Medicines against food · allergies against what was eaten · conditions against the pattern ·
+             several lab values read together, such as high sugar with high triglycerides</small></div>
+    <div class="arrow"></div>
+    <div class="node done"><b>What the family sees</b>
+      <small>Health alerts &amp; tips, energy, lab guidance, vitamins and minerals, Ayurveda, trends —
+             and a coach that answers from these same numbers</small></div>
+  </div>
+
+  <div class="note">
+    <b>What the app will not do.</b> It never diagnoses, and never suggests starting, stopping or changing
+    a medicine — those questions are sent to a doctor. Food guidance avoids anything a person is allergic
+    to, and respects their diet strictly.
+  </div>
+
+  <!-- ══════════ 5 ══════════ -->
+  <h2><span class="num">Five</span>A lab report becomes food advice</h2>
+  <div class="flow">
+    <div class="node start"><b>Photograph or upload the report</b><small>Each member uploads their own · photo or PDF</small></div>
+    <div class="arrow"></div>
+    <div class="node"><b>The values are read out</b><small>Sugar, cholesterol, iron, vitamins… converted into the units the app uses</small></div>
+    <div class="arrow"></div>
+    <div class="node"><b>Checked on screen, then saved</b><small>The file stays private; it opens through a link that expires in five minutes</small></div>
+    <div class="arrow"></div>
+    <div class="node done"><b>Insights change accordingly</b><small>"Eat more of this, keep that small" — and sugary foods are never suggested for high sugar</small></div>
+  </div>
+
+  <!-- ══════════ 6 ══════════ -->
+  <h2><span class="num">Six</span>The kitchen: shelf, list and bill</h2>
+  <p class="lede">Three kinds of stock, because a kitchen treats them differently — and a shopping list
+     that fills itself from two directions.</p>
+
+  <table>
+    <tr><th>Kind</th><th>How it is kept</th><th>Examples</th></tr>
+    <tr><td><b>Staples</b></td><td>Real amounts, with a "buy more below" line</td><td>Rice, dals, atta, oil</td></tr>
+    <tr><td><b>Fresh</b></td><td>Bought-on date, counts down the days</td><td>Milk, curd, vegetables</td></tr>
+    <tr><td><b>Spices &amp; sundries</b></td><td>Only OK · Low · Out — nobody weighs haldi</td><td>Turmeric, jeera, salt</td></tr>
+  </table>
+
+  <div class="flow" style="margin-top:20px">
+    <div class="node start"><b>Two ways something joins the shopping list</b></div>
+    <div class="arrow"></div>
+  </div>
+  <div class="branch">
+    <div class="node"><b>Anyone flags "running low"</b><small>A request, not an edit of the shelf</small></div>
+    <div class="node"><b>The menu needs it</b><small>The next three days' dishes, read for their ingredients, minus what the shelf holds</small></div>
+  </div>
+  <div class="flow">
+    <div class="arrow"></div>
+    <div class="node"><b>Shop, then photograph the bill</b><small>Shop shorthand is expanded — "AMUL TAAZA 500ML" becomes Milk, 500 ml</small></div>
+    <div class="arrow"><span>checked first</span></div>
+    <div class="node done"><b>The shelf is topped up</b><small>Amounts added, fresh dates reset, and anything bought is ticked off the list</small></div>
+  </div>
+
+  <!-- ══════════ 7 ══════════ -->
+  <h2><span class="num">Seven</span>Where the AI is used, and where it isn't</h2>
+  <p class="lede">Most of the app is ordinary arithmetic on stored data. Language models are used only
+     where reading or judgement is genuinely needed, and the heavier model only where quality matters.</p>
+
+  <table>
+    <tr><th>Job</th><th>Model</th><th>Why</th></tr>
+    <tr><td>The coach</td><td>Opus</td><td>Answers must reason across meals, labs and medicines</td></tr>
+    <tr><td>Reading a lab report</td><td>Opus</td><td>Mistakes here would mislead advice</td></tr>
+    <tr><td>Completing a family dish</td><td>Opus</td><td>Nutrition estimated from ingredients and method</td></tr>
+    <tr><td>Reading a shop bill</td><td>Haiku</td><td>Reading print — about a tenth the cost</td></tr>
+    <tr><td>Naming food in a photo</td><td>Haiku</td><td>Same</td></tr>
+    <tr><td>Insights, alerts, needs, Ayurveda</td><td><b>None</b></td><td>Rules and arithmetic, tested</td></tr>
+    <tr><td>Shopping list from the menu</td><td><b>None</b></td><td>Ingredient lines read by rule</td></tr>
+  </table>
+
+  <!-- ══════════ 8 ══════════ -->
+  <h2><span class="num">Eight</span>What is stored</h2>
+  <table>
+    <tr><th>Holds</th><th>Tables</th></tr>
+    <tr><td>People and families</td><td><code>profiles</code> <code>kutumbhs</code> <code>kutumbh_members</code> <code>kutumbh_invites</code></td></tr>
+    <tr><td>Food and cooking</td><td><code>food_items</code> <code>recipes</code></td></tr>
+    <tr><td>The day</td><td><code>meal_plans</code> <code>meal_pools</code> <code>meal_logs</code></td></tr>
+    <tr><td>Health</td><td><code>medical_records</code></td></tr>
+    <tr><td>The kitchen</td><td><code>pantry_items</code> <code>shopping_items</code></td></tr>
+  </table>
+  <p class="lede" style="font-size:14px">A few jobs run inside the database itself, where a rule must hold
+     no matter who asks: completing a family dish, flagging something low, and joining a family by invitation.</p>
+
+  <div class="note">
+    <b>Dates.</b> Every "which day is it" decision is made in Indian time, so 11 pm still counts as today.
+    Meals can be logged up to a month back and menus planned a week ahead.
+  </div>
+
+  <footer>
+    My Kutumbh — family food and wellness, rooted in Ayurveda.<br>
+    General guidance on food and habits, not medical advice.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -134,9 +134,9 @@ export default function LogPage() {
   const cameraRef  = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
-  const [collapsedSlots, setCollapsedSlots] = useState<Set<Slot>>(new Set());
-  function toggleSlotCollapse(slot: Slot) {
-    setCollapsedSlots(prev => {
+  const [openSlots, setOpenSlots] = useState<Set<Slot>>(new Set());
+  function toggleSlotOpen(slot: Slot) {
+    setOpenSlots(prev => {
       const next = new Set(prev);
       if (next.has(slot)) next.delete(slot); else next.add(slot);
       return next;
@@ -599,7 +599,7 @@ export default function LogPage() {
         {SLOTS.map(({ key, label, icon, time }) => {
           const slotLogs    = logsFor(key);
           const slotCal     = slotLogs.reduce((s, l) => s + (l.calories ?? 0), 0);
-          const isCollapsed = collapsedSlots.has(key);
+          const isCollapsed = !openSlots.has(key);
           return (
             <div key={key} className="rounded-2xl overflow-hidden"
               style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
@@ -620,7 +620,7 @@ export default function LogPage() {
                 <div className="flex items-center gap-2">
                   {slotLogs.length > 0 && (
                     <button
-                      onClick={() => toggleSlotCollapse(key)}
+                      onClick={() => toggleSlotOpen(key)}
                       className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-semibold"
                       style={{ background: isCollapsed ? "#E7DCF7" : "#241238", color: isCollapsed ? "#6B46B8" : "#fff" }}
                       aria-label={isCollapsed ? "Expand" : "Collapse"}

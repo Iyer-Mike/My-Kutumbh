@@ -1,18 +1,18 @@
 -- ══════════════════════════════════════════════════
 -- Phase 12 — A dish taken off the menu disappears everywhere too
 --
--- Adding a dish already reached the other phones. Removing one did not.
+-- Two things were missing.
 --
--- Why: when a row is deleted, Postgres only tells the listener which row
--- it was — the id, nothing else. The app listens for "changes to my
--- family's rows", and with only an id to go on, the change could not be
--- matched to a family, so it was dropped in silence.
+--  1. When a row is deleted, Postgres only tells the listener which row
+--     it was — the id, nothing else. The app listens for "changes to my
+--     family's rows", and with only an id to go on, the change could not
+--     be matched to a family, so it was dropped in silence.
+--     REPLICA IDENTITY FULL hands over the whole row as it was before
+--     the delete, so the family it belonged to is known.
 --
--- REPLICA IDENTITY FULL makes Postgres hand over the whole row as it was
--- before the delete, so the family it belonged to is known.
---
--- pantry_items also joins the list — the shelf was listening for it, but
--- nothing was being sent.
+--  2. A table only speaks up if it has been asked to. This makes sure all
+--     four have been, pantry_items included — the shelf was listening for
+--     it, but nothing was being sent.
 --
 -- Safe to run more than once.
 -- ══════════════════════════════════════════════════
@@ -23,16 +23,22 @@ ALTER TABLE public.shopping_items REPLICA IDENTITY FULL;
 ALTER TABLE public.pantry_items   REPLICA IDENTITY FULL;
 
 DO $$
+DECLARE t text;
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables
-    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'pantry_items'
-  ) THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.pantry_items;
-  END IF;
+  FOREACH t IN ARRAY ARRAY['meal_plans','meal_pools','shopping_items','pantry_items'] LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
 END $$;
 
--- Check: all four should read "f" (full) and be in the publication
+-- A change is only passed on to someone allowed to read the row, so the
+-- family's own rules still decide who hears about what.
+
+-- Check: all four should say true, true
 SELECT c.relname AS table_name,
        c.relreplident = 'f' AS sends_whole_row,
        EXISTS (SELECT 1 FROM pg_publication_tables pt

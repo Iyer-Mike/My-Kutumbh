@@ -48,7 +48,10 @@ export default function LiveFamily({ kutumbhId, tables }: { kutumbhId: string; t
           refreshSoon,
         );
       }
-      c.subscribe();
+      // Quiet when all is well; says so when the connection is refused
+      c.subscribe((status) => {
+        if (status !== "SUBSCRIBED" && status !== "CLOSED") console.warn(`[live] ${status}`);
+      });
       channel = c;
     })();
 

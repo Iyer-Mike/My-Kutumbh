@@ -27,7 +27,7 @@ export default function LiveFamily({ kutumbhId, tables }: { kutumbhId: string; t
     // so wait a moment and re-read once.
     const refreshSoon = () => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => router.refresh(), 250);
+      timer = setTimeout(() => router.refresh(), 120);
     };
 
     // The page is signed in through a cookie, but the socket is opened

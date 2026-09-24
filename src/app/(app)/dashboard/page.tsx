@@ -40,41 +40,28 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { timeZone } = await familyOf(supabase, user!.id);
-  const day = clampDay(date, 30, 6, timeZone);
-  const isToday = day === todayLocal(timeZone);
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("onboarding_complete, full_name, daily_kcal_goal")
-    .eq("id", user!.id)
-    .maybeSingle();
+  // A menu put up in the kitchen should reach the others in a second or
+  // two, and every question asked of the database in turn is another wait.
+  // Whatever can be asked at the same time, is.
+  const [membership, { data: profile }] = await Promise.all([
+    familyOf(supabase, user!.id),
+    supabase
+      .from("profiles")
+      .select("onboarding_complete, full_name, daily_kcal_goal")
+      .eq("id", user!.id)
+      .maybeSingle(),
+  ]);
 
   if (!profile?.onboarding_complete) {
     redirect("/onboarding");
   }
 
-  const { data: membership } = await supabase
-    .from("kutumbh_members")
-    .select("kutumbh_id, role, kutumbhs(name)")
-    .eq("user_id", user!.id)
-    .limit(1)
-    .maybeSingle();
-
-  const kutumbhId = membership?.kutumbh_id ?? null;
-  const isPrime   = membership?.role === "owner";
-  const rawKutumbh = membership?.kutumbhs;
-  const kutumbhName: string = (Array.isArray(rawKutumbh)
-    ? (rawKutumbh[0] as { name: string } | undefined)?.name
-    : (rawKutumbh as { name: string } | null | undefined)?.name) ?? "My Kutumbh";
+  const { kutumbhId, isPrime, timeZone } = membership;
+  const kutumbhName = membership.kutumbhName ?? "My Kutumbh";
+  const day = clampDay(date, 30, 6, timeZone);
+  const isToday = day === todayLocal(timeZone);
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
-
-  const { data: logs } = await supabase
-    .from("meal_logs")
-    .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated")
-    .eq("user_id", user!.id)
-    .eq("logged_date", day);
 
   const plansQuery = supabase
     .from("meal_plans")
@@ -82,9 +69,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .eq("planned_date", day)
     .order("created_at", { ascending: true });
 
-  const { data: planRows } = await (kutumbhId
-    ? plansQuery.eq("kutumbh_id", kutumbhId)
-    : plansQuery.eq("user_id", user!.id));
+  const [{ data: logs }, { data: planRows }, poolRes, rosterRes] = await Promise.all([
+    supabase
+      .from("meal_logs")
+      .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated")
+      .eq("user_id", user!.id)
+      .eq("logged_date", day),
+    kutumbhId ? plansQuery.eq("kutumbh_id", kutumbhId) : plansQuery.eq("user_id", user!.id),
+    // Custom pool names for the day (only present when someone renamed one)
+    kutumbhId
+      ? supabase.from("meal_pools").select("meal_slot, name").eq("kutumbh_id", kutumbhId).eq("planned_date", day)
+      : Promise.resolve({ data: [] as { meal_slot: string; name: string }[] }),
+    // First names for "planned by …" — the roster only ever shows this family
+    kutumbhId
+      ? supabase.from("family_roster").select("id, full_name")
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+  ]);
 
   const plans = ((planRows ?? []) as MealPlanRow[]).map(({ food_items, ...p }) => {
     const fi = Array.isArray(food_items) ? food_items[0] : food_items;
@@ -99,27 +99,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     };
   });
 
-  // Custom pool names for today (only present when someone renamed one)
   const poolNames: Record<string, string> = {};
-  if (kutumbhId) {
-    const { data: pools } = await supabase
-      .from("meal_pools")
-      .select("meal_slot, name")
-      .eq("kutumbh_id", kutumbhId)
-      .eq("planned_date", day);
-    for (const p of pools ?? []) poolNames[p.meal_slot] = p.name;
-  }
+  for (const p of poolRes.data ?? []) poolNames[p.meal_slot] = p.name;
 
-  // First names of whoever planned today's items ("planned by …")
-  const plannerIds = [...new Set(plans.map((p) => p.user_id))];
   const memberNames: Record<string, string> = {};
-  if (plannerIds.length) {
-    const { data: people } = await supabase
-      .from("family_roster")
-      .select("id, full_name")
-      .in("id", plannerIds);
-    for (const p of people ?? []) memberNames[p.id] = p.full_name?.split(" ")[0] ?? "Family";
-  }
+  for (const p of rosterRes.data ?? []) memberNames[p.id] = p.full_name?.split(" ")[0] ?? "Family";
 
   const totalKcal = ((logs ?? []) as MealLog[]).reduce((s, l) => s + (l.calories ?? 0), 0);
 
@@ -155,7 +139,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <p className="text-xl font-medium text-white">Namaste, {firstName} 🙏</p>
-            {membership && (
+            {kutumbhId && (
               <span
                 className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
                 style={isPrime

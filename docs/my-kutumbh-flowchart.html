@@ -93,7 +93,44 @@
   .swatch { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--edge); }
   footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--edge); font-size: 13px; color: var(--muted2); }
 
+
+  /* ── mock screens ── */
+  .screens { display: flex; flex-wrap: wrap; gap: 18px; margin: 22px 0 6px; }
+  .screen { width: 232px; flex: 0 0 auto; }
+  .screen .cap { font-size: 12px; color: var(--muted2); margin-top: 7px; line-height: 1.4; }
+  .screen .cap b { color: var(--violet); display: block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+  .phone {
+    border: 8px solid #241238; border-radius: 22px; overflow: hidden; background: var(--page);
+    box-shadow: 0 6px 18px rgba(36,18,56,.14); font-size: 10px; line-height: 1.35;
+  }
+  .ph-head { background: linear-gradient(160deg,#241238,#3A2260 70%,#4E3080); color:#fff; padding: 10px 11px; }
+  .ph-head .t { font-family: "DM Serif Display", Georgia, serif; font-size: 15px; }
+  .ph-head .s { font-size: 9px; color: #C9B8E4; }
+  .ph-head .g { font-size: 9px; color: var(--gold); }
+  .ph-body { padding: 9px; display: grid; gap: 6px; }
+  .ph-card { background: var(--card); border: 1px solid var(--edge); border-radius: 9px; padding: 7px 8px; }
+  .ph-card .h { font-size: 8.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--violet); font-weight: 700; }
+  .ph-row { display: flex; align-items: center; gap: 6px; }
+  .ph-row + .ph-row { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--edge); }
+  .ph-row .grow { flex: 1 1 auto; min-width: 0; }
+  .ph-row .mut { color: var(--muted2); font-size: 9px; }
+  .ph-btn { background: #34205A; color: #fff; border-radius: 7px; padding: 6px; text-align: center; font-weight: 600; font-size: 9.5px; }
+  .ph-btn.ghost { background: var(--tint); color: var(--violet); }
+  .ph-chip { display: inline-block; background: var(--tint); color: var(--violet); border-radius: 999px; padding: 2px 7px; font-size: 8.5px; margin: 1px 2px 1px 0; }
+  .ph-chip.on { background: #34205A; color: #fff; }
+  .ph-chip.gold { background: var(--gold-tint); color: var(--gold-ink); }
+  .ph-tick { width: 11px; height: 11px; border: 1.5px solid var(--violet); border-radius: 3px; flex: 0 0 auto; }
+  .ph-tick.on { background: var(--violet); }
+  .ph-veg { width: 9px; height: 9px; border: 1.3px solid #2F7D32; border-radius: 2px; flex: 0 0 auto; position: relative; }
+  .ph-veg::after { content:""; position:absolute; inset:2px; background:#2F7D32; border-radius:999px; }
+  .ph-nav { background: #241238; color: #C9B8E4; display: flex; justify-content: space-around; padding: 6px 0; font-size: 7.5px; }
+  .ph-bar { height: 5px; border-radius: 999px; background: var(--tint); overflow: hidden; }
+  .ph-bar i { display: block; height: 5px; border-radius: 999px; background: var(--violet); }
+  .ref { display:inline-block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-ink); background: var(--gold-tint); border-radius: 999px; padding: 2px 9px; margin-bottom: 6px; }
+
   @media print {
+    .screen { width: 200px; }
+    .screens { break-inside: avoid; }
     body { background: #fff; font-size: 11.5pt; }
     header.hero { background: #241238 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .node, .note, table { -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; }
@@ -125,6 +162,11 @@
     <span class="key"><span class="swatch" style="background:#E3F0E2;border-color:#BBD9B8"></span> where it ends</span>
   </div>
 
+  <p class="lede" style="margin-top:18px">
+    The small screens through this document are drawings of the app, not photographs &mdash;
+    each one sits beside the step it belongs to.
+  </p>
+
   <!-- ══════════ 1 ══════════ -->
   <h2><span class="num">One</span>Getting in</h2>
   <p class="lede">One set of rules decides where a person lands, kept in a single place so nobody
@@ -147,6 +189,66 @@
   <div class="branch" style="margin-top:14px">
     <div class="node done"><b>Yes → join that Kutumbh</b><small>They become a member of an existing family</small></div>
     <div class="node done"><b>No → set up their own</b><small>Name the Kutumbh, add height, weight, diet, Prakriti</small></div>
+  </div>
+
+  <div class="screens">
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span style="background:#F2B531;color:#2A1646;border-radius:6px;padding:2px 5px;font-family:'DM Serif Display',serif">क</span><span><span class="t" style="font-size:12px">My Kutumbh</span><span class="s">मेरा कुटुम्ब</span></span></div>
+          <div class="g" style="letter-spacing:.14em;font-size:7.5px">अन्नं ब्रह्म · FOOD IS SACRED</div>
+          <div class="t" style="margin-top:4px">Eat as a Family.</div>
+          <div class="t" style="font-style:italic;color:#F2B531;font-size:12px">Thrive as Yourself.</div>
+          <div class="s" style="margin-top:5px">Plan together, log your own portion, let meals answer to your body.</div>
+        </div>
+        <div class="ph-body">
+          <div class="ph-row"><span class="ph-chip">👥</span><span class="grow">One menu, everyone&rsquo;s own plate</span></div>
+          <div class="ph-row"><span class="ph-chip gold">🍲</span><span class="grow">Dishes you actually cook</span></div>
+          <div class="ph-row"><span class="ph-chip">📈</span><span class="grow">Your lab report, turned into food</span></div>
+          <div class="ph-btn">Create an account</div>
+          <div style="text-align:center;font-size:9px;color:var(--muted)">Already with us? <b style="color:var(--violet-link)">Sign in</b></div>
+        </div>
+      </div>
+      <p class="cap"><b>Step 1 · new visitor</b>The landing page. No account needed to read it.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span style="background:#F2B531;color:#2A1646;border-radius:6px;padding:2px 5px;font-family:'DM Serif Display',serif">क</span><span class="t" style="font-size:12px">My Kutumbh</span></div>
+          <div class="t">Namaste, Mohan</div>
+          <div class="t" style="font-style:italic;color:#F2B531;font-size:12px">welcome back.</div>
+          <div class="s" style="margin-top:4px">Two taps and you&rsquo;re in.</div>
+        </div>
+        <div class="ph-body">
+          <div style="font-size:8.5px;color:var(--muted)">Email</div>
+          <div class="ph-card ph-row"><span class="grow">mohan@example.com</span><span style="color:var(--violet-link);font-weight:600">Not you?</span></div>
+          <div style="font-size:8.5px;color:var(--muted)">Password</div>
+          <div class="ph-card" style="border-color:var(--violet);box-shadow:0 0 0 2px rgba(107,70,184,.18)">••••••••</div>
+          <div class="ph-btn">Sign in</div>
+        </div>
+      </div>
+      <p class="cap"><b>Step 2 · coming back</b>The email is remembered on that phone. The password never is.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head">
+          <div class="g" style="letter-spacing:.14em;font-size:7.5px">— AN INVITATION</div>
+          <div class="t" style="margin-top:4px">A place has been kept for you at the <span style="font-style:italic;color:#F2B531">IYER Kutumbh</span></div>
+        </div>
+        <div class="ph-body">
+          <div class="ph-card">
+            <div class="h">What joining gives you</div>
+            <div class="ph-row" style="margin-top:5px"><span class="ph-tick on"></span><span class="grow">The family&rsquo;s menu each day</span></div>
+            <div class="ph-row"><span class="ph-tick on"></span><span class="grow">Your own portions and insights</span></div>
+            <div class="ph-row"><span class="ph-tick on"></span><span class="grow">Your reports stay yours</span></div>
+          </div>
+          <div class="ph-btn">Join the Kutumbh</div>
+        </div>
+      </div>
+      <p class="cap"><b>Step 3 · invited</b>Shown before signing in. Someone alone in a Kutumbh of their own is offered &ldquo;Close mine and join this one&rdquo;.</p>
+    </div>
   </div>
 
   <div class="note">
@@ -199,6 +301,63 @@
     <div class="node done"><b>Old estimates are replaced</b><small>Meals already logged are corrected to the real values</small></div>
   </div>
 
+  <div class="screens">
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="s">Thursday, 24 September</div><div class="t" style="font-size:13px">Namaste, Mohan 🙏</div>
+          <div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:9px"><span class="ph-chip" style="background:rgba(255,255,255,.15);color:#fff">‹</span><span style="flex:1;text-align:center">Today</span><span class="ph-chip" style="background:rgba(255,255,255,.15);color:#fff">›</span></div>
+        </div>
+        <div class="ph-body">
+          <div style="display:flex;gap:4px"><div class="ph-btn" style="flex:1;padding:4px">Log</div><div class="ph-btn ghost" style="flex:1;padding:4px">Plan</div></div>
+          <div class="ph-card"><div class="ph-row"><span>☀️</span><span class="grow"><b>Breakfast</b><span class="mut"> · 3 dishes on the menu</span></span><span class="ph-chip">+</span></div></div>
+          <div class="ph-card"><div class="ph-row"><span>🌤️</span><span class="grow"><b>Lunch</b><span class="mut"> · Nothing planned</span></span><span class="ph-chip">+</span></div></div>
+          <div class="ph-card" style="background:#241238;border-color:#241238;color:#fff"><div style="font-size:8.5px;color:#C9B8E4">Today&rsquo;s total</div><div style="font-size:13px;font-weight:600">830 kcal</div></div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 1 · the menu</b>Anyone adds dish names. The day can move back a month or forward a week.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="t" style="font-size:13px">Log Food</div><div class="s" style="text-align:center;margin-top:4px">‹ &nbsp; Yesterday &nbsp; ›</div></div>
+        <div class="ph-body">
+          <div class="ph-card">
+            <div style="display:flex;gap:3px;margin-bottom:5px"><span class="ph-chip on">Breakfast dishes</span><span class="ph-chip">All meals</span></div>
+            <div style="display:flex;gap:4px;margin-bottom:5px"><span class="ph-chip">Indian ▾</span><span class="ph-chip">Veg ▾</span></div>
+            <div><span class="ph-chip on">All types</span><span class="ph-chip">🍚 Staple</span><span class="ph-chip">🍛 Main</span></div>
+          </div>
+          <div class="ph-card">
+            <div class="ph-row"><span class="ph-tick on"></span><span class="ph-veg"></span><span class="grow"><b>Idli</b><span class="mut"> 2 pcs · 130 kcal</span></span></div>
+            <div class="ph-row"><span class="ph-tick"></span><span class="ph-veg"></span><span class="grow"><b>Sambar</b><span class="mut"> 1 bowl · 81 kcal</span></span></div>
+            <div class="ph-row"><span class="ph-tick"></span><span class="ph-veg"></span><span class="grow"><b>Coconut Chutney</b><span class="mut"> 2 tbsp</span></span></div>
+          </div>
+          <div class="ph-btn">Save 1 item ✓</div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 2 · the portion</b>Each person logs their own. Ticks allow several at once; the meal filter narrows the list first.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="s">IYER Kutumbh</div><div class="t" style="font-size:13px">Family Dishes</div><div class="g">3 dishes need your details</div></div>
+        <div class="ph-body">
+          <div class="ph-card">
+            <div class="ph-row"><span class="grow"><b>Amma&rsquo;s Vatha Kuzhambu</b><span class="mut"> · awaiting details</span></span></div>
+            <div style="margin-top:5px"><span class="ph-chip gold">✨ Fill with AI</span></div>
+            <div class="ph-row" style="margin-top:6px"><span class="grow mut">kcal per serving</span><span class="ph-chip">180</span></div>
+            <div class="ph-row"><span class="grow mut">Cuisine · Diet · Type</span><span class="ph-chip">South · Veg · Curry</span></div>
+          </div>
+          <div class="ph-btn">Save dish</div>
+          <div style="font-size:8.5px;color:var(--muted2);text-align:center">Meals already logged are corrected</div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 3 · Prime Member only</b>A new family dish counts at an estimate until its real values are filled in once.</p>
+    </div>
+  </div>
+
   <h3>How a dish is found</h3>
   <p class="lede">Roughly 600 dishes would be unusable as one list, so three filters narrow it,
      and the meal itself narrows it first.</p>
@@ -233,6 +392,69 @@
              and a coach that answers from these same numbers</small></div>
   </div>
 
+  <div class="screens">
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="s">Your nutrition &amp; health</div><div class="t" style="font-size:13px">Insights</div><div class="g">Using the lab report of 20 Aug 2026</div></div>
+        <div class="ph-body">
+          <div style="display:flex;gap:3px"><span class="ph-chip">Today</span><span class="ph-chip on">7 days</span><span class="ph-chip">30 days</span></div>
+          <div class="ph-card" style="background:#ECE3F7;border-color:#D9C9EE">
+            <div class="h" style="color:#4B2A7A">Health alerts &amp; tips &nbsp;6</div>
+            <div class="mut" style="margin-top:3px">2 alerts, 4 to watch</div>
+          </div>
+          <div class="ph-card" style="background:#FBE2DC;border-color:#F3C6BB">
+            <div class="h" style="color:#8E2A1B">From your lab report</div>
+            <div class="mut" style="margin-top:3px">4 areas to work on through food</div>
+          </div>
+          <div class="ph-card" style="background:#E1F0DE;border-color:#C4E0C0"><div class="h" style="color:#1F5E25">Daily energy</div><div class="mut" style="margin-top:3px">1,093 kcal &middot; 49% of target</div></div>
+          <div class="ph-card" style="background:#FBEBCF;border-color:#EBD3A3"><div class="h" style="color:#7E4A08">Ayurveda</div><div class="mut" style="margin-top:3px">Sweet leads at 56% &middot; Pitta</div></div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 4a &middot; the sections</b>Each colour is a different reading. Collapsed, so the whole picture fits one screen.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="t" style="font-size:13px">Health alerts &amp; tips</div></div>
+        <div class="ph-body">
+          <div class="ph-card">
+            <div><span class="ph-chip" style="background:#FBE2DC;color:#9A2C1B">Alert</span> <span class="mut">LAB PATTERN</span></div>
+            <div style="font-weight:700;color:#4B2A7A;margin-top:3px">High sugar and high triglycerides together</div>
+            <div class="mut" style="margin-top:2px">Points to insulin resistance. It responds well to food changes.</div>
+            <div style="margin-top:3px"><b>Do this:</b> <span class="mut">fewer sweets, more dal and vegetables, a daily walk</span></div>
+            <div class="mut" style="margin-top:3px;font-size:8px">Based on: HbA1c 6.6% &middot; Triglycerides 150</div>
+          </div>
+          <div class="ph-card">
+            <div><span class="ph-chip gold">Watch</span> <span class="mut">MEDICINE &amp; FOOD</span></div>
+            <div style="font-weight:700;color:#4B2A7A;margin-top:3px">Metformin and vitamin B12</div>
+            <div class="mut" style="margin-top:2px">Long use can lower B12. Curd, milk and paneer help.</div>
+          </div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 4b &middot; the cross-checks</b>Medicines, allergies, conditions and lab patterns, each with what to do and what it rests on.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="t" style="font-size:13px">Ask the coach</div></div>
+        <div class="ph-body">
+          <div style="background:#241238;color:#fff;border-radius:9px 9px 3px 9px;padding:6px 8px;margin-left:30px">What should I eat more of this week?</div>
+          <div class="ph-card">
+            <div>Your fibre is 49% of need and protein 29 g against 58 g.</div>
+            <div style="margin-top:4px">&bull; Dal at both meals<br>&bull; Curd daily for B12<br>&bull; Guava and amla over chiku</div>
+            <div class="mut" style="margin-top:4px">Vitamin D is low &mdash; please ask your doctor.</div>
+          </div>
+          <div class="ph-card mut">Ask a question&hellip;</div>
+          <div style="font-size:7.5px;color:var(--muted2);text-align:center">General guidance, not medical advice</div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 4c &middot; the coach</b>Answers use that member&rsquo;s own meals, profile and report. It never changes medicines.</p>
+    </div>
+  </div>
+
   <div class="note">
     <b>What the app will not do.</b> It never diagnoses, and never suggests starting, stopping or changing
     a medicine — those questions are sent to a doctor. Food guidance avoids anything a person is allergic
@@ -249,6 +471,60 @@
     <div class="node"><b>Checked on screen, then saved</b><small>The file stays private; it opens through a link that expires in five minutes</small></div>
     <div class="arrow"></div>
     <div class="node done"><b>Insights change accordingly</b><small>"Eat more of this, keep that small" — and sugary foods are never suggested for high sugar</small></div>
+  </div>
+
+  <div class="screens">
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="t" style="font-size:13px">Medical Reports</div><div class="s">Yours alone &middot; the Prime Member may read them</div></div>
+        <div class="ph-body">
+          <div style="display:flex;gap:4px"><div class="ph-btn ghost" style="flex:1">&#128247; Photo</div><div class="ph-btn ghost" style="flex:1">&#128196; Upload</div></div>
+          <div class="ph-card">
+            <div class="ph-row"><span class="grow"><b>Blood test</b><span class="mut"> &middot; 20 Aug 2026 &middot; 69 values</span></span></div>
+            <div style="margin-top:5px"><span class="ph-chip">View original</span><span class="ph-chip" style="background:#FBE2DC;color:#9A2C1B">Delete</span></div>
+          </div>
+          <div class="mut" style="font-size:8px;text-align:center">The file opens through a link that expires in five minutes</div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 5a &middot; upload</b>A photo or PDF. Each member sees only their own reports.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="t" style="font-size:13px">What the report says</div><div class="g">Check before saving</div></div>
+        <div class="ph-body">
+          <div class="ph-card">
+            <div class="ph-row"><span class="grow">HbA1c</span><span class="ph-chip" style="background:#FBE2DC;color:#9A2C1B">6.6 % high</span></div>
+            <div class="ph-row"><span class="grow">LDL</span><span class="ph-chip" style="background:#FBE2DC;color:#9A2C1B">155 mg/dL</span></div>
+            <div class="ph-row"><span class="grow">Vitamin D</span><span class="ph-chip gold">13.2 low</span></div>
+            <div class="ph-row"><span class="grow">Haemoglobin</span><span class="ph-chip" style="background:#E3F0E2;color:#2F7A35">14.2 normal</span></div>
+          </div>
+          <div class="ph-btn">Save report</div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 5b &middot; the values</b>Read out and converted into the app&rsquo;s units, shown for checking before anything is saved.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="t" style="font-size:13px">From your lab report</div><div class="s">4 areas to work on through food</div></div>
+        <div class="ph-body">
+          <div class="ph-card">
+            <div style="font-weight:700;color:#C2551F">Blood sugar</div>
+            <div class="mut" style="margin-top:2px">HbA1c 6.6% &middot; normal below 5.7</div>
+            <div class="h" style="margin-top:5px;color:#2F7A35">Eat more of</div>
+            <div style="margin-top:2px"><span class="ph-chip">Millets</span><span class="ph-chip">Dal &amp; vegetables</span><span class="ph-chip">Sprouts</span></div>
+            <div class="h" style="margin-top:5px;color:#B23A26">Limit</div>
+            <div style="margin-top:2px"><span class="ph-chip" style="background:#FBE2DC;color:#9A2C1B">Sweets</span><span class="ph-chip" style="background:#FBE2DC;color:#9A2C1B">Dates</span></div>
+            <div class="mut" style="margin-top:5px">Your fibre is 49% of need</div>
+          </div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 5c &middot; the advice</b>Grouped by concern. Sugary foods are never suggested for high sugar, and allergies are excluded.</p>
+    </div>
   </div>
 
   <!-- ══════════ 6 ══════════ -->
@@ -276,6 +552,65 @@
     <div class="node"><b>Shop, then photograph the bill</b><small>Shop shorthand is expanded — "AMUL TAAZA 500ML" becomes Milk, 500 ml</small></div>
     <div class="arrow"><span>checked first</span></div>
     <div class="node done"><b>The shelf is topped up</b><small>Amounts added, fresh dates reset, and anything bought is ticked off the list</small></div>
+  </div>
+
+  <div class="screens">
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="s">IYER Kutumbh</div><div class="t" style="font-size:13px">Pantry Shelf</div><div class="g">You keep the shelf</div></div>
+        <div class="ph-body">
+          <div class="ph-card"><div class="h">Shopping list</div>
+            <div class="ph-row" style="margin-top:5px"><span class="ph-tick"></span><span class="grow"><b>Milk</b><span class="mut"> &middot; running low &middot; Preethi</span></span></div>
+          </div>
+          <div class="ph-card"><div class="h">Staples</div>
+            <div class="ph-row" style="margin-top:5px"><span class="grow"><b>Rice</b><span class="mut"> &middot; buy more below 1 kg</span></span><span class="ph-chip">&minus; 5 kg +</span></div>
+            <div class="ph-row"><span class="grow"><b>Toor dal</b><span class="mut"> &middot; below 0.25 kg</span></span><span class="ph-chip">&minus; 1 kg +</span></div>
+          </div>
+          <div class="ph-card"><div class="h">Fresh</div>
+            <div class="ph-row" style="margin-top:5px"><span class="grow"><b>Curd</b><span class="mut"> 500 g &middot; use within 3 days</span></span><span class="ph-chip gold">Low</span></div>
+          </div>
+          <div class="ph-card"><div class="h">Spices &amp; sundries</div>
+            <div style="margin-top:4px"><span class="ph-chip">Turmeric OK</span><span class="ph-chip gold">Jeera Low</span></div>
+          </div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 6a &middot; the shelf</b>Three kinds of stock. Any member can flag something low; only the Prime Member changes amounts.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="t" style="font-size:13px">The menu needs</div><div class="s">Next three days, not on the shelf</div></div>
+        <div class="ph-body">
+          <div class="ph-card">
+            <div style="margin-top:2px">
+              <span class="ph-chip">&#65291; Tamarind</span><span class="ph-chip">&#65291; Drumstick</span><span class="ph-chip">&#65291; Curry leaves &times;3</span>
+              <span class="ph-chip">&#65291; Sambar powder</span><span class="ph-chip gold">&check; Shallots</span>
+            </div>
+            <div class="mut" style="margin-top:5px">For Sambar, Idli, Poha and more. Amounts are left to you.</div>
+          </div>
+          <div class="ph-btn ghost">Add all</div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 6b &middot; from the menu</b>Recipes are read for their ingredients, minus what the shelf holds. No AI involved.</p>
+    </div>
+
+    <div class="screen">
+      <div class="phone">
+        <div class="ph-head"><div class="t" style="font-size:13px">On the bill</div><div class="s">Sri Lakshmi Stores</div></div>
+        <div class="ph-body">
+          <div class="ph-card">
+            <div class="ph-row"><span class="ph-tick on"></span><span class="grow"><b>Basmati rice</b><span class="mut"> &middot; tops up Rice &middot; 5 &rarr; 10 kg</span></span><span class="mut">5 kg</span></div>
+            <div class="ph-row"><span class="ph-tick on"></span><span class="grow"><b>Milk</b><span class="mut"> &middot; tops up Milk</span></span><span class="mut">1 l</span></div>
+            <div class="ph-row"><span class="ph-tick"></span><span class="grow"><b>Detergent</b><span class="mut"> &middot; not kitchen</span></span></div>
+          </div>
+          <div class="ph-btn">Put 2 away</div>
+        </div>
+        <div class="ph-nav"><span>Home</span><span>Log</span><span>Insights</span><span>Kutumbh</span><span>Profile</span></div>
+      </div>
+      <p class="cap"><b>Step 6c &middot; back from the shop</b>Photograph the bill, check what it read, then it tops up the shelf and ticks the list.</p>
+    </div>
   </div>
 
   <!-- ══════════ 7 ══════════ -->

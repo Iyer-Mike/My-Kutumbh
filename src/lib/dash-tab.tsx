@@ -14,8 +14,8 @@ const DashTabContext = createContext<{ tab: DashTab; setTab: (t: DashTab) => voi
  * above the tabs, and need to know: tomorrow's menu can be planned, but
  * tomorrow's meals cannot be eaten yet.
  */
-export function DashTabProvider({ children }: { children: React.ReactNode }) {
-  const [tab, setTab] = useState<DashTab>("log");
+export function DashTabProvider({ initial = "log", children }: { initial?: DashTab; children: React.ReactNode }) {
+  const [tab, setTab] = useState<DashTab>(initial);
   const value = useMemo(() => ({ tab, setTab }), [tab]);
   return <DashTabContext.Provider value={value}>{children}</DashTabContext.Provider>;
 }

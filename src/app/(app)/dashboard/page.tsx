@@ -60,7 +60,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const { kutumbhId, isPrime, timeZone } = membership;
   const kutumbhName = membership.kutumbhName ?? "My Kutumbh";
   const day = clampDay(date, 30, 6, timeZone);
-  const isToday = day === todayLocal(timeZone);
+  const today = todayLocal(timeZone);
+  const isToday = day === today;
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
 
@@ -108,9 +109,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const totalKcal = ((logs ?? []) as MealLog[]).reduce((s, l) => s + (l.calories ?? 0), 0);
 
+  // A day still ahead can only be planned, so it opens on the Plan
   return (
-    <DashTabProvider>
-    <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
+    <DashTabProvider initial={day > today ? "plan" : "log"}>
+      <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
 
       {/* ── Header ── */}
       <header
@@ -180,7 +182,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         />
       </main>
 
-    </div>
+      </div>
     </DashTabProvider>
   );
 }

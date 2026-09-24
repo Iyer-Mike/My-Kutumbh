@@ -109,7 +109,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const memberNames: Record<string, string> = {};
   if (plannerIds.length) {
     const { data: people } = await supabase
-      .from("profiles")
+      .from("family_roster")
       .select("id, full_name")
       .in("id", plannerIds);
     for (const p of people ?? []) memberNames[p.id] = p.full_name?.split(" ")[0] ?? "Family";

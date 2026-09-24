@@ -647,6 +647,73 @@
     Meals can be logged up to a month back and menus planned a week ahead.
   </div>
 
+  <!-- ══════════ 9 ══════════ -->
+  <h2><span class="num">Nine</span>Secrecy and privacy</h2>
+  <p class="lede">A family shares a kitchen, not a medical file. The app keeps that line, and keeps it
+     in the database rather than on the screen &mdash; so a rule holds even for someone who reaches past
+     the app and asks the database directly.</p>
+
+  <h3>Who can see what</h3>
+  <table>
+    <tr><th>Information</th><th>The person</th><th>Others in the family</th><th>Prime Member</th></tr>
+    <tr><td>Name, Prakriti</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+    <tr><td>Conditions, allergies, medicines, weight, date of birth</td><td>Yes</td><td><b>No</b></td><td>Yes</td></tr>
+    <tr><td>Medical reports and their files</td><td>Yes</td><td><b>No</b></td><td>Yes</td></tr>
+    <tr><td>Insights and alerts</td><td>Yes</td><td><b>No</b></td><td>Yes</td></tr>
+    <tr><td>Meals logged, and the day&rsquo;s menu</td><td>Yes</td><td>Yes &mdash; deliberately</td><td>Yes</td></tr>
+    <tr><td>The Pantry Shelf and shopping list</td><td>Yes</td><td>Yes &mdash; one kitchen</td><td>Yes, and keeps it</td></tr>
+  </table>
+  <p class="lede" style="font-size:14px">Meals are shared on purpose: a family menu only works if everyone
+     can see what was cooked and eaten. Health details are not, and the family pages are given a narrow
+     view holding a name and a Prakriti so they never touch the rest.</p>
+
+  <h3>How the files are held</h3>
+  <div class="flow">
+    <div class="node"><b>A report is stored privately, in a folder of its own</b>
+      <small>One folder per person, in a store that is closed by default &mdash; no link to it works on its own</small></div>
+    <div class="arrow"></div>
+    <div class="node"><b>Opening one mints a link that expires</b>
+      <small>Good for five minutes, for that person only. Nothing is left lying behind a public address.</small></div>
+    <div class="arrow"></div>
+    <div class="node done"><b>Deleting removes the file as well as the record</b>
+      <small>Not merely hidden from the list</small></div>
+  </div>
+
+  <h3>What leaves the app, and when</h3>
+  <table>
+    <tr><th>When</th><th>What is sent</th><th>Where</th></tr>
+    <tr><td>You ask the coach</td><td>That member&rsquo;s profile summary, the week&rsquo;s meals, lab findings, the family&rsquo;s dish names &mdash; and your question</td><td>Anthropic, to answer</td></tr>
+    <tr><td>You upload a lab report</td><td>The report image or PDF</td><td>Anthropic, to read the values</td></tr>
+    <tr><td>You photograph a bill or a plate</td><td>That photo</td><td>Anthropic, to read it</td></tr>
+    <tr><td>Everything else &mdash; insights, alerts, needs, the shopping list</td><td><b>Nothing leaves</b></td><td>Worked out in the app</td></tr>
+  </table>
+  <div class="note">
+    <b>Nothing is sold, shared, or used to train anything.</b> These go over Anthropic&rsquo;s API, which does not
+    use what it is sent to train models, and no other company receives your family&rsquo;s data. The app has no
+    advertising, no analytics tracking people, and no third-party scripts reading the pages.
+  </div>
+
+  <h3>What sits on the phone</h3>
+  <table>
+    <tr><th>Kept</th><th>Why</th><th>Cleared by</th></tr>
+    <tr><td>The last email signed in with, and the first name</td><td>So the sign-in box is already filled</td><td>&ldquo;Not you?&rdquo; on the sign-in page</td></tr>
+    <tr><td>An invite code, while it is being accepted</td><td>So the family isn&rsquo;t lost when confirming by email</td><td>Joining, or clearing site data</td></tr>
+    <tr><td>Which Insights sections you left open</td><td>So the page opens as you left it</td><td>Clearing site data</td></tr>
+  </table>
+  <p class="lede" style="font-size:14px"><b>A password is never among them.</b> Passwords are handled by the
+     sign-in service, stored only as a one-way hash, and the app never sees or keeps one. The same is true of
+     the app&rsquo;s own key for the AI service: it lives on the server and is never sent to a phone.</p>
+
+  <h3>Honest limits</h3>
+  <ul style="color:var(--muted); max-width:68ch; padding-left:18px">
+    <li><b>The Prime Member can see everything in the family</b> &mdash; that is the role, and it should be someone
+        the family trusts with health details.</li>
+    <li><b>Anyone in the family sees what everyone ate.</b> Meals are not private within a Kutumbh.</li>
+    <li><b>A person belongs to one Kutumbh at a time.</b> Leaving one is only possible while nobody else is in it.</li>
+    <li><b>The data lives with two companies</b> &mdash; the database and files with Supabase, the app itself with
+        Vercel &mdash; under their security, not only ours.</li>
+  </ul>
+
   <footer>
     My Kutumbh — family food and wellness, rooted in Ayurveda.<br>
     General guidance on food and habits, not medical advice.

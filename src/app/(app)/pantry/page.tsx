@@ -33,15 +33,14 @@ export default async function PantryPage() {
       supabase.from("shopping_items")
         .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at")
         .eq("kutumbh_id", kutumbhId).order("created_at", { ascending: false }).limit(120),
-      supabase.from("kutumbh_members")
-        .select("user_id, profiles(full_name)")
+      supabase.from("family_roster")
+        .select("id, full_name")
         .eq("kutumbh_id", kutumbhId),
     ]);
     items = (pantry ?? []) as PantryItem[];
     shopping = (list ?? []) as ShoppingItem[];
     for (const p of people ?? []) {
-      const full = (p.profiles as unknown as { full_name: string | null } | null)?.full_name;
-      names[p.user_id] = full?.split(" ")[0] ?? "Family";
+      names[p.id] = p.full_name?.split(" ")[0] ?? "Family";
     }
 
     // What the next three days' menu needs that the shelf hasn't got

@@ -26,7 +26,7 @@ export default async function FamilyDishesPage() {
   const creatorIds = [...new Set((dishes ?? []).map((d) => d.created_by).filter(Boolean))] as string[];
   const creators: Record<string, string> = {};
   if (creatorIds.length) {
-    const { data: people } = await supabase.from("profiles").select("id, full_name").in("id", creatorIds);
+    const { data: people } = await supabase.from("family_roster").select("id, full_name").in("id", creatorIds);
     for (const p of people ?? []) creators[p.id] = p.full_name?.split(" ")[0] ?? "Family";
   }
 

@@ -296,7 +296,7 @@ export default function LogPage() {
 
     const ids = [...new Set(rows.map(r => r.plannerId))];
     if (ids.length) {
-      const { data: people } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const { data: people } = await supabase.from("family_roster").select("id, full_name").in("id", ids);
       const names: Record<string, string> = {};
       for (const pp of people ?? []) names[pp.id] = pp.full_name?.split(" ")[0] ?? "Family";
       setPlannerNames(names);

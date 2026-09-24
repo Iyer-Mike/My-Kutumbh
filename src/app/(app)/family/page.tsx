@@ -51,7 +51,7 @@ export default async function FamilyPage() {
 
     // 2. Profiles
     const { data: profiles } = await supabase
-      .from("profiles")
+      .from("family_roster")
       .select("id, full_name, primary_dosha")
       .in("id", memberIds);
 

@@ -43,6 +43,10 @@ export default function DashboardTabs({
   const slotPlans: Record<string, MealPlan[]> = {};
   for (const plan of initialPlans) { (slotPlans[plan.meal_slot] ??= []).push(plan); }
 
+  // When the family's menu changes under us, the card starts again from
+  // what the server now says rather than what it remembered.
+  const version = initialPlans.map((p) => p.id).join("-") || "empty";
+
   return (
     <>
       {/* Tab switcher */}
@@ -140,7 +144,7 @@ export default function DashboardTabs({
 
           {SLOTS.map(({ key, label, icon, time }) => (
             <PlanSlotCard
-              key={key}
+              key={`${key}-${version}`}
               slotKey={key}
               name={label}
               icon={icon}

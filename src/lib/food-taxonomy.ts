@@ -46,7 +46,7 @@ export function dietsAllowed(dietType: string | null | undefined): Diet[] {
 // Stored in food_items.category. Each type has a natural serving and the
 // starting estimate used until a Family Dish gets its real values.
 export type DishType =
-  | "staple" | "main" | "dal" | "curry" | "side" | "snack" | "salad" | "fruit"
+  | "staple" | "main" | "dal" | "sambar" | "rasam" | "curry" | "side" | "snack" | "salad" | "fruit"
   | "dairy" | "drink" | "dessert" | "soup" | "chutney" | "pickle" | "podi" | "extras";
 
 export const DISH_TYPES: {
@@ -55,7 +55,9 @@ export const DISH_TYPES: {
 }[] = [
   { key: "staple",  label: "Staple",               icon: "🍚", hint: "Rice, roti, millet — the base of a meal",        unit: "serving", servingG: 150, kcalPerServing: 200 },
   { key: "main",    label: "Main dish",            icon: "🍛", hint: "Complete on its own: dosa, idli, biryani, pongal", unit: "plate",   servingG: 250, kcalPerServing: 330 },
-  { key: "dal",     label: "Dal / Sambar / Rasam", icon: "🥣", hint: "Dals, sambar, rasam, kootu",                    unit: "bowl",    servingG: 150, kcalPerServing: 150 },
+  { key: "dal",     label: "Dal & Kootu",          icon: "🥣", hint: "Dals, kootu, kadhi, pappu",                     unit: "bowl",    servingG: 150, kcalPerServing: 150 },
+  { key: "sambar",  label: "Sambar",               icon: "🥘", hint: "Sambar, in its many kinds",                     unit: "bowl",    servingG: 150, kcalPerServing: 120 },
+  { key: "rasam",   label: "Rasam",                icon: "🥄", hint: "Rasam, saaru, charu — thin and peppery",         unit: "bowl",    servingG: 150, kcalPerServing: 60  },
   { key: "curry",   label: "Curries & gravies",    icon: "🍲", hint: "Gravy dishes: paneer, chole, kurma, fish curry", unit: "bowl",    servingG: 150, kcalPerServing: 180 },
   { key: "side",    label: "Side dish",            icon: "🥦", hint: "Dry sabzi, poriyal, thoran, fry",               unit: "bowl",    servingG: 100, kcalPerServing: 110 },
   { key: "snack",   label: "Snacks / Tiffin",      icon: "🥨", hint: "Vada, samosa, sundal, murukku, chaat",          unit: "serving", servingG: 60,  kcalPerServing: 200 },

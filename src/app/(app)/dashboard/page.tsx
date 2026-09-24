@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import KutumbhLogo from "@/components/KutumbhLogo";
 import DashboardTabs from "@/components/DashboardTabs";
+import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
 import { clampDay, dayLabel, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
@@ -22,6 +23,7 @@ type PlanFood = {
   serving_unit: string | null;
   serving_weight_g: number | null;
   calories: number | null;
+  recipe_id: number | null;
 };
 
 type MealPlanRow = {
@@ -76,7 +78,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const plansQuery = supabase
     .from("meal_plans")
-    .select("id, user_id, food_name, meal_slot, food_items(needs_review, category, serving_unit, serving_weight_g, calories)")
+    .select("id, user_id, food_name, meal_slot, food_items(needs_review, category, serving_unit, serving_weight_g, calories, recipe_id)")
     .eq("planned_date", day)
     .order("created_at", { ascending: true });
 
@@ -93,6 +95,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       category:         fi?.category ?? null,
       serving_unit:     fi?.serving_unit ?? null,
       kcal_per_serving: fi?.calories != null ? Math.round((fi.calories * w) / 100) : null,
+      recipe_id:        fi?.recipe_id ?? null,
     };
   });
 
@@ -173,6 +176,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       {/* ── Tabs + content ── */}
       <main className="flex-1 px-4 py-5">
+        {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools" />}
         <DashboardTabs
           logs={(logs ?? []) as MealLog[]}
           totalKcal={totalKcal}

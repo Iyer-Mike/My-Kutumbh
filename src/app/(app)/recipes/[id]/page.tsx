@@ -4,6 +4,7 @@ import PageNav from "@/components/PageNav";
 import { BRAND as B } from "@/lib/brand";
 import { CUISINES, dietLabel, dishTypeOf } from "@/lib/food-taxonomy";
 import { slotLabel } from "@/lib/meal-slots";
+import PrintRecipe from "@/components/PrintRecipe";
 
 const DIET_MARK: Record<string, string> = { vegan: "#2F7D32", veg: "#2F7D32", egg: "#C98A0B", nonveg: "#A23A1E" };
 
@@ -168,6 +169,8 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
             ))}
           </div>
         )}
+
+        <PrintRecipe name={recipe.name} />
 
         <p className="text-[11px] text-center pb-2" style={{ color: B.muted2 }}>
           Nutrition is for one serving as written. Your own portion is what the Log counts.

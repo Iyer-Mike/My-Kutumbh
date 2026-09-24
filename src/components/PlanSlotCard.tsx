@@ -12,6 +12,7 @@ export type PlanItem = {
   id: string;
   user_id: string;
   food_name: string;
+  recipe_id?: number | null;
   needs_review: boolean;
   category: string | null;
   serving_unit: string | null;
@@ -29,9 +30,10 @@ type FoodSuggestion = {
   needs_review: boolean | null;
   diet?: string | null;
   meal_hint?: string[] | null;
+  recipe_id?: number | null;
 };
 
-const SUGGEST_COLS = "id, name, category, diet, meal_hint, calories, serving_weight_g, serving_unit, kutumbh_id, needs_review";
+const SUGGEST_COLS = "id, name, category, diet, meal_hint, recipe_id, calories, serving_weight_g, serving_unit, kutumbh_id, needs_review";
 
 type Props = {
   slotKey: string;
@@ -192,6 +194,7 @@ export default function PlanSlotCard({
       const food = d.food_item_id ? byId.get(d.food_item_id) : undefined;
       return {
         id: d.id, user_id: d.user_id, food_name: d.food_name,
+        recipe_id:        food?.recipe_id ?? null,
         needs_review:     !!food?.needs_review,
         category:         food?.category ?? null,
         serving_unit:     food?.serving_unit ?? null,
@@ -341,6 +344,13 @@ export default function PlanSlotCard({
                     ) : hint ? (
                       <p className="text-[10px]" style={{ color: "#6A6180" }}>{hint}</p>
                     ) : null}
+                    {item.recipe_id != null && (
+                      <a href={`/recipes/${item.recipe_id}`}
+                        className="inline-block text-[10px] font-semibold mt-0.5"
+                        style={{ color: "#6B46B8" }}>
+                        📖 Recipe
+                      </a>
+                    )}
                   </div>
                 </div>
                 {mine ? (

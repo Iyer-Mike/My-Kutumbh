@@ -37,6 +37,17 @@
   --accent:     #A98AE0;
 }
 
+@media print {
+  /* A recipe saved as PDF: ink on paper, no navigation, no dark bands */
+  body { background: #fff !important; color: #111 !important; }
+  header { background: #fff !important; color: #111 !important; border-bottom: 1.5px solid #ddd; }
+  header * { color: #111 !important; }
+  nav, [data-print-hide] { display: none !important; }
+  main { padding: 0 !important; }
+  section { break-inside: avoid; border-color: #ddd !important; background: #fff !important; }
+  a[href]::after { content: ""; }
+}
+
 :root[data-theme="light"] {
   --background: #F3EEFA;
   --foreground: #241C33;

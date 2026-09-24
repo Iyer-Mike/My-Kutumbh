@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import PantryView, { type PantryItem, type ShoppingItem } from "@/components/PantryView";
+import LiveFamily from "@/components/LiveFamily";
 import { BRAND as B } from "@/lib/brand";
 import { daysAheadLocal, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
@@ -99,6 +100,8 @@ export default async function PantryPage() {
 
       <main className="flex-1 px-4 py-5">
         {kutumbhId ? (
+          <>
+          <LiveFamily kutumbhId={kutumbhId} tables="shopping_items,pantry_items" />
           <PantryView
             kutumbhId={kutumbhId}
             userId={user!.id}
@@ -109,6 +112,7 @@ export default async function PantryPage() {
             memberNames={names}
             today={today}
           />
+          </>
         ) : (
           <p className="text-sm text-center py-10" style={{ color: B.muted }}>
             Join or start a Kutumbh first — the shelf belongs to the family.

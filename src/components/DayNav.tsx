@@ -34,29 +34,27 @@ export default function DayNav({ date, back, ahead, path, onDark = false, showLa
     : { background: B.tint, color: B.violet };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className={`flex items-center gap-2${showLabel ? "" : " justify-center"}`}>
       <button onClick={() => step(-1)} disabled={!canBack} aria-label="Day before"
         className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold disabled:opacity-30"
         style={chip}>
         ‹
       </button>
 
-      <div className="flex-1 min-w-0 text-center">
-        {showLabel ? (
-          <>
-            <p className="m-0 text-sm font-semibold truncate" style={{ color: fg }}>{dayLabel(date, tz)}</p>
-            <p className="m-0 text-[11px] truncate" style={{ color: onDark ? "rgba(255,255,255,0.6)" : B.muted2 }}>
-              {longDateFor(date)}
-            </p>
-          </>
-        ) : !isToday && (
-          <button onClick={() => go(todayLocal(tz))}
-            className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
-            style={chip}>
-            Back to today
-          </button>
-        )}
-      </div>
+      {showLabel ? (
+        <div className="flex-1 min-w-0 text-center">
+          <p className="m-0 text-sm font-semibold truncate" style={{ color: fg }}>{dayLabel(date, tz)}</p>
+          <p className="m-0 text-[11px] truncate" style={{ color: onDark ? "rgba(255,255,255,0.6)" : B.muted2 }}>
+            {longDateFor(date)}
+          </p>
+        </div>
+      ) : !isToday && (
+        <button onClick={() => go(todayLocal(tz))}
+          className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
+          style={chip}>
+          Back to today
+        </button>
+      )}
 
       <button onClick={() => step(1)} disabled={!canAhead} aria-label="Day after"
         className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold disabled:opacity-30"

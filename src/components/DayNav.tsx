@@ -9,8 +9,10 @@ import { useFamilyTimeZone } from "@/lib/family-time";
  * ‹ day › for a page that works on one day at a time. Today is the default
  * and one tap away; the arrows stop at what the page allows.
  */
-export default function DayNav({ date, back, ahead, path, onDark = false }: {
+export default function DayNav({ date, back, ahead, path, onDark = false, showLabel = true }: {
   date: string; back: number; ahead: number; path: string; onDark?: boolean;
+  /** Off where the page already names the day, so it is not written twice. */
+  showLabel?: boolean;
 }) {
   const router = useRouter();
   const tz = useFamilyTimeZone();
@@ -40,10 +42,20 @@ export default function DayNav({ date, back, ahead, path, onDark = false }: {
       </button>
 
       <div className="flex-1 min-w-0 text-center">
-        <p className="m-0 text-sm font-semibold truncate" style={{ color: fg }}>{dayLabel(date, tz)}</p>
-        <p className="m-0 text-[11px] truncate" style={{ color: onDark ? "rgba(255,255,255,0.6)" : B.muted2 }}>
-          {longDateFor(date)}
-        </p>
+        {showLabel ? (
+          <>
+            <p className="m-0 text-sm font-semibold truncate" style={{ color: fg }}>{dayLabel(date, tz)}</p>
+            <p className="m-0 text-[11px] truncate" style={{ color: onDark ? "rgba(255,255,255,0.6)" : B.muted2 }}>
+              {longDateFor(date)}
+            </p>
+          </>
+        ) : !isToday && (
+          <button onClick={() => go(todayLocal(tz))}
+            className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
+            style={chip}>
+            Back to today
+          </button>
+        )}
       </div>
 
       <button onClick={() => step(1)} disabled={!canAhead} aria-label="Day after"
@@ -52,7 +64,7 @@ export default function DayNav({ date, back, ahead, path, onDark = false }: {
         ›
       </button>
 
-      {!isToday && (
+      {showLabel && !isToday && (
         <button onClick={() => go(todayLocal(tz))}
           className="shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold"
           style={chip}>

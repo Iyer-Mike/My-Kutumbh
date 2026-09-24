@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import DashboardSlotCard from "./DashboardSlotCard";
 import PlanSlotCard, { type PlanItem } from "./PlanSlotCard";
 import { SLOTS } from "@/lib/meal-slots";
-import { dayLabel } from "@/lib/dates";
+import { dayLabel, todayLocal } from "@/lib/dates";
 import { useFamilyTimeZone } from "@/lib/family-time";
+import { useDashTab, type DashTab } from "@/lib/dash-tab";
 
 type MealLog = {
   id: string;
@@ -35,7 +36,15 @@ export default function DashboardTabs({
   logs, totalKcal, dailyKcalGoal, initialPlans, poolNames, memberNames, userId, kutumbhId, day,
 }: Props) {
   const tz = useFamilyTimeZone();
-  const [tab, setTab] = useState<"plan" | "log">("log");
+  const router = useRouter();
+  const { tab, setTab } = useDashTab();
+
+  // A meal is logged after it is eaten. Coming back to the Log from a day
+  // still ahead, the page comes back to today with it.
+  function choose(t: DashTab) {
+    setTab(t);
+    if (t === "log" && day > todayLocal(tz)) router.push("/dashboard");
+  }
 
   const slotLogs: Record<string, MealLog[]>   = {};
   for (const log of logs)         { (slotLogs[log.meal_slot]  ??= []).push(log); }
@@ -57,7 +66,7 @@ export default function DashboardTabs({
         {(["log", "plan"] as const).map(t => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => choose(t)}
             className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
             style={{
               background: tab === t ? "#241238" : "transparent",

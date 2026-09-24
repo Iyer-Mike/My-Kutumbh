@@ -9,10 +9,8 @@ import { useFamilyTimeZone } from "@/lib/family-time";
  * ‹ day › for a page that works on one day at a time. Today is the default
  * and one tap away; the arrows stop at what the page allows.
  */
-export default function DayNav({ date, back, ahead, path, onDark = false, showLabel = true }: {
+export default function DayNav({ date, back, ahead, path, onDark = false }: {
   date: string; back: number; ahead: number; path: string; onDark?: boolean;
-  /** Off where the page already names the day, so it is not written twice. */
-  showLabel?: boolean;
 }) {
   const router = useRouter();
   const tz = useFamilyTimeZone();
@@ -34,27 +32,19 @@ export default function DayNav({ date, back, ahead, path, onDark = false, showLa
     : { background: B.tint, color: B.violet };
 
   return (
-    <div className={`flex items-center gap-2${showLabel ? "" : " justify-center"}`}>
+    <div className="flex items-center gap-2">
       <button onClick={() => step(-1)} disabled={!canBack} aria-label="Day before"
         className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold disabled:opacity-30"
         style={chip}>
         ‹
       </button>
 
-      {showLabel ? (
-        <div className="flex-1 min-w-0 text-center">
-          <p className="m-0 text-sm font-semibold truncate" style={{ color: fg }}>{dayLabel(date, tz)}</p>
-          <p className="m-0 text-[11px] truncate" style={{ color: onDark ? "rgba(255,255,255,0.6)" : B.muted2 }}>
-            {longDateFor(date)}
-          </p>
-        </div>
-      ) : !isToday && (
-        <button onClick={() => go(todayLocal(tz))}
-          className="px-3 py-1.5 rounded-lg text-[11px] font-semibold"
-          style={chip}>
-          Back to today
-        </button>
-      )}
+      <div className="flex-1 min-w-0 text-center">
+        <p className="m-0 text-sm font-semibold truncate" style={{ color: fg }}>{dayLabel(date, tz)}</p>
+        <p className="m-0 text-[11px] truncate" style={{ color: onDark ? "rgba(255,255,255,0.6)" : B.muted2 }}>
+          {longDateFor(date)}
+        </p>
+      </div>
 
       <button onClick={() => step(1)} disabled={!canAhead} aria-label="Day after"
         className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold disabled:opacity-30"
@@ -62,7 +52,7 @@ export default function DayNav({ date, back, ahead, path, onDark = false, showLa
         ›
       </button>
 
-      {showLabel && !isToday && (
+      {!isToday && (
         <button onClick={() => go(todayLocal(tz))}
           className="shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold"
           style={chip}>

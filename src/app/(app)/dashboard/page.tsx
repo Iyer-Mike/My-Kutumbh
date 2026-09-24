@@ -3,7 +3,7 @@ import KutumbhLogo from "@/components/KutumbhLogo";
 import DashboardTabs from "@/components/DashboardTabs";
 import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
-import { clampDay, dayLabel, longDateFor, todayLocal } from "@/lib/dates";
+import { clampDay, dayLabel, longDateFor, nearbyDay, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
 import DashboardDayNav from "@/components/DashboardDayNav";
 import { DashTabProvider } from "@/lib/dash-tab";
@@ -136,8 +136,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
 
         <div className="rounded-2xl px-4 py-4 mb-4" style={{ background: "rgba(255,255,255,0.08)" }}>
+          {/* The date, written once: "Wednesday, 30 September", and a day
+              either side of today says so as well */}
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>
-            {isToday ? longDateFor(day) : `${dayLabel(day, timeZone)} · ${longDateFor(day)}`}
+            {[nearbyDay(day, timeZone), longDateFor(day)].filter(Boolean).join(" · ")}
           </p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <p className="text-xl font-medium text-white">Namaste, {firstName} 🙏</p>

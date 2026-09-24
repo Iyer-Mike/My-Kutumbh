@@ -8,6 +8,7 @@ import { SLOTS, isSlot, slotLabel, defaultPoolName, type Slot } from "@/lib/meal
 import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
 import FoodFilterBar, { applyFoodFilter, sortForSlot, useMyFoodFilter, DietMark } from "@/components/FoodFilterBar";
 import { clampDay, dayLabel, todayLocal } from "@/lib/dates";
+import { useFamilyTimeZone } from "@/lib/family-time";
 import DayNav from "@/components/DayNav";
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -86,9 +87,10 @@ function perServingText(food: FoodItem) {
 export default function LogPage() {
   const supabase     = createClient();
   const searchParams = useSearchParams();
+  const tz           = useFamilyTimeZone();
   // Meals are logged for a day, usually today — but last night counts too
-  const today        = clampDay(searchParams.get("date"), 30, 0);
-  const isToday      = today === todayLocal();
+  const today        = clampDay(searchParams.get("date"), 30, 0, tz);
+  const isToday      = today === todayLocal(tz);
 
   const [userId, setUserId]         = useState<string | null>(null);
   const [kutumbhId, setKutumbhId]   = useState<string | null>(null);
@@ -586,7 +588,7 @@ export default function LogPage() {
           <DayNav date={today} back={30} ahead={0} path="/log" onDark />
           {totalCal > 0 && (
             <p className="text-sm mt-2 text-center" style={{ color: "#C9B8E4" }}>
-              {totalCal} kcal logged {isToday ? "today" : dayLabel(today).toLowerCase()}
+              {totalCal} kcal logged {isToday ? "today" : dayLabel(today, tz).toLowerCase()}
             </p>
           )}
         </div>

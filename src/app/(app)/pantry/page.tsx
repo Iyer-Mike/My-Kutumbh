@@ -3,6 +3,7 @@ import PageNav from "@/components/PageNav";
 import PantryView, { type PantryItem, type ShoppingItem } from "@/components/PantryView";
 import { BRAND as B } from "@/lib/brand";
 import { daysAheadLocal, todayLocal } from "@/lib/dates";
+import { familyOf } from "@/lib/family";
 import { haveIt, ingredientNames } from "@/lib/ingredients";
 
 export default async function PantryPage() {
@@ -18,6 +19,8 @@ export default async function PantryPage() {
 
   const kutumbhId = membership?.kutumbh_id ?? null;
   const isPrime = membership?.role === "owner";
+  const { timeZone } = await familyOf(supabase, user!.id);
+  const today = todayLocal(timeZone);
   const kutumbhName = (membership?.kutumbhs as unknown as { name: string } | null)?.name ?? "your Kutumbh";
 
   let items: PantryItem[] = [];
@@ -48,8 +51,8 @@ export default async function PantryPage() {
       .from("meal_plans")
       .select("food_name, food_items(recipe_id)")
       .eq("kutumbh_id", kutumbhId)
-      .gte("planned_date", todayLocal())
-      .lte("planned_date", daysAheadLocal(2));
+      .gte("planned_date", today)
+      .lte("planned_date", daysAheadLocal(2, timeZone));
 
     const recipeIds = [...new Set(
       (plans ?? [])
@@ -104,7 +107,7 @@ export default async function PantryPage() {
             initialShopping={shopping}
             fromMenu={needed}
             memberNames={names}
-            today={todayLocal()}
+            today={today}
           />
         ) : (
           <p className="text-sm text-center py-10" style={{ color: B.muted }}>

@@ -3,6 +3,8 @@ import PageNav from "@/components/PageNav";
 import InviteButton from "@/components/InviteButton";
 import Link from "next/link";
 import { todayLocal } from "@/lib/dates";
+import { familyOf } from "@/lib/family";
+import FamilyTimeZoneCard from "@/components/FamilyTimeZoneCard";
 
 const DOSHA_COLORS: Record<string, string> = {
   vata:   "#C8832A",
@@ -22,6 +24,7 @@ export default async function FamilyPage() {
     .limit(1);
 
   const myMembership = memberships?.[0] ?? null;
+  const { timeZone } = await familyOf(supabase, user!.id);
 
   const kutumbhId   = (myMembership?.kutumbhs as unknown as { id: string; name: string } | null)?.id ?? null;
   const kutumbhName = (myMembership?.kutumbhs as unknown as { id: string; name: string } | null)?.name ?? null;
@@ -64,7 +67,7 @@ export default async function FamilyPage() {
       .from("meal_logs")
       .select("user_id, calories")
       .in("user_id", memberIds)
-      .eq("logged_date", todayLocal());
+      .eq("logged_date", todayLocal(timeZone));
 
     type LogSummary = { count: number; kcal: number };
     const logMap: Record<string, LogSummary> = {};
@@ -226,6 +229,11 @@ export default async function FamilyPage() {
               </div>
               <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
             </Link>
+
+            {/* ── The family's day (Prime Member) ── */}
+            {isOwner && kutumbhId && (
+              <FamilyTimeZoneCard kutumbhId={kutumbhId} timeZone={timeZone} />
+            )}
 
             {/* ── Recipes ── */}
             <Link

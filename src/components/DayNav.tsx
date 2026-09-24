@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { BRAND as B } from "@/lib/brand";
 import { dayLabel, daysAgoLocal, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
+import { useFamilyTimeZone } from "@/lib/family-time";
 
 /**
  * ‹ day › for a page that works on one day at a time. Today is the default
@@ -12,13 +13,14 @@ export default function DayNav({ date, back, ahead, path, onDark = false }: {
   date: string; back: number; ahead: number; path: string; onDark?: boolean;
 }) {
   const router = useRouter();
-  const off = daysFromToday(date);
+  const tz = useFamilyTimeZone();
+  const off = daysFromToday(date, tz);
   const isToday = off === 0;
 
-  const go = (d: string) => router.push(d === todayLocal() ? path : `${path}?date=${d}`);
+  const go = (d: string) => router.push(d === todayLocal(tz) ? path : `${path}?date=${d}`);
   const step = (n: number) => {
     const target = off + n;
-    go(target >= 0 ? daysAheadLocal(target) : daysAgoLocal(-target));
+    go(target >= 0 ? daysAheadLocal(target, tz) : daysAgoLocal(-target, tz));
   };
 
   const canBack = off > -back;
@@ -38,7 +40,7 @@ export default function DayNav({ date, back, ahead, path, onDark = false }: {
       </button>
 
       <div className="flex-1 min-w-0 text-center">
-        <p className="m-0 text-sm font-semibold truncate" style={{ color: fg }}>{dayLabel(date)}</p>
+        <p className="m-0 text-sm font-semibold truncate" style={{ color: fg }}>{dayLabel(date, tz)}</p>
         <p className="m-0 text-[11px] truncate" style={{ color: onDark ? "rgba(255,255,255,0.6)" : B.muted2 }}>
           {longDateFor(date)}
         </p>
@@ -51,7 +53,7 @@ export default function DayNav({ date, back, ahead, path, onDark = false }: {
       </button>
 
       {!isToday && (
-        <button onClick={() => go(todayLocal())}
+        <button onClick={() => go(todayLocal(tz))}
           className="shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold"
           style={chip}>
           Today

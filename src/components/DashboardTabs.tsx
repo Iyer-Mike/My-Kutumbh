@@ -5,6 +5,7 @@ import DashboardSlotCard from "./DashboardSlotCard";
 import PlanSlotCard, { type PlanItem } from "./PlanSlotCard";
 import { SLOTS } from "@/lib/meal-slots";
 import { dayLabel } from "@/lib/dates";
+import { useFamilyTimeZone } from "@/lib/family-time";
 
 type MealLog = {
   id: string;
@@ -33,6 +34,7 @@ type Props = {
 export default function DashboardTabs({
   logs, totalKcal, dailyKcalGoal, initialPlans, poolNames, memberNames, userId, kutumbhId, day,
 }: Props) {
+  const tz = useFamilyTimeZone();
   const [tab, setTab] = useState<"plan" | "log">("log");
 
   const slotLogs: Record<string, MealLog[]>   = {};
@@ -66,7 +68,7 @@ export default function DashboardTabs({
       {tab === "log" ? (
         <>
           <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6A6180" }}>
-            {dayLabel(day)}&apos;s Meals
+            {dayLabel(day, tz)}&apos;s Meals
           </p>
 
           <div className="space-y-3">
@@ -87,7 +89,7 @@ export default function DashboardTabs({
           <div className="rounded-2xl px-4 py-4 mt-3" style={{ background: "#241238" }}>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{dayLabel(day)}&apos;s total</p>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{dayLabel(day, tz)}&apos;s total</p>
                 <p className="text-lg font-semibold text-white mt-0.5">
                   {Math.round(totalKcal)} kcal
                 </p>
@@ -133,7 +135,7 @@ export default function DashboardTabs({
       ) : (
         <>
           <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6A6180" }}>
-            {dayLabel(day)}&apos;s Plan
+            {dayLabel(day, tz)}&apos;s Plan
           </p>
 
           {SLOTS.map(({ key, label, icon, time }) => (

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import { SLOTS, slotLabel } from "@/lib/meal-slots";
 import { daysAgoLocal } from "@/lib/dates";
+import { familyOf } from "@/lib/family";
 
 type Log = {
   id: string;
@@ -16,9 +17,9 @@ type Log = {
   logged_date: string;
 };
 
-function dayLabel(iso: string) {
-  if (iso === daysAgoLocal(0)) return "Today";
-  if (iso === daysAgoLocal(1)) return "Yesterday";
+function dayLabel(iso: string, tz: string) {
+  if (iso === daysAgoLocal(0, tz)) return "Today";
+  if (iso === daysAgoLocal(1, tz)) return "Yesterday";
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", {
     timeZone: "UTC", weekday: "short", day: "numeric", month: "short",
   });
@@ -39,6 +40,8 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
 
   if (!me || me.role !== "owner") redirect("/family");
 
+  const { timeZone } = await familyOf(supabase, user!.id);
+
   const { data: member } = await supabase
     .from("kutumbh_members")
     .select("user_id")
@@ -55,7 +58,7 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
       .from("meal_logs")
       .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated, logged_date")
       .eq("user_id", memberId)
-      .gte("logged_date", daysAgoLocal(6))
+      .gte("logged_date", daysAgoLocal(6, timeZone))
       .order("logged_date", { ascending: false })
       .order("logged_at", { ascending: true }),
   ]);
@@ -109,7 +112,7 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
           return (
             <section key={day.date} className="rounded-2xl overflow-hidden" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
               <div className="flex items-center justify-between px-4 py-3">
-                <p className="text-sm font-semibold" style={{ color: "#241C33" }}>{dayLabel(day.date)}</p>
+                <p className="text-sm font-semibold" style={{ color: "#241C33" }}>{dayLabel(day.date, timeZone)}</p>
                 <p className="text-xs font-semibold" style={{ color: day.logs.length ? (over ? "#C8632A" : "#6B46B8") : "#A79BC0" }}>
                   {day.logs.length ? `${day.kcal} kcal · ${day.logs.length} item${day.logs.length > 1 ? "s" : ""}` : "Not logged"}
                 </p>

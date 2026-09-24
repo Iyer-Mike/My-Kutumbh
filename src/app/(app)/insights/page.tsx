@@ -33,7 +33,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
 
   const periods = [
     period("today", "Today", d.today),
-    period("week", "7 days", daysAgoLocal(6)),
+    period("week", "7 days", daysAgoLocal(6, d.timeZone)),
     period("month", "30 days", d.from30),
   ];
 

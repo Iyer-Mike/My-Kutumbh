@@ -3,6 +3,7 @@ import KutumbhLogo from "@/components/KutumbhLogo";
 import DashboardTabs from "@/components/DashboardTabs";
 import { redirect } from "next/navigation";
 import { clampDay, dayLabel, longDateFor, todayLocal } from "@/lib/dates";
+import { familyOf } from "@/lib/family";
 import DayNav from "@/components/DayNav";
 
 type MealLog = {
@@ -34,10 +35,12 @@ type MealPlanRow = {
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const { date } = await searchParams;
   // One day at a time: a month back to catch up, a week ahead to plan
-  const day = clampDay(date, 30, 6);
-  const isToday = day === todayLocal();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  const { timeZone } = await familyOf(supabase, user!.id);
+  const day = clampDay(date, 30, 6, timeZone);
+  const isToday = day === todayLocal(timeZone);
 
   const { data: profile } = await supabase
     .from("profiles")

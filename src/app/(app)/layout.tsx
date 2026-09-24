@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import BottomNav from "@/components/BottomNav";
+import { FamilyTimeProvider } from "@/lib/family-time";
+import { familyOf } from "@/lib/family";
 
 export default async function AppLayout({
   children,
@@ -14,7 +16,10 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  const { timeZone } = await familyOf(supabase, user.id);
+
   return (
+    <FamilyTimeProvider tz={timeZone}>
     <div style={{ background: "#F3EEFA", minHeight: "100vh" }}>
       <div
         className="mx-auto flex flex-col min-h-screen"
@@ -24,5 +29,6 @@ export default async function AppLayout({
         <BottomNav />
       </div>
     </div>
+    </FamilyTimeProvider>
   );
 }

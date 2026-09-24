@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { todayLocal, daysAgoLocal } from "@/lib/dates";
+import { DEFAULT_TIME_ZONE, todayLocal, daysAgoLocal } from "@/lib/dates";
 import type { FoodData, LogEntry, Profile } from "./types";
 
 export const FOOD_COLS =
   "name, category, serving_unit, serving_weight_g, calories, protein_g, carbs_g, fat_g, fiber_g, iron_mg, calcium_mg, vitamin_b12_mcg, vitamin_c_mg, folate_mcg, sodium_mg, potassium_mg, rasa, virya, vata_effect, pitta_effect, kapha_effect, ingredients";
 
 export type InsightsData = {
+  timeZone: string;
   targetId: string;
   viewingOther: boolean;
   name: string;
@@ -27,7 +28,7 @@ export async function loadInsightsData(
 ): Promise<InsightsData> {
   const { data: membership } = await supabase
     .from("kutumbh_members")
-    .select("kutumbh_id, role")
+    .select("kutumbh_id, role, kutumbhs(time_zone)")
     .eq("user_id", viewerId)
     .limit(1)
     .maybeSingle();
@@ -43,8 +44,11 @@ export async function loadInsightsData(
     if (inFamily) targetId = requestedMember;
   }
 
-  const today = todayLocal();
-  const from30 = daysAgoLocal(29);
+  // The family's own day, so a Kutumbh outside India counts its own week
+  const timeZone =
+    (membership?.kutumbhs as unknown as { time_zone: string | null } | null)?.time_zone || DEFAULT_TIME_ZONE;
+  const today = todayLocal(timeZone);
+  const from30 = daysAgoLocal(29, timeZone);
 
   const [{ data: profile }, { data: logRows }, { data: reports }, { data: foodRows }, { data: dishRows }] = await Promise.all([
     supabase
@@ -85,6 +89,7 @@ export async function loadInsightsData(
   });
 
   return {
+    timeZone,
     targetId,
     viewingOther: targetId !== viewerId,
     name: profile?.full_name ?? "Family member",

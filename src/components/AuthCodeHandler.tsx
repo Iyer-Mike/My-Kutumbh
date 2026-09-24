@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthHeader from "@/components/AuthHeader";
+import { pendingInvite } from "@/lib/invite";
 
 const FAILED = "Reset link is invalid or has expired. Please request a new one.";
 
@@ -24,19 +25,23 @@ export default function AuthCodeHandler() {
       router.replace(path);
     };
 
+    // An invite in hand means this link finished a sign-up, not a reset
+    const invite = pendingInvite();
+    const landing = invite ? `/join/${invite}` : "/reset-password";
+
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) finish("/reset-password");
+      if (session) finish(landing);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) finish("/reset-password");
+      if (session) finish(landing);
     });
 
     const stallTimer = setTimeout(() => setStalled(true), 5000);
 
     const giveUp = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) finish("/reset-password");
+      if (session) finish(landing);
       else finish(`/forgot-password?error=${encodeURIComponent(FAILED)}`);
     }, 12000);
 

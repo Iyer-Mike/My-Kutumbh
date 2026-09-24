@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import JoinButton from "./JoinButton";
 import { BRAND as B } from "@/lib/brand";
+import RememberInvite from "@/components/RememberInvite";
 
 interface Props {
   params: Promise<{ code: string }>;
@@ -64,6 +65,7 @@ export default async function JoinPage({ params }: Props) {
     const next = `/join/${clean}`;
     return (
       <Shell eyebrow="An invitation" title="A place has been kept for you in a Kutumbh">
+        <RememberInvite code={clean} />
         <div className="rounded-2xl px-4 py-4 grid gap-3" style={{ background: B.page, border: `1px solid ${B.cardEdge}` }}>
           <p className="m-0 text-[11px] font-semibold uppercase" style={{ letterSpacing: "0.1em", color: B.muted2 }}>
             What joining gives you
@@ -117,6 +119,17 @@ export default async function JoinPage({ params }: Props) {
     .limit(1)
     .maybeSingle();
 
+  // A Kutumbh with nobody else in it is one they can leave to accept this
+  let aloneInOwn = false;
+  if (existingMember) {
+    const { count } = await supabase
+      .from("kutumbh_members")
+      .select("user_id", { count: "exact", head: true })
+      .eq("kutumbh_id", existingMember.kutumbh_id)
+      .neq("user_id", user.id);
+    aloneInOwn = (count ?? 0) === 0;
+  }
+
   const kutumbhName = (invite?.kutumbhs as unknown as { name: string } | null)?.name;
   const expired = invite && new Date(invite.expires_at) < new Date();
   const invalid = !invite || !invite.is_active || expired;
@@ -147,11 +160,11 @@ export default async function JoinPage({ params }: Props) {
     );
   }
 
-  if (existingMember) {
+  if (existingMember && !aloneInOwn) {
     return (
       <Shell eyebrow="An invitation" title="You already belong to a Kutumbh">
         <p className="m-0 text-sm text-center" style={{ color: B.muted }}>
-          A person can be part of one family at a time.
+          A person can be part of one family at a time. Ask its Prime Member to remove you first.
         </p>
         <Link href="/family" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
           style={{ background: B.button }}>
@@ -198,7 +211,14 @@ export default async function JoinPage({ params }: Props) {
         </p>
       </div>
 
-      <JoinButton code={clean} />
+      {aloneInOwn && (
+        <p className="m-0 text-[12.5px] rounded-xl px-3 py-2.5" style={{ background: B.goldTint, color: "#7A5A06" }}>
+          You set up a Kutumbh of your own with nobody else in it. Joining will close that one and bring you here —
+          your meals, reports and insights stay yours.
+        </p>
+      )}
+
+      <JoinButton code={clean} moving={aloneInOwn} />
     </Shell>
   );
 }

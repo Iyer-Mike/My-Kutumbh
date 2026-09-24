@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B } from "@/lib/brand";
+import { forgetInvite } from "@/lib/invite";
 
-export default function JoinButton({ code }: { code: string }) {
+export default function JoinButton({ code, moving = false }: { code: string; moving?: boolean }) {
   const router  = useRouter();
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
@@ -20,7 +21,8 @@ export default function JoinButton({ code }: { code: string }) {
         body: JSON.stringify({ code }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Failed to join"); return; }
+      if (!res.ok) { setError(data.error ?? "Couldn't join just now."); return; }
+      forgetInvite();
 
       // Check if this user has completed onboarding yet
       const supabase = createClient();
@@ -50,7 +52,7 @@ export default function JoinButton({ code }: { code: string }) {
         className="w-full py-3.5 rounded-2xl text-sm font-semibold text-white disabled:opacity-50"
         style={{ background: B.button }}
       >
-        {loading ? "Joining…" : "Join the Kutumbh"}
+        {loading ? "Joining…" : moving ? "Close mine and join this Kutumbh" : "Join the Kutumbh"}
       </button>
       {error && (
         <p className="text-xs text-center" style={{ color: "#9A2C1B" }}>{error}</p>

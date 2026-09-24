@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
+import { inviteFromPath, rememberInvite } from "@/lib/invite";
 import KutumbhLogo from "@/components/KutumbhLogo";
 
 function SignupForm() {
@@ -28,10 +29,16 @@ function SignupForm() {
     setError(null);
 
     const supabase = createClient();
+    const next = redirectTo ?? "/onboarding";
+    const code = inviteFromPath(redirectTo);
+    if (code) rememberInvite(code);            // survive the trip through email
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     });
 
     if (error) {

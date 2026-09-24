@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { pendingInvite } from "@/lib/invite";
 import { useRouter } from "next/navigation";
 import KutumbhLogo from "@/components/KutumbhLogo";
 
@@ -178,6 +179,12 @@ export default function OnboardingPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [result, setResult] = useState<ReturnType<typeof computeDosha> | null>(null);
 
+  // An invite in hand means they are joining someone else's family, not starting one
+  useEffect(() => {
+    const code = pendingInvite();
+    if (code) router.replace(`/join/${code}`);
+  }, [router]);
+
   // On mount: if user is already in a kutumbh (joined via invite), skip step 1
   useEffect(() => {
     const supabase = createClient();
@@ -195,7 +202,6 @@ export default function OnboardingPage() {
           }
         });
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleKutumbh(e: React.FormEvent) {
@@ -337,7 +343,7 @@ export default function OnboardingPage() {
         Name your Kutumbh
       </h2>
       <p className="text-sm mb-5" style={{ color: "#625A75" }}>
-        Your family's identity in the app — suffix "Kutumbh" is added automatically.
+        Your family&apos;s name in the app — &ldquo;Kutumbh&rdquo; is added for you.
       </p>
       <form onSubmit={handleKutumbh} className="space-y-4">
         <div>

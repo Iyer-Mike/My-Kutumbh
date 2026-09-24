@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { pendingInvite } from "@/lib/invite";
+import { DEFAULT_TIME_ZONE, deviceTimeZone } from "@/lib/dates";
 import { useRouter } from "next/navigation";
 import KutumbhLogo from "@/components/KutumbhLogo";
 
@@ -249,7 +250,7 @@ export default function OnboardingPage() {
       if (!existing?.[0]) {
         const { data: kutumbh, error: ke } = await supabase
           .from("kutumbhs")
-          .insert({ name: kutumbhName, created_by: user.id })
+          .insert({ name: kutumbhName, created_by: user.id, time_zone: deviceTimeZone() ?? DEFAULT_TIME_ZONE })
           .select()
           .single();
         if (ke) { setError(ke.message); setSaving(false); return; }
@@ -299,7 +300,7 @@ export default function OnboardingPage() {
         // First time — create the kutumbh and membership
         const { data: kutumbh, error: ke } = await supabase
           .from("kutumbhs")
-          .insert({ name: kutumbhName, created_by: user.id })
+          .insert({ name: kutumbhName, created_by: user.id, time_zone: deviceTimeZone() ?? DEFAULT_TIME_ZONE })
           .select()
           .single();
 

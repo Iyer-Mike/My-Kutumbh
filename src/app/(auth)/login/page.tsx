@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
 import { BRAND as B } from "@/lib/brand";
+import { afterSignIn } from "@/lib/gate";
+import { pendingInvite } from "@/lib/invite";
 
 // Who last signed in on THIS phone. Email and first name only — never a
 // password — so the box is already filled when they come back.
@@ -54,7 +56,7 @@ function parseLastUser(raw: string | null): LastUser | null {
 function LoginForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo   = searchParams.get("redirect") ?? "/dashboard";
+  const redirectTo   = searchParams.get("redirect");
 
   // Server render knows nothing about this phone, so it starts as a stranger
   const stored = useSyncExternalStore(subscribe, getSnapshot, () => null);
@@ -105,12 +107,10 @@ function LoginForm() {
         .from("profiles").select("full_name").eq("id", data.user.id).maybeSingle();
       writeLastUser({ email, name: profile?.full_name?.split(" ")[0] ?? null });
     }
-    router.push(redirectTo);
+    router.push(afterSignIn(redirectTo, pendingInvite()));
   }
 
-  const signupHref = redirectTo !== "/dashboard"
-    ? `/signup?redirect=${encodeURIComponent(redirectTo)}`
-    : "/signup";
+  const signupHref = redirectTo ? `/signup?redirect=${encodeURIComponent(redirectTo)}` : "/signup";
 
   const fieldStyle = { border: `1.5px solid ${B.cardEdge}`, background: B.field, color: B.ink } as const;
 

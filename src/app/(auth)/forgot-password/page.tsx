@@ -1,21 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
+  const searchParams = useSearchParams();
+  const linkError = searchParams.get("error");
+
   const [email, setEmail]     = useState("");
   const [sent, setSent]       = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [typedError, setTypedError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlError = params.get("error");
-    if (urlError) setError(decodeURIComponent(urlError));
-  }, []);
+  // An expired reset link arrives in the address; anything we hit while
+  // sending replaces it.
+  const error = typedError ?? linkError;
+  const setError = setTypedError;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -103,5 +106,13 @@ export default function ForgotPasswordPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense>
+      <ForgotPasswordForm />
+    </Suspense>
   );
 }

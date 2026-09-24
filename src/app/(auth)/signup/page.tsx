@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
 import { inviteFromPath, rememberInvite } from "@/lib/invite";
+import { emailReturnTo } from "@/lib/gate";
 import KutumbhLogo from "@/components/KutumbhLogo";
 
 function SignupForm() {
@@ -37,7 +38,7 @@ function SignupForm() {
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        emailRedirectTo: emailReturnTo(window.location.origin, next),
       },
     });
 

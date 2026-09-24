@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { HOME, isAuthPath, isPublicPath, isStartPath, signInHref } from "@/lib/gate";
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -26,24 +27,16 @@ export async function proxy(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
-  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
-  const isOnboarding = pathname.startsWith("/onboarding");
-  const isPublicRoute =
-    pathname === "/" ||
-    isAuthRoute ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/join/") ||          // an invite explains itself before sign-in
-    pathname.startsWith("/auth/");
-
-  if (!user && !isPublicRoute && !isOnboarding) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  // Signed out, asking for the app itself: sign in, then come back here
+  if (!user && !isPublicPath(pathname) && !isStartPath(pathname)) {
+    return NextResponse.redirect(new URL(signInHref(pathname, search), request.url));
   }
 
-  if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Signed in, at the sign-in or sign-up form: their day is waiting
+  if (user && isAuthPath(pathname)) {
+    return NextResponse.redirect(new URL(HOME, request.url));
   }
 
   return supabaseResponse;

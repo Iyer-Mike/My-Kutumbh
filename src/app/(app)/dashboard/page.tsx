@@ -3,7 +3,7 @@ import KutumbhLogo from "@/components/KutumbhLogo";
 import DashboardTabs from "@/components/DashboardTabs";
 import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
-import { clampDay, dayLabel, longDateFor, todayLocal } from "@/lib/dates";
+import { clampDay, dayLabel, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
 import DayNav from "@/components/DayNav";
 
@@ -133,11 +133,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
 
+        {/* The day and its date are read off the ‹ day › row just below */}
         <div className="rounded-2xl px-4 py-4 mb-4" style={{ background: "rgba(255,255,255,0.08)" }}>
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>
-            {isToday ? longDateFor(day) : `${dayLabel(day)} · ${longDateFor(day)}`}
-          </p>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xl font-medium text-white">Namaste, {firstName} 🙏</p>
             {kutumbhId && (
               <span
@@ -151,7 +149,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             )}
           </div>
           <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
-            {totalKcal > 0 ? `${Math.round(totalKcal)} kcal logged today` : "What have you eaten today?"}
+            {totalKcal > 0
+              ? `${Math.round(totalKcal)} kcal logged ${isToday ? "today" : dayLabel(day, timeZone).toLowerCase()}`
+              : isToday ? "What have you eaten today?" : "Nothing logged for this day"}
           </p>
         </div>
 

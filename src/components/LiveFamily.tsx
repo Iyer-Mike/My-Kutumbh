@@ -4,10 +4,14 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+/** How often an open page checks for itself, in case the socket went quiet. */
+const CHECK_EVERY_MS = 20_000;
+
 /**
  * A menu put up in the kitchen should show on every phone in the family.
- * Listens for changes to the family's rows and re-reads the page, with a
- * check on returning to the app in case the connection was asleep.
+ * Listens for changes to the family's rows and re-reads the page. Sockets
+ * drop, phones sleep and networks block them, so the page also checks on
+ * its own while it is on screen, and again on returning to the app.
  */
 export default function LiveFamily({ kutumbhId, tables }: { kutumbhId: string; tables: string }) {
   const router = useRouter();
@@ -39,8 +43,11 @@ export default function LiveFamily({ kutumbhId, tables }: { kutumbhId: string; t
     document.addEventListener("visibilitychange", onWake);
     window.addEventListener("focus", onWake);
 
+    const beat = setInterval(onWake, CHECK_EVERY_MS);
+
     return () => {
       if (timer) clearTimeout(timer);
+      clearInterval(beat);
       supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", onWake);
       window.removeEventListener("focus", onWake);

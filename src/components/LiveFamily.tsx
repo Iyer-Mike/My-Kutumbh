@@ -20,6 +20,8 @@ export default function LiveFamily({ kutumbhId, tables }: { kutumbhId: string; t
     if (!kutumbhId) return;
     const supabase = createClient();
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let stopped = false;
 
     // Several rows often change together (adding four dishes at once),
     // so wait a moment and re-read once.
@@ -28,15 +30,27 @@ export default function LiveFamily({ kutumbhId, tables }: { kutumbhId: string; t
       timer = setTimeout(() => router.refresh(), 250);
     };
 
-    const channel = supabase.channel(`family-${kutumbhId}`);
-    for (const table of tables.split(",")) {
-      channel.on(
-        "postgres_changes",
-        { event: "*", schema: "public", table, filter: `kutumbh_id=eq.${kutumbhId}` },
-        refreshSoon,
-      );
-    }
-    channel.subscribe();
+    // The page is signed in through a cookie, but the socket is opened
+    // separately and starts out as a stranger. Told who is listening, the
+    // family's own rules let the change through; without it, every change
+    // is hidden and nothing ever arrives.
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) supabase.realtime.setAuth(token);
+      if (stopped) return;
+
+      const c = supabase.channel(`family-${kutumbhId}`);
+      for (const table of tables.split(",")) {
+        c.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table, filter: `kutumbh_id=eq.${kutumbhId}` },
+          refreshSoon,
+        );
+      }
+      c.subscribe();
+      channel = c;
+    })();
 
     // Phones suspend sockets in the background; catch up on return
     const onWake = () => { if (document.visibilityState === "visible") router.refresh(); };
@@ -46,9 +60,10 @@ export default function LiveFamily({ kutumbhId, tables }: { kutumbhId: string; t
     const beat = setInterval(onWake, CHECK_EVERY_MS);
 
     return () => {
+      stopped = true;
       if (timer) clearTimeout(timer);
       clearInterval(beat);
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
       document.removeEventListener("visibilitychange", onWake);
       window.removeEventListener("focus", onWake);
     };

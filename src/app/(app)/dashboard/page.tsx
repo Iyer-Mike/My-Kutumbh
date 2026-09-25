@@ -7,6 +7,9 @@ import { clampDay, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
 import DashboardDayNav from "@/components/DashboardDayNav";
 import CouldNotRead from "@/components/CouldNotRead";
+import Face from "@/components/Face";
+import { signedFaces } from "@/lib/faces";
+import Link from "next/link";
 import { DashTabProvider } from "@/lib/dash-tab";
 
 type MealLog = {
@@ -49,7 +52,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     familyOf(supabase, user!.id),
     supabase
       .from("profiles")
-      .select("onboarding_complete, full_name, daily_kcal_goal")
+      .select("onboarding_complete, full_name, daily_kcal_goal, photo_path")
       .eq("id", user!.id)
       .maybeSingle(),
   ]);
@@ -69,6 +72,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const today = todayLocal(timeZone);
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
+  const myFace = (await signedFaces(supabase, [profile.photo_path]))[profile.photo_path ?? ""];
 
   const plansQuery = supabase
     .from("meal_plans")
@@ -134,12 +138,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <p className="text-xs leading-tight" style={{ color: "#C9B8E4" }}>मेरा कुटुम्ब</p>
             </div>
           </div>
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-            style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
-          >
-            {firstName[0].toUpperCase()}
-          </div>
+          <Link href="/profile" aria-label="Your profile">
+            <Face url={myFace} name={firstName} size={38} onDark />
+          </Link>
         </div>
 
         <div className="rounded-2xl px-4 py-4 mb-4" style={{ background: "rgba(255,255,255,0.08)" }}>

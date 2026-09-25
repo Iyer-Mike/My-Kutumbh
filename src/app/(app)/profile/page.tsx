@@ -4,6 +4,9 @@ import PageNav from "@/components/PageNav";
 import ProfileEditCard from "@/components/ProfileEditCard";
 import MedicalReportsCard from "@/components/MedicalReportsCard";
 import Link from "next/link";
+import FacePicker from "@/components/FacePicker";
+import { signedFaces } from "@/lib/faces";
+import { familyOf } from "@/lib/family";
 
 const DOSHA_COLOR: Record<string, string> = {
   vata:          "#7B68EE",
@@ -40,6 +43,9 @@ export default async function ProfilePage() {
     .select("id, report_date, report_type, file_name, file_url, extracted_values, notes")
     .eq("user_id", user!.id)
     .order("report_date", { ascending: false });
+
+  const { kutumbhId } = await familyOf(supabase, user!.id);
+  const myFace = (await signedFaces(supabase, [profile?.photo_path]))[profile?.photo_path ?? ""];
 
   const doshaColor = profile?.primary_dosha
     ? (DOSHA_COLOR[profile.primary_dosha] ?? "#6B46B8")
@@ -81,6 +87,24 @@ export default async function ProfilePage() {
       </header>
 
       <main className="flex-1 px-5 py-5 space-y-4">
+
+        {/* ── Your face ── */}
+        {kutumbhId && (
+          <section className="rounded-2xl px-4 py-5" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+            <FacePicker
+              kutumbhId={kutumbhId}
+              subject={{ kind: "member", userId: user!.id }}
+              name={profile?.full_name}
+              url={myFace}
+              currentPath={profile?.photo_path ?? null}
+              size={88}
+              label="Add your photo"
+            />
+            <p className="text-[11px] text-center mt-3 m-0" style={{ color: "#6A6180" }}>
+              Only your Kutumbh can see it.
+            </p>
+          </section>
+        )}
 
         {/* ── Health Basics ── */}
         <ProfileEditCard

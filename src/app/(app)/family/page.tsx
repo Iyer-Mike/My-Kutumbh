@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
+import Face from "@/components/Face";
+import FacePicker from "@/components/FacePicker";
+import { signedFaces } from "@/lib/faces";
 import InviteButton from "@/components/InviteButton";
 import Link from "next/link";
 import { todayLocal } from "@/lib/dates";
@@ -36,6 +39,7 @@ export default async function FamilyPage() {
     role: string;
     full_name: string | null;
     primary_dosha: string | null;
+    photo_path: string | null;
     item_count: number;
     kcal_today: number;
     isMe: boolean;
@@ -55,7 +59,7 @@ export default async function FamilyPage() {
     // 2. Profiles
     const { data: profiles } = await supabase
       .from("family_roster")
-      .select("id, full_name, primary_dosha")
+      .select("id, full_name, primary_dosha, photo_path")
       .in("id", memberIds);
 
     const profileMap = Object.fromEntries(
@@ -85,6 +89,7 @@ export default async function FamilyPage() {
         role:          m.role,
         full_name:     p?.full_name ?? null,
         primary_dosha: p?.primary_dosha ?? null,
+        photo_path:    p?.photo_path ?? null,
         item_count:    lm.count,
         kcal_today:    Math.round(lm.kcal),
         isMe:          m.user_id === user!.id,
@@ -98,6 +103,13 @@ export default async function FamilyPage() {
       return (a.full_name ?? "").localeCompare(b.full_name ?? "");
     });
   }
+
+  // The family together, and each face in it
+  const { data: kutumbhRow } = kutumbhId
+    ? await supabase.from("kutumbhs").select("photo_path").eq("id", kutumbhId).maybeSingle()
+    : { data: null };
+  const familyPhoto: string | null = kutumbhRow?.photo_path ?? null;
+  const faceUrls = await signedFaces(supabase, [...members.map((m) => m.photo_path), familyPhoto]);
 
   const primeName = members.find((m) => m.role === "owner")?.full_name ?? null;
 
@@ -154,6 +166,29 @@ export default async function FamilyPage() {
       </header>
 
       <main className="flex-1 px-5 py-6 space-y-5">
+
+        {/* The family together. The Prime Member keeps it; everyone sees it. */}
+        {kutumbhId && (familyPhoto || isOwner) && (
+          <section className="rounded-2xl px-4 py-5 grid gap-1 justify-items-center"
+            style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+            {isOwner ? (
+              <FacePicker
+                kutumbhId={kutumbhId}
+                subject={{ kind: "family" }}
+                name={kutumbhName}
+                url={familyPhoto ? faceUrls[familyPhoto] : null}
+                currentPath={familyPhoto}
+                size={96}
+                label="Add the family photo"
+              />
+            ) : (
+              <Face url={familyPhoto ? faceUrls[familyPhoto] : null} name={kutumbhName} size={96} />
+            )}
+            <p className="text-[11px] mt-1 text-center m-0" style={{ color: "#6A6180" }}>
+              {familyPhoto ? kutumbhName : "A picture of everyone, for the top of this page"}
+            </p>
+          </section>
+        )}
 
         {!kutumbhName ? (
           /* ── No kutumbh yet ── */
@@ -261,7 +296,6 @@ export default async function FamilyPage() {
               <div className="space-y-3">
                 {members.map((m) => {
                   const dColor = m.primary_dosha ? DOSHA_COLORS[m.primary_dosha.toLowerCase()] ?? "#6A6180" : "#CBB4EE";
-                  const initial = m.full_name?.[0]?.toUpperCase() ?? "?";
 
                   const cardClass = "rounded-2xl px-4 py-3.5 flex items-center gap-4";
                   const cardStyle = {
@@ -271,13 +305,7 @@ export default async function FamilyPage() {
 
                   const inner = (
                     <>
-                      {/* Avatar */}
-                      <div
-                        className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-semibold flex-shrink-0"
-                        style={{ background: "#E7DCF7", color: "#6B46B8" }}
-                      >
-                        {initial}
-                      </div>
+                      <Face url={faceUrls[m.photo_path ?? ""]} name={m.full_name} size={44} />
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">

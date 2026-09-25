@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
+import Face from "@/components/Face";
+import { signedFaces } from "@/lib/faces";
 import { SLOTS, slotLabel } from "@/lib/meal-slots";
 import { daysAgoLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
@@ -53,7 +55,7 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
   if (!member) redirect("/family");
 
   const [{ data: profile }, { data: logs }] = await Promise.all([
-    supabase.from("profiles").select("full_name, primary_dosha, daily_kcal_goal").eq("id", memberId).maybeSingle(),
+    supabase.from("profiles").select("full_name, primary_dosha, daily_kcal_goal, photo_path").eq("id", memberId).maybeSingle(),
     supabase
       .from("meal_logs")
       .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated, logged_date")
@@ -76,6 +78,7 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
     : 0;
   const goal = profile?.daily_kcal_goal ?? null;
   const name = profile?.full_name ?? "Family member";
+  const face = (await signedFaces(supabase, [profile?.photo_path]))[profile?.photo_path ?? ""];
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
@@ -87,7 +90,10 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
           <Link href="/family" style={{ color: "rgba(255,255,255,0.5)" }}>Kutumbh</Link> · last 7 days
         </p>
-        <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>{name}</h1>
+        <div className="flex items-center gap-3">
+          <Face url={face} name={name} size={48} onDark />
+          <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>{name}</h1>
+        </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
           <p className="text-xs" style={{ color: "#C9B8E4" }}>
             {loggedDays.length ? `Avg ${avgKcal} kcal on ${loggedDays.length} logged day${loggedDays.length > 1 ? "s" : ""}` : "Nothing logged this week"}

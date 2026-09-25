@@ -52,7 +52,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     familyOf(supabase, user!.id),
     supabase
       .from("profiles")
-      .select("onboarding_complete, full_name, daily_kcal_goal, photo_path")
+      .select("onboarding_complete, full_name, daily_kcal_goal")
       .eq("id", user!.id)
       .maybeSingle(),
   ]);
@@ -72,7 +72,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const today = todayLocal(timeZone);
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
-  const myFace = (await signedFaces(supabase, [profile.photo_path]))[profile.photo_path ?? ""];
+  // Asked for on its own, so a page still opens where the photo store has
+  // not been made yet
+  const { data: faceRow } = await supabase.from("profiles").select("photo_path").eq("id", user!.id).maybeSingle();
+  const myPath: string | null = faceRow?.photo_path ?? null;
+  const myFace = (await signedFaces(supabase, [myPath]))[myPath ?? ""];
 
   const plansQuery = supabase
     .from("meal_plans")

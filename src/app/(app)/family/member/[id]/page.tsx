@@ -55,7 +55,7 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
   if (!member) redirect("/family");
 
   const [{ data: profile }, { data: logs }] = await Promise.all([
-    supabase.from("profiles").select("full_name, primary_dosha, daily_kcal_goal, photo_path").eq("id", memberId).maybeSingle(),
+    supabase.from("profiles").select("full_name, primary_dosha, daily_kcal_goal").eq("id", memberId).maybeSingle(),
     supabase
       .from("meal_logs")
       .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated, logged_date")
@@ -78,7 +78,9 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
     : 0;
   const goal = profile?.daily_kcal_goal ?? null;
   const name = profile?.full_name ?? "Family member";
-  const face = (await signedFaces(supabase, [profile?.photo_path]))[profile?.photo_path ?? ""];
+  const { data: faceRow } = await supabase.from("family_roster").select("photo_path").eq("id", memberId).maybeSingle();
+  const facePath: string | null = faceRow?.photo_path ?? null;
+  const face = (await signedFaces(supabase, [facePath]))[facePath ?? ""];
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>

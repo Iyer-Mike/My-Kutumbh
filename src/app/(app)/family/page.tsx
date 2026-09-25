@@ -59,7 +59,7 @@ export default async function FamilyPage() {
     // 2. Profiles
     const { data: profiles } = await supabase
       .from("family_roster")
-      .select("id, full_name, primary_dosha, photo_path")
+      .select("id, full_name, primary_dosha")
       .in("id", memberIds);
 
     const profileMap = Object.fromEntries(
@@ -89,7 +89,7 @@ export default async function FamilyPage() {
         role:          m.role,
         full_name:     p?.full_name ?? null,
         primary_dosha: p?.primary_dosha ?? null,
-        photo_path:    p?.photo_path ?? null,
+        photo_path:    null as string | null,   // filled in below
         item_count:    lm.count,
         kcal_today:    Math.round(lm.kcal),
         isMe:          m.user_id === user!.id,
@@ -102,6 +102,16 @@ export default async function FamilyPage() {
       if (b.role === "owner" && a.role !== "owner") return 1;
       return (a.full_name ?? "").localeCompare(b.full_name ?? "");
     });
+  }
+
+  // Faces are asked for on their own, so the page still opens where the
+  // photo store has not been made yet
+  const { data: faceRows } = kutumbhId
+    ? await supabase.from("family_roster").select("id, photo_path").in("id", members.map((m) => m.user_id))
+    : { data: null };
+  for (const row of faceRows ?? []) {
+    const m = members.find((x) => x.user_id === row.id);
+    if (m) m.photo_path = row.photo_path;
   }
 
   // The family together, and each face in it

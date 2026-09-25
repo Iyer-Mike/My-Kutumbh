@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { clampDay, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
 import DashboardDayNav from "@/components/DashboardDayNav";
+import CouldNotRead from "@/components/CouldNotRead";
 import { DashTabProvider } from "@/lib/dash-tab";
 
 type MealLog = {
@@ -44,7 +45,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // A menu put up in the kitchen should reach the others in a second or
   // two, and every question asked of the database in turn is another wait.
   // Whatever can be asked at the same time, is.
-  const [membership, { data: profile }] = await Promise.all([
+  const [membership, { data: profile, error: profileError }] = await Promise.all([
     familyOf(supabase, user!.id),
     supabase
       .from("profiles")
@@ -52,6 +53,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .eq("id", user!.id)
       .maybeSingle(),
   ]);
+
+  // A question the database refused to answer is not the same as a new face.
+  // Sending someone through the front door again because their key had just
+  // been changed is how a returning member was asked to sign up afresh.
+  if (profileError) return <CouldNotRead />;
 
   if (!profile?.onboarding_complete) {
     redirect("/onboarding");

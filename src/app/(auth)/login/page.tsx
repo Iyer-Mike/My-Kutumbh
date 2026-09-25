@@ -8,55 +8,13 @@ import AuthHeader from "@/components/AuthHeader";
 import { BRAND as B } from "@/lib/brand";
 import { afterSignIn } from "@/lib/gate";
 import { pendingInvite } from "@/lib/invite";
-
-// Who last signed in on THIS phone. Email and first name only — never a
-// password — so the box is already filled when they come back.
-const LAST_USER = "mk-last-user-v1";
-type LastUser = { email: string; name: string | null };
-
-const listeners = new Set<() => void>();
-let cached: string | null = null;
-
-function subscribe(cb: () => void) {
-  listeners.add(cb);
-  return () => { listeners.delete(cb); };
-}
-
-// Storage can throw or come back empty (private window, cleared data)
-function getSnapshot(): string | null {
-  try {
-    const raw = localStorage.getItem(LAST_USER);
-    if (raw !== cached) cached = raw;
-  } catch {
-    cached = null;
-  }
-  return cached;
-}
-
-function writeLastUser(value: LastUser | null) {
-  const raw = value ? JSON.stringify(value) : null;
-  try {
-    if (raw) localStorage.setItem(LAST_USER, raw);
-    else localStorage.removeItem(LAST_USER);
-  } catch { /* private window — the page still works */ }
-  cached = raw;
-  listeners.forEach((l) => l());
-}
-
-function parseLastUser(raw: string | null): LastUser | null {
-  if (!raw) return null;
-  try {
-    const v = JSON.parse(raw) as LastUser;
-    return v && typeof v.email === "string" && v.email ? v : null;
-  } catch {
-    return null;
-  }
-}
+import { getSnapshot, parseLastUser, subscribe, writeLastUser } from "@/lib/last-user";
 
 function LoginForm() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const redirectTo   = searchParams.get("redirect");
+  const justChanged  = searchParams.get("changed") === "1";
 
   // Server render knows nothing about this phone, so it starts as a stranger
   const stored = useSyncExternalStore(subscribe, getSnapshot, () => null);
@@ -194,6 +152,12 @@ function LoginForm() {
             placeholder="••••••••"
           />
         </div>
+
+        {justChanged && !error && (
+          <div className="rounded-xl px-4 py-3 text-sm" style={{ background: B.goldTint, color: "#7A5A06", border: `1px solid ${B.gold}` }}>
+            Your new password is saved. Sign in with it to carry on.
+          </div>
+        )}
 
         {error && (
           <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FBE2DC", color: "#9A2C1B", border: "1px solid #F3C6BB" }}>

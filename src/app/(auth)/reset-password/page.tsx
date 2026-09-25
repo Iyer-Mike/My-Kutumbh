@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
+import { writeLastUser } from "@/lib/last-user";
 
 export default function ResetPasswordPage() {
   const router   = useRouter();
@@ -36,14 +37,30 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
+
+    // Who this is, while the reset session is still good for asking
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { error } = await supabase.auth.updateUser({ password });
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       setError(error.message);
-    } else {
-      router.push("/dashboard");
+      return;
     }
+
+    // Changing the password ends the old sessions, this one among them, so
+    // walking straight into the app left people holding a key that no longer
+    // turned — and the app, unable to read them, offered to sign them up
+    // afresh. They sign in once with the new password instead.
+    if (user?.email) {
+      const { data: profile } = await supabase
+        .from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+      writeLastUser({ email: user.email, name: profile?.full_name?.split(" ")[0] ?? null });
+    }
+
+    await supabase.auth.signOut();
+    router.push("/login?changed=1");
   }
 
   if (sessionOk === false) {

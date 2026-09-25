@@ -109,7 +109,7 @@ export default function FacePicker({
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}
           className="text-[12px] font-semibold" style={{ color: B.violet }}>
-          {url ? "Change photo" : label}
+          {url ? (subject.kind === "member" ? "Change your photo" : "Change the family photo") : label}
         </button>
         {url && (
           <button type="button" onClick={removeIt} disabled={busy}

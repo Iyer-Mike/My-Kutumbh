@@ -11,6 +11,32 @@ export async function readBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
+/**
+ * A face, taken from the middle of the picture and squared off, small
+ * enough to travel on a village connection — about 30 KB.
+ */
+export async function toSquareJpeg(file: File, edge = 400): Promise<Blob> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error("That image can't be read. Please use a JPG or PNG photo.");
+  }
+  const side = Math.min(bitmap.width, bitmap.height);
+  const sx = Math.round((bitmap.width - side) / 2);
+  const sy = Math.round((bitmap.height - side) / 2);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = edge;
+  canvas.height = edge;
+  canvas.getContext("2d")!.drawImage(bitmap, sx, sy, side, side, 0, 0, edge, edge);
+  bitmap.close();
+
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't prepare the photo."))), "image/jpeg", 0.82),
+  );
+}
+
 /** A photo, shrunk and re-encoded as JPEG, ready to post. */
 export async function toJpegPayload(file: File, maxEdge = MAX_EDGE): Promise<{ base64: string; mediaType: string }> {
   let bitmap: ImageBitmap;

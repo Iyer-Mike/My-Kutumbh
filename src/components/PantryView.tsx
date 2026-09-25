@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B } from "@/lib/brand";
-import { toJpegPayload } from "@/lib/photo";
+import { readBase64, toJpegPayload } from "@/lib/photo";
 import {
   CATEGORIES, KINDS, SHELF_LIFE, STARTER, UNITS,
   categoryLabel, daysLeft, isLow, kindOf,
@@ -82,6 +82,7 @@ export default function PantryView({
 
   // Reading a shop bill
   const billRef = useRef<HTMLInputElement>(null);
+  const billCamRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [reading, setReading] = useState(false);
   const [billNote, setBillNote] = useState<string | null>(null);
@@ -244,12 +245,23 @@ export default function PantryView({
   async function handleBillPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
+    if (!file) return;                       // they backed out of the chooser
+
+    // A bill is often a PDF from the shop's app. It goes as it is — putting
+    // it through the photo squeezer only broke it.
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (isPdf && file.size > 3_500_000) {
+      setBillNote("That PDF is too large to send. Photograph the bill instead, or save a smaller copy.");
+      return;
+    }
+
     setReading(true);
     setBillNote(null);
     setBill(null);
     try {
-      const { base64, mediaType } = await toJpegPayload(file);
+      const { base64, mediaType } = isPdf
+        ? { base64: await readBase64(file), mediaType: "application/pdf" }
+        : await toJpegPayload(file);
       abortRef.current = new AbortController();
       const res = await fetch("/api/read-bill", {
         method: "POST",
@@ -568,7 +580,12 @@ export default function PantryView({
       {/* Shopped? Photograph the bill — Prime Member only */}
       {isPrime && (
         <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
-          <input ref={billRef} type="file" accept="image/*,application/pdf" onChange={handleBillPhoto} className="hidden" />
+          {/* The camera and the file chooser are two different doors, so a
+              tap lands where the words promised */}
+          <input ref={billCamRef} type="file" accept="image/*" capture="environment"
+            onChange={handleBillPhoto} className="hidden" />
+          <input ref={billRef} type="file" accept="image/*,application/pdf"
+            onChange={handleBillPhoto} className="hidden" />
 
           {!bill && (
             <>
@@ -590,18 +607,24 @@ export default function PantryView({
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <button onClick={() => billRef.current?.click()}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
-                    style={{ background: B.button }}>
-                    📷 Photo of the bill
-                  </button>
-                  <button onClick={() => billRef.current?.click()}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: B.tint, color: B.violet }}>
-                    📄 Upload a file
-                  </button>
-                </div>
+                <>
+                  <div className="flex gap-2">
+                    <button onClick={() => billCamRef.current?.click()}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                      style={{ background: B.button }}>
+                      📷 Take a photo
+                    </button>
+                    <button onClick={() => billRef.current?.click()}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                      style={{ background: B.tint, color: B.violet }}>
+                      📄 Choose a file
+                    </button>
+                  </div>
+                  <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
+                    The camera or the file list is your phone&apos;s own, not ours — press your
+                    phone&apos;s back button to close it. Nothing happens here until you pick something.
+                  </p>
+                </>
               )}
             </>
           )}

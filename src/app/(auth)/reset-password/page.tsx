@@ -38,8 +38,11 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
 
-    // Who this is, while the reset session is still good for asking
+    // Who this is, asked while the reset session is still good for asking
     const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile } = user
+      ? await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
+      : { data: null };
 
     const { error } = await supabase.auth.updateUser({ password });
 
@@ -49,13 +52,11 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    // Changing the password ends the old sessions, this one among them, so
-    // walking straight into the app left people holding a key that no longer
-    // turned — and the app, unable to read them, offered to sign them up
-    // afresh. They sign in once with the new password instead.
+    // Changing the password ends the sessions that were open, this one among
+    // them, so walking straight into the app left people holding a key that no
+    // longer turned — and the app, unable to read them, offered to sign them
+    // up afresh. They sign in once with the new password instead.
     if (user?.email) {
-      const { data: profile } = await supabase
-        .from("profiles").select("full_name").eq("id", user.id).maybeSingle();
       writeLastUser({ email: user.email, name: profile?.full_name?.split(" ")[0] ?? null });
     }
 

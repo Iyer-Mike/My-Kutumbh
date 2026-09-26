@@ -8,6 +8,7 @@ import { summarizeIntake } from "@/lib/insights/intake";
 import { summarizeAyurveda } from "@/lib/insights/ayurveda";
 import { evaluateLabs, latestLabValues } from "@/lib/insights/labs";
 import { evaluateIntelligence } from "@/lib/insights/intelligence";
+import { planActions } from "@/lib/insights/actions";
 
 // Insights are individual. A member sees their own; the Prime Member can
 // open any member of their Kutumbh with ?member=<user id>.
@@ -23,11 +24,14 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const period = (key: InsightsPeriod["key"], label: string, from: string): InsightsPeriod => {
     const inRange = d.entries.filter((e) => e.logged_date >= from && e.logged_date <= d.today);
     const intake = summarizeIntake(d.entries, from, d.today);
+    const flags = evaluateLabs(labValues, { intake, needs, foods: d.foods, allergies: d.profile.allergies ?? [] });
+    const events = evaluateIntelligence({ profile: d.profile, needs, intake, entries: inRange, labs: labValues });
+
     return {
-      key, label, intake,
+      key, label, intake, flags, events,
       ayurveda: summarizeAyurveda(inRange, d.profile.primary_dosha),
-      flags: evaluateLabs(labValues, { intake, needs, foods: d.foods, allergies: d.profile.allergies ?? [] }),
-      events: evaluateIntelligence({ profile: d.profile, needs, intake, entries: inRange, labs: labValues }),
+      // Many findings, a few things to do — see lib/insights/actions.ts
+      plan: planActions({ events, labFlags: flags, intake, needs, entries: inRange }),
     };
   };
 

@@ -6,6 +6,8 @@ import type { CorrectionEvent, IntakeSummary, LabFlag, Needs, NutrientKey } from
 import type { AyurvedaSummary, Rasa } from "@/lib/insights/ayurveda";
 import { energyNarrative, microNarrative, trendNarrative, ayurvedaNarrative, labNarrative } from "@/lib/insights/narrate";
 import CoachChat from "@/components/CoachChat";
+import InsightsPlan from "@/components/InsightsPlan";
+import type { Plan } from "@/lib/insights/actions";
 
 export type InsightsPeriod = {
   key: "today" | "week" | "month";
@@ -14,6 +16,7 @@ export type InsightsPeriod = {
   ayurveda: AyurvedaSummary;
   flags: LabFlag[];
   events: CorrectionEvent[];
+  plan: Plan;
 };
 
 type Props = {
@@ -114,9 +117,11 @@ const fmt = (x: number) =>
   : parseFloat(x.toFixed(3)).toString();
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-const STORE_KEY = "insights-open-v2";
+const STORE_KEY = "insights-open-v3";
+// The plan is always open; everything below it is for those who want
+// the detail, and stays folded until asked for.
 const DEFAULT_OPEN: Record<string, boolean> = {
-  alerts: true, energy: false, lab: true, micro: false, ayurveda: false, trend: false, coach: false,
+  alerts: false, energy: false, lab: false, micro: false, ayurveda: false, trend: false, coach: false,
 };
 
 function Chevron({ open, color }: { open: boolean; color: string }) {
@@ -295,7 +300,7 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
   }
 
   const p = periods.find((x) => x.key === key) ?? periods[0];
-  const { intake, ayurveda, flags, events } = p;
+  const { intake, ayurveda, flags, events, plan } = p;
   const nothing = intake.items === 0;
   const perLabel = key === "today" ? "today" : `a day, over ${intake.loggedDays} logged day${intake.loggedDays === 1 ? "" : "s"}`;
   const firstKnown = flags.find((f) => f.known)?.key;
@@ -321,7 +326,18 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
         </div>
       )}
 
-      <Section id="alerts" title="Health alerts & tips" theme={THEME.alerts} open={open.alerts} onToggle={() => toggle("alerts")}
+      {/* ── What to do, where you stand, what needs a doctor ──
+          Said once each. Everything below this is the detail behind it. */}
+      <InsightsPlan
+        plan={plan}
+        kcalHad={intake.perDay.kcal}
+        kcalTarget={needs.kcal.value}
+        loggedDays={intake.loggedDays}
+        viewingOther={viewingOther}
+        firstName={firstName}
+      />
+
+      <Section id="alerts" title="Every finding in full" theme={THEME.alerts} open={open.alerts} onToggle={() => toggle("alerts")}
         summary={eventsNarrative(events)} aside={events.length ? `${events.length}` : undefined}>
         {events.length === 0 ? (
           <p className="text-sm" style={{ color: C.ink2 }}>

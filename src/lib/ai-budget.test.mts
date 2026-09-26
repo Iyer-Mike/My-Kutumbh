@@ -1,10 +1,10 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { paiseFor, checkBudget, MONTH_FAMILY_PAISE, DAY_PERSON_PAISE } from "./ai-budget.ts";
+import { paiseFor, checkBudget, MONTH_FAMILY_PAISE, DAY_PERSON_PAISE, MONTH_APP_PAISE } from "./ai-budget.ts";
 
 // A stand-in for the database: it answers with whatever rows we hand it.
 // The gate asks two questions — the family's month, then the person's day.
-function ledger(familyRows: number[], myRows: number[]) {
+function ledger(familyRows: number[], myRows: number[], appPaise = 0) {
   let call = 0;
   const rowsFor = () => (call++ === 0 ? familyRows : myRows).map((paise) => ({ paise }));
   const q = () => {
@@ -15,7 +15,7 @@ function ledger(familyRows: number[], myRows: number[]) {
     return chain;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { from: () => ({ select: q }) } as any;
+  return { from: () => ({ select: q }), rpc: () => Promise.resolve({ data: appPaise }) } as any;
 }
 
 describe("what an answer costs", () => {
@@ -84,9 +84,30 @@ describe("the ceiling", () => {
     assert.equal(v.ok, true);
   });
 
+  test("the whole app has a ceiling of its own, above every family", async () => {
+    const v = await checkBudget(ledger([100], [0], MONTH_APP_PAISE), "u1", "k1");
+    assert.equal(v.ok, false);
+    if (v.ok) return;
+    assert.match(v.message, /across all the families/);
+  });
+
+  test("the app's ceiling is checked before any family's", async () => {
+    const v = await checkBudget(ledger([MONTH_FAMILY_PAISE], [0], MONTH_APP_PAISE), "u1", "k1");
+    assert.equal(v.ok, false);
+    if (v.ok) return;
+    assert.match(v.message, /across all the families/);
+  });
+
+  test("a missing app total does not stop an ordinary question", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const noRpc = { ...ledger([100], [0]), rpc: () => Promise.resolve({ data: null }) } as any;
+    const v = await checkBudget(noRpc, "u1", "k1");
+    assert.equal(v.ok, true);
+  });
+
   test("a ledger that cannot be read does not lock the family out", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const broken = { from: () => ({ select: () => ({ eq: () => ({ gte: () => Promise.resolve({ data: null }) }) }) }) } as any;
+    const broken = { from: () => ({ select: () => ({ eq: () => ({ gte: () => Promise.resolve({ data: null }) }) }) }), rpc: () => Promise.resolve({ data: null }) } as any;
     const v = await checkBudget(broken, "u1", "k1");
     assert.equal(v.ok, true);
   });

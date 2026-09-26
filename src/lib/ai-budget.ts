@@ -14,6 +14,13 @@ export const MONTH_FAMILY_PAISE = 50_000; // ₹500 a month, the whole Kutumbh
 export const DAY_PERSON_PAISE   =  5_000; // ₹50 a day, one person
 
 /**
+ * The ceiling above the ceilings. One card pays for every Kutumbh, so
+ * the app as a whole has a limit of its own — otherwise ten families
+ * with ₹500 each would be ₹5,000 on that card.
+ */
+export const MONTH_APP_PAISE = Number(process.env.AI_MONTH_APP_PAISE ?? 200_000); // ₹2,000
+
+/**
  * Dollars to rupees. Approximate on purpose, and deliberately on the
  * high side: over-stating the cost only makes the app stop sooner,
  * which is the safe direction for a ceiling.
@@ -73,17 +80,33 @@ export async function checkBudget(
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const dayStart   = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-  const [familyRes, mineRes] = await Promise.all([
+  const [familyRes, mineRes, appRes] = await Promise.all([
     kutumbhId
       ? supabase.from("ai_spend").select("paise").eq("kutumbh_id", kutumbhId).gte("created_at", monthStart)
       : supabase.from("ai_spend").select("paise").eq("user_id", userId).gte("created_at", monthStart),
     supabase.from("ai_spend").select("paise").eq("user_id", userId).gte("created_at", dayStart),
+    // Nobody may read another family's spending, so the app's own total
+    // comes back from a function that sees all and returns one number.
+    supabase.rpc("ai_spend_month_total"),
   ]);
 
   // A ledger we cannot read must not lock the family out of the app.
   const sum = (rows: { paise: number }[] | null) => (rows ?? []).reduce((t, r) => t + (r.paise ?? 0), 0);
   const familyPaise = sum(familyRes.data);
   const myPaise     = sum(mineRes.data);
+
+  const appPaise = Number(appRes.data ?? 0);
+
+  if (appPaise >= MONTH_APP_PAISE) {
+    return {
+      ok: false,
+      status: 429,
+      message:
+        "My Kutumbh has reached its own AI limit for this month, across all the families using it. " +
+        "Everything the app works out by itself carries on as usual. If this is your app, raising the " +
+        "limit is a one-line change on the server.",
+    };
+  }
 
   if (familyPaise >= MONTH_FAMILY_PAISE) {
     return {

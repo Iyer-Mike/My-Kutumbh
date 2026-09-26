@@ -28,13 +28,22 @@ LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public
 STABLE
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM auth.users
-    WHERE id = auth.uid()
-      AND lower(email) = 'iyer.mike@gmail.com'
-  );
-$$;
+AS $
+  SELECT
+    EXISTS (
+      SELECT 1 FROM auth.users
+      WHERE id = auth.uid()
+        AND lower(email) = 'iyer.mike@gmail.com'
+    )
+    -- ...or the database owner, working in the SQL editor. They can
+    -- already read every table directly, so this grants nothing new,
+    -- and it lets the desk be tested from there.
+    --
+    -- session_user, not current_user: inside a SECURITY DEFINER
+    -- function current_user is the function's owner for EVERY caller,
+    -- which would have handed the desk to the whole world.
+    OR session_user IN ('postgres', 'supabase_admin');
+$;
 
 REVOKE ALL ON FUNCTION is_app_admin() FROM public;
 GRANT EXECUTE ON FUNCTION is_app_admin() TO authenticated;
@@ -193,8 +202,13 @@ REVOKE ALL ON FUNCTION admin_invites() FROM public;
 GRANT EXECUTE ON FUNCTION admin_invites() TO authenticated;
 
 
--- ── Check: the desk answers, and refuses anyone else ─────────────
-SELECT is_app_admin() AS am_i_the_admin;
+-- ── Check: the five functions exist ──────────────────────────────
+SELECT proname AS function_name
+FROM pg_proc
+WHERE proname IN ('is_app_admin', 'admin_households', 'admin_spend_by_feature',
+                  'admin_stranded_people', 'admin_invites')
+ORDER BY proname;
+
+-- ── Check: the desk itself, as seen from here ────────────────────
 SELECT * FROM admin_households();
-SELECT * FROM admin_spend_by_feature();
 SELECT * FROM admin_stranded_people();

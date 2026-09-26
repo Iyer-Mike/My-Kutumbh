@@ -8,10 +8,30 @@ import { writeToKutumbh } from "@/app/(app)/admin/actions";
  * Member will see it — no email, no push, nothing that can fail to
  * arrive.
  */
-export default function WriteToKutumbh({ kutumbhId, kutumbhName }: { kutumbhId: string; kutumbhName: string }) {
+export default function WriteToKutumbh({
+  kutumbhId,
+  kutumbhName,
+  primeName,
+  signature,
+}: {
+  kutumbhId: string;
+  kutumbhName: string;
+  primeName: string | null;
+  signature: string | null;
+}) {
+  // A letter should open with a name and close with one. The box is
+  // filled in already, so neither of us has to remember.
+  const opening = primeName ? `Dear ${primeName},
+
+` : "";
+  const closing = signature ? `
+
+— ${signature}` : "";
+  const blank = `${opening}${closing}`;
+
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(blank);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -36,7 +56,7 @@ export default function WriteToKutumbh({ kutumbhId, kutumbhName }: { kutumbhId: 
         setSent(true);
         setOpen(false);
         setTitle("");
-        setBody("");
+        setBody(blank);
       } else {
         setError(r.error ?? "It didn't go.");
       }
@@ -61,7 +81,9 @@ export default function WriteToKutumbh({ kutumbhId, kutumbhName }: { kutumbhId: 
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder="Write plainly — they will read it inside the app."
-        rows={4}
+        autoFocus
+        onFocus={(e) => e.currentTarget.setSelectionRange(opening.length, opening.length)}
+        rows={6}
         maxLength={1200}
         className="w-full text-sm rounded-lg px-3 py-2"
         style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241C33" }}
@@ -72,9 +94,9 @@ export default function WriteToKutumbh({ kutumbhId, kutumbhName }: { kutumbhId: 
       <div className="flex gap-2 mt-3">
         <button
           onClick={send}
-          disabled={pending || !title.trim()}
+          disabled={pending || !title.trim() || body.trim() === blank.trim()}
           className="text-xs font-semibold px-4 py-2 rounded-full"
-          style={{ background: title.trim() ? "#2D1B4E" : "#CBB4EE", color: "#fff" }}
+          style={{ background: title.trim() && body.trim() !== blank.trim() ? "#2D1B4E" : "#CBB4EE", color: "#fff" }}
         >
           {pending ? "Sending…" : "Send"}
         </button>

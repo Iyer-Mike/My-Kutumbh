@@ -27,6 +27,9 @@ export default async function AdminPage() {
   // Not the Admin? Then this page does not exist. No sense saying otherwise.
   if (!desk.isAdmin) notFound();
 
+  const { data: me } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+  const myName: string | null = me?.full_name ?? null;
+
   const people = desk.households.reduce((t, h) => t + h.members, 0);
   const quiet = desk.households.filter((h) => (since(h.last_logged).days ?? 999) > 10);
   const appPct = Math.min(100, Math.round((desk.appSpend / MONTH_APP_RUPEES) * 100));
@@ -140,7 +143,12 @@ export default async function AdminPage() {
                     </span>
                   </div>
 
-                  <WriteToKutumbh kutumbhId={h.kutumbh_id} kutumbhName={h.name ?? "this Kutumbh"} />
+                  <WriteToKutumbh
+                    kutumbhId={h.kutumbh_id}
+                    kutumbhName={h.name ?? "this Kutumbh"}
+                    primeName={h.prime_name}
+                    signature={myName}
+                  />
                 </div>
               );
             })}

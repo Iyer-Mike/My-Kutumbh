@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { aiErrorMessage } from "@/lib/ai-error";
+import { checkBudget, recordSpend } from "@/lib/ai-budget";
+import { familyOf } from "@/lib/family";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
@@ -65,6 +67,11 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Please sign in" }, { status: 401 });
 
+  // Nothing is asked of the AI before we know the family can afford it
+  const { kutumbhId } = await familyOf(supabase, user.id);
+  const budget = await checkBudget(supabase, user.id, kutumbhId);
+  if (!budget.ok) return NextResponse.json({ error: budget.message }, { status: budget.status });
+
   const { data: membership } = await supabase
     .from("kutumbh_members")
     .select("role")
@@ -101,6 +108,9 @@ export async function POST(req: NextRequest) {
         role: "user",
         content: `Dish: ${name}\nIngredients: ${ingredients}\nPreparation: ${preparation}`,
       }],
+    });
+    await recordSpend(supabase, {
+      userId: user.id, kutumbhId, feature: "estimate-dish", model: "claude-opus-5", usage: response.usage,
     });
 
     if (response.stop_reason === "refusal" || !response.parsed_output) {

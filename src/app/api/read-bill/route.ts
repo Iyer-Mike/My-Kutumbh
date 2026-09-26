@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { aiErrorMessage } from "@/lib/ai-error";
+import { checkBudget, recordSpend } from "@/lib/ai-budget";
+import { familyOf } from "@/lib/family";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
@@ -44,6 +46,11 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
 
+  // Nothing is asked of the AI before we know the family can afford it
+  const { kutumbhId } = await familyOf(supabase, user.id);
+  const budget = await checkBudget(supabase, user.id, kutumbhId);
+  if (!budget.ok) return NextResponse.json({ error: budget.message }, { status: budget.status });
+
   // The shelf is the Prime Member's to keep, so only they may fill it from a bill
   const { data: membership } = await supabase
     .from("kutumbh_members").select("role").eq("user_id", user.id).limit(1).maybeSingle();
@@ -83,6 +90,9 @@ export async function POST(req: NextRequest) {
           { type: "text" as const, text: "What was bought on this bill?" },
         ],
       }],
+    });
+    await recordSpend(supabase, {
+      userId: user.id, kutumbhId, feature: "read-bill", model: "claude-haiku-4-5-20251001", usage: response.usage,
     });
 
     if (response.stop_reason === "refusal" || !response.parsed_output) {

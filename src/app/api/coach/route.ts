@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { aiErrorMessage } from "@/lib/ai-error";
+import { checkBudget, recordSpend } from "@/lib/ai-budget";
+import { familyOf } from "@/lib/family";
 import { createClient } from "@/lib/supabase/server";
 import { daysAgoLocal } from "@/lib/dates";
 import { loadInsightsData } from "@/lib/insights/load";
@@ -35,6 +37,11 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
+
+  // Nothing is asked of the AI before we know the family can afford it
+  const { kutumbhId } = await familyOf(supabase, user.id);
+  const budget = await checkBudget(supabase, user.id, kutumbhId);
+  if (!budget.ok) return NextResponse.json({ error: budget.message }, { status: budget.status });
 
   let body: { messages?: Msg[]; member?: string | null };
   try {
@@ -102,6 +109,9 @@ export async function POST(req: NextRequest) {
       output_config: { effort: "medium" },
       system: `${SYSTEM}\n\n<member_data>\n${context}\n</member_data>`,
       messages,
+    });
+    await recordSpend(supabase, {
+      userId: user.id, kutumbhId, feature: "coach", model: "claude-opus-5", usage: response.usage,
     });
 
     if (response.stop_reason === "refusal") {

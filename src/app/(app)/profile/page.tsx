@@ -7,6 +7,8 @@ import Link from "next/link";
 import FacePicker from "@/components/FacePicker";
 import { signedFaces } from "@/lib/faces";
 import { familyOf } from "@/lib/family";
+import AiSpendCard from "@/components/AiSpendCard";
+import { checkBudget } from "@/lib/ai-budget";
 
 const DOSHA_COLOR: Record<string, string> = {
   vata:          "#7B68EE",
@@ -45,6 +47,7 @@ export default async function ProfilePage() {
     .order("report_date", { ascending: false });
 
   const { kutumbhId } = await familyOf(supabase, user!.id);
+  const spend = await checkBudget(supabase, user!.id, kutumbhId);
   const myFace = (await signedFaces(supabase, [profile?.photo_path]))[profile?.photo_path ?? ""];
 
   const doshaColor = profile?.primary_dosha
@@ -105,6 +108,8 @@ export default async function ProfilePage() {
             </p>
           </section>
         )}
+
+        {spend.ok && <AiSpendCard familyPaise={spend.familyPaise} myPaise={spend.myPaise} />}
 
         {/* ── Health Basics ── */}
         <ProfileEditCard

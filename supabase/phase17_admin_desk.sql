@@ -62,7 +62,7 @@ RETURNS TABLE (
   prime_name    text,
   members       integer,
   created_at    timestamptz,
-  last_logged   timestamptz,
+  last_logged   date,          -- the last day this family logged any food
   logs_7d       integer,
   logs_total    integer,
   spend_month   numeric
@@ -88,13 +88,13 @@ BEGIN
       LIMIT 1),
     (SELECT count(*)::integer FROM kutumbh_members m3 WHERE m3.kutumbh_id = k.id),
     k.created_at,
-    (SELECT max(l.created_at)
+    (SELECT max(l.logged_date)
        FROM meal_logs l
       WHERE l.user_id IN (SELECT m4.user_id FROM kutumbh_members m4 WHERE m4.kutumbh_id = k.id)),
     (SELECT count(*)::integer
        FROM meal_logs l2
       WHERE l2.user_id IN (SELECT m5.user_id FROM kutumbh_members m5 WHERE m5.kutumbh_id = k.id)
-        AND l2.created_at >= now() - interval '7 days'),
+        AND l2.logged_date >= (current_date - 7)),
     (SELECT count(*)::integer
        FROM meal_logs l3
       WHERE l3.user_id IN (SELECT m6.user_id FROM kutumbh_members m6 WHERE m6.kutumbh_id = k.id)),

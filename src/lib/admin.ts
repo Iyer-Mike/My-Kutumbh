@@ -18,7 +18,7 @@ export type Household = {
   prime_name: string | null;
   members: number;
   created_at: string;
-  last_logged: string | null;
+  last_logged: string | null;   // a date, the last day this family logged food
   logs_7d: number;
   logs_total: number;
   spend_month: number;

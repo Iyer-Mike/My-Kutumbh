@@ -5,6 +5,7 @@ import { loadDesk, money, since, type Household } from "@/lib/admin";
 import WriteToKutumbh from "@/components/WriteToKutumbh";
 import WithdrawLetter from "@/components/WithdrawLetter";
 import { MONTH_APP_RUPEES, MONTH_FAMILY_RUPEES } from "@/lib/ai-budget";
+import { familyOf } from "@/lib/family";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,8 @@ export default async function AdminPage() {
   // Not the Admin? Then this page does not exist. No sense saying otherwise.
   if (!desk.isAdmin) notFound();
 
+  // Your own household is not somewhere you write letters to
+  const { kutumbhId: myKutumbh } = await familyOf(supabase, user.id);
   const { data: me } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
   const myName: string | null = me?.full_name ?? null;
 
@@ -124,6 +127,14 @@ export default async function AdminPage() {
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-sm font-semibold m-0 truncate" style={{ color: "#241C33" }}>
                       {h.name ?? "Unnamed Kutumbh"}
+                      {h.kutumbh_id === myKutumbh && (
+                        <span
+                          className="text-[10px] font-medium ml-2 px-1.5 py-0.5 rounded-full align-middle"
+                          style={{ background: "#E7DCF7", color: "#6B46B8" }}
+                        >
+                          yours
+                        </span>
+                      )}
                     </p>
                     <span className="text-xs flex-shrink-0 font-medium" style={{ color: p.colour }}>
                       {p.word}
@@ -144,12 +155,14 @@ export default async function AdminPage() {
                     </span>
                   </div>
 
-                  <WriteToKutumbh
-                    kutumbhId={h.kutumbh_id}
-                    kutumbhName={h.name ?? "this Kutumbh"}
-                    primeName={h.prime_name}
-                    signature={myName}
-                  />
+                  {h.kutumbh_id !== myKutumbh && (
+                    <WriteToKutumbh
+                      kutumbhId={h.kutumbh_id}
+                      kutumbhName={h.name ?? "this Kutumbh"}
+                      primeName={h.prime_name}
+                      signature={myName}
+                    />
+                  )}
                 </div>
               );
             })}

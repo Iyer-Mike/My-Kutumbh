@@ -8,6 +8,7 @@ import FacePicker from "@/components/FacePicker";
 import { signedFaces } from "@/lib/faces";
 import { familyOf } from "@/lib/family";
 import AiSpendCard from "@/components/AiSpendCard";
+import MyDataCard from "@/components/MyDataCard";
 import { checkBudget } from "@/lib/ai-budget";
 
 const DOSHA_COLOR: Record<string, string> = {
@@ -194,6 +195,9 @@ export default async function ProfilePage() {
           userId={user!.id}
           initialRecords={medRecords ?? []}
         />
+
+        {/* ── What we hold about you ── */}
+        <MyDataCard />
 
 
       </main>

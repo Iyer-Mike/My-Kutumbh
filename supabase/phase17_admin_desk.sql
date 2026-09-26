@@ -28,7 +28,7 @@ LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public
 STABLE
-AS $
+AS $$
   SELECT
     EXISTS (
       SELECT 1 FROM auth.users
@@ -43,7 +43,7 @@ AS $
     -- function current_user is the function's owner for EVERY caller,
     -- which would have handed the desk to the whole world.
     OR session_user IN ('postgres', 'supabase_admin');
-$;
+$$;
 
 REVOKE ALL ON FUNCTION is_app_admin() FROM public;
 GRANT EXECUTE ON FUNCTION is_app_admin() TO authenticated;

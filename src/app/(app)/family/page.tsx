@@ -4,6 +4,8 @@ import Face from "@/components/Face";
 import FacePicker from "@/components/FacePicker";
 import { signedFaces } from "@/lib/faces";
 import NoticesCard, { type Notice } from "@/components/NoticesCard";
+import PrimeRole from "@/components/PrimeRole";
+import { primeState, touchLastSeen } from "@/lib/prime";
 import InviteButton from "@/components/InviteButton";
 import Link from "next/link";
 import { todayLocal } from "@/lib/dates";
@@ -133,7 +135,18 @@ export default async function FamilyPage() {
     : { data: null };
   const notices = (noticeRows ?? []) as Notice[];
 
-  const primeName = members.find((m) => m.role === "owner")?.full_name ?? null;
+  const primeMember = members.find((m) => m.role === "owner") ?? null;
+  const primeName = primeMember?.full_name ?? null;
+
+  // Being here counts as being here — silence is what moves the role
+  const { data: mine } = await supabase
+    .from("profiles").select("last_seen_at").eq("id", user!.id).maybeSingle();
+  await touchLastSeen(supabase, user!.id, mine?.last_seen_at ?? null);
+
+  const role = await primeState(supabase, user!.id, kutumbhId, primeMember?.user_id ?? null, isOwner);
+  const others = members
+    .filter((m) => m.user_id !== user!.id)
+    .map((m) => ({ user_id: m.user_id, full_name: m.full_name }));
 
   let dishTotal = 0;
   let dishPending = 0;
@@ -190,6 +203,15 @@ export default async function FamilyPage() {
       <main className="flex-1 px-5 py-6 space-y-5">
 
         {notices.length > 0 && <NoticesCard notices={notices} isPrime={isOwner} />}
+
+        <PrimeRole
+          isPrime={isOwner}
+          members={others}
+          primeName={primeName}
+          canClaim={role.canClaim}
+          canReclaim={role.canReclaim}
+          quietDays={role.primeQuietDays}
+        />
 
         {/* The family together. The Prime Member keeps it; everyone sees it. */}
         {kutumbhId && (familyPhoto || isOwner) && (

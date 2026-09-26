@@ -61,3 +61,15 @@ export async function markNoticeRead(id: string): Promise<void> {
   revalidatePath("/dashboard");
   revalidatePath("/family");
 }
+
+/** Take back a letter. Only the Admin's own — a reply is not ours to erase. */
+export async function withdrawNotice(id: string): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("admin_delete_notice", { p_notice: id });
+  if (error) return { ok: false, error: "It couldn't be withdrawn. Please try again." };
+  if (!data) return { ok: false, error: "That letter is no longer there." };
+
+  revalidatePath("/admin");
+  return { ok: true };
+}

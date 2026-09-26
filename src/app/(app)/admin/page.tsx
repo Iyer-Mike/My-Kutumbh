@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import { loadDesk, money, since, type Household } from "@/lib/admin";
 import WriteToKutumbh from "@/components/WriteToKutumbh";
+import WithdrawLetter from "@/components/WithdrawLetter";
 import { MONTH_APP_RUPEES, MONTH_FAMILY_RUPEES } from "@/lib/ai-budget";
 
 export const dynamic = "force-dynamic";
@@ -174,6 +175,7 @@ export default async function AdminPage() {
                   </div>
                   <p className="m-0 mt-1" style={{ color: "#241C33" }}>{n.title}</p>
                   {n.body && <p className="m-0 mt-0.5 whitespace-pre-wrap" style={{ color: "#6A6180" }}>{n.body}</p>}
+                  {n.from_admin && <div className="mt-1"><WithdrawLetter id={n.id} /></div>}
                 </div>
               ))}
             </div>

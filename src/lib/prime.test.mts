@@ -75,7 +75,9 @@ describe("when the one who was away may take it back", () => {
   });
 
   test("on the last day of the fortnight", async () => {
-    const { client } = db({ change: { created_at: daysAgo(RECLAIM_DAYS), to_user: "other", kind: "claim" } });
+    // Just inside, not exactly on it: a boundary tested to the
+    // microsecond is a test that fails at random.
+    const { client } = db({ change: { created_at: daysAgo(RECLAIM_DAYS - 0.02), to_user: "other", kind: "claim" } });
     const s = await primeState(client, "me", "k1", "other", false);
     assert.equal(s.canReclaim, true);
   });

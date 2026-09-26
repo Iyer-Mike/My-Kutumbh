@@ -15,6 +15,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo   = searchParams.get("redirect");
   const justChanged  = searchParams.get("changed") === "1";
+  const forgotten    = searchParams.get("forgotten") === "1";
 
   // Server render knows nothing about this phone, so it starts as a stranger
   const stored = useSyncExternalStore(subscribe, getSnapshot, () => null);
@@ -152,6 +153,12 @@ function LoginForm() {
             placeholder="••••••••"
           />
         </div>
+
+        {forgotten && !error && (
+          <div className="rounded-xl px-4 py-3 text-sm" style={{ background: B.goldTint, color: "#7A5A06", border: `1px solid ${B.gold}` }}>
+            Your account and everything in it have been removed. Thank you for the time you gave it.
+          </div>
+        )}
 
         {justChanged && !error && (
           <div className="rounded-xl px-4 py-3 text-sm" style={{ background: B.goldTint, color: "#7A5A06", border: `1px solid ${B.gold}` }}>

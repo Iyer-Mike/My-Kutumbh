@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { aiErrorMessage } from "@/lib/ai-error";
 import { checkBudget, recordSpend } from "@/lib/ai-budget";
+import { logFault } from "@/lib/faults";
 import { familyOf } from "@/lib/family";
 import { createClient } from "@/lib/supabase/server";
 import { daysAgoLocal } from "@/lib/dates";
@@ -125,6 +126,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply: reply || "Sorry, I couldn't put an answer together. Please try asking another way." });
   } catch (error) {
     const { message, status } = aiErrorMessage(error, "The coach");
+    await logFault(supabase, { where: "coach", error, status, kutumbhId, userId: user.id });
     return NextResponse.json({ error: message }, { status });
   }
 }

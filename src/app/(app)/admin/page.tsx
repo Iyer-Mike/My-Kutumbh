@@ -90,6 +90,33 @@ export default async function AdminPage() {
           )}
         </section>
 
+        {/* ── What is breaking ── */}
+        {desk.faults.length > 0 && (
+          <section className="rounded-2xl px-4 py-4" style={{ background: "#FDF3F2", border: "1px solid #E8C4BF" }}>
+            <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-1" style={{ color: "#B0453A" }}>
+              Faults · last 30 days
+            </p>
+            <p className="text-[11px] mt-0 mb-3" style={{ color: "#6A6180" }}>
+              Grouped — twenty of the same fault is one problem, not twenty.
+            </p>
+            <div className="space-y-2.5">
+              {desk.faults.map((f, n) => (
+                <div key={n} className="text-xs">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-semibold" style={{ color: "#241C33" }}>
+                      {f.where_at}{f.status ? ` · ${f.status}` : ""}
+                    </span>
+                    <span style={{ color: "#8A80A0" }}>
+                      {f.times}× · {f.households} {f.households === 1 ? "household" : "households"} · {since(f.last_seen).label}
+                    </span>
+                  </div>
+                  <p className="m-0 mt-0.5" style={{ color: "#6A6180" }}>{f.message}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* ── Anyone who signed up and never got into a family ── */}
         {desk.stranded.length > 0 && (
           <section className="rounded-2xl px-4 py-4" style={{ background: "#FDF3F2", border: "1px solid #E8C4BF" }}>

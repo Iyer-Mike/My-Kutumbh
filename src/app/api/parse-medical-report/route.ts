@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { aiErrorMessage } from "@/lib/ai-error";
 import { checkBudget, recordSpend } from "@/lib/ai-budget";
+import { logFault } from "@/lib/faults";
 import { familyOf } from "@/lib/family";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod/v4";
@@ -114,6 +115,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     const { message, status } = aiErrorMessage(error, "The report reader");
+    await logFault(supabase, { where: "parse-medical-report", error, status, kutumbhId, userId: user.id });
     return NextResponse.json({ error: message }, { status });
   }
 }

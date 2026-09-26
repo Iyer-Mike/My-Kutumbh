@@ -41,6 +41,17 @@ import { homedir } from "node:os";
 
 const KEEP = 14; // a fortnight of nights
 
+/**
+ * Times are the household's own, not the world's. A file written at
+ * half past five in the evening should not be named 1202, and on the
+ * night it is needed nobody should be doing arithmetic.
+ */
+const pad = (n) => String(n).padStart(2, "0");
+const localStamp = (d = new Date()) =>
+  `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+const localWhen = (d = new Date()) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
 const url = process.env.MY_KUTUMBH_DB_URL;
 if (!url) {
   console.error("MY_KUTUMBH_DB_URL is not set. See the notes at the top of this file.");
@@ -77,6 +88,7 @@ try {
       "The schema is not here: it is the migration files in supabase/, kept in git. " +
       "Photographs and uploaded reports are not here either; they live in Supabase Storage.",
     made_on: new Date().toISOString(),
+    made_on_local: localWhen(),
     tables: {},
     counts: {},
   };
@@ -90,7 +102,7 @@ try {
     copy.counts[tablename] = rows.length;
   }
 
-  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "").replace(/(\d{8})(\d{4})/, "$1_$2");
+  const stamp = localStamp();
   file = join(folder, `my-kutumbh_${stamp}.json.gz`);
   writeFileSync(file, gzipSync(Buffer.from(JSON.stringify(copy, null, 1), "utf8")));
 
@@ -117,12 +129,12 @@ try {
 
   appendFileSync(
     join(folder, "backup-log.txt"),
-    `${new Date().toISOString().slice(0, 16).replace("T", " ")}  ok   ${String(total).padStart(6)} rows  ${mb} MB\n`,
+    `${localWhen()}  ok   ${String(total).padStart(6)} rows  ${mb} MB\n`,
     "utf8",
   );
 } catch (error) {
   // A failure must be loud and must leave the older copies alone
-  const when = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const when = localWhen();
   console.error(`The copy did not complete: ${error.message}`);
   console.error("Nothing was deleted; the previous copies are untouched.");
   try {

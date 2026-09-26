@@ -43,7 +43,17 @@ export type Gap = {
   inFood: string | null;
   /** How far off, 0–1+, for ordering and for the bar. */
   share: number;
+  /** True when an action above already says what to do about it. */
+  covered: boolean;
 };
+
+/**
+ * Small quantities keep their decimals. Vitamin B12 rounded to whole
+ * numbers reads "1 of 3 mcg" when the truth is 0.6 of 2.2 — which is
+ * not rounding, it is a different fact.
+ */
+const round = (n: number) => (n >= 10 ? Math.round(n) : Math.round(n * 10) / 10);
+const show = (n: number) => round(n).toLocaleString("en-IN");
 
 /**
  * Typical Indian household portions. Approximate on purpose — a katori
@@ -95,13 +105,14 @@ export function findGaps(intake: IntakeSummary, needs: Needs): Gap[] {
     const gap = kind === "goal" ? target - had : had - target;
     gaps.push({
       label,
-      had: Math.round(had),
-      target: Math.round(target),
+      had: round(had),
+      target: round(target),
       kind,
       unit,
-      gapText: `${Math.round(gap)} ${unit} ${kind === "goal" ? "short" : "over"}`,
+      gapText: `${show(gap)} ${unit} ${kind === "goal" ? "short" : "over"}`,
       inFood: inFood(gap),
       share,
+      covered: false,
     });
   };
 
@@ -114,7 +125,7 @@ export function findGaps(intake: IntakeSummary, needs: Needs): Gap[] {
 
   add("protein_g", "Protein", "g", (g) => {
     const dal = servings(g, PORTION.dalKatori.protein);
-    return `about ${plural(dal, "katori", "katoris")} more dal, or curd and sprouts to match`;
+    return `curd, sprouts or paneer through the day — about ${plural(dal, "katori", "katoris")} of dal's worth`;
   });
 
   add("calcium_mg", "Calcium", "mg", (g) => {
@@ -359,6 +370,15 @@ export function planActions(input: {
   for (const e of events) {
     if (e.category === "medicine" && e.severity === "alert") doctor.push(e.detail);
   }
+
+  // An action above already says what to do; the gap row below should
+  // then give only the number, or the page repeats itself again.
+  const COVERS: Record<string, string> = {
+    "more-fibre": "Fibre", "more-calcium": "Calcium", "more-b12": "Vitamin B12",
+    "more-potassium": "Potassium", "more-iron": "Iron", "less-salt": "Salt",
+  };
+  const spokenFor = new Set(actions.map((a) => COVERS[a.id]).filter(Boolean));
+  for (const g of gaps) g.covered = spokenFor.has(g.label);
 
   return { actions, avoid, doctor: [...new Set(doctor)], gaps };
 }

@@ -93,7 +93,8 @@ function GapRow({ g }: { g: Gap }) {
         <div className="h-full rounded-full" style={{ width: `${Math.max(fill, 2)}%`, background: colour }} />
       </div>
 
-      {g.inFood && (
+      {/* Silent when an action above already says what to do about it */}
+      {g.inFood && !g.covered && (
         <p className="text-xs mt-1.5 m-0" style={{ color: C.ink2 }}>{g.inFood}</p>
       )}
     </div>

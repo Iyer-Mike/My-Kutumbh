@@ -65,8 +65,18 @@ describe("what is off, and by how much", () => {
     const over = findGaps(intake({ sodium_mg: 3000 }), needs());
     const salt = over.find((g) => g.label === "Salt");
     assert.ok(salt);
-    assert.equal(salt.gapText, "1000 mg over");
+    assert.equal(salt.gapText, "1,000 mg over");   // grouped, Indian style
     assert.match(salt.inFood ?? "", /teaspoon/);
+  });
+
+  test("a small quantity keeps its decimals", () => {
+    // 0.6 of 2.2 mcg rounded to whole numbers reads "1 of 3", which is
+    // not rounding but a different fact.
+    const gaps = findGaps(intake({ vitamin_b12_mcg: 0.6 }), needs());
+    const b12 = gaps.find((g) => g.label === "Vitamin B12");
+    assert.equal(b12?.had, 0.6);
+    assert.equal(b12?.target, 2.2);
+    assert.equal(b12?.gapText, "1.6 mcg short");
   });
 
   test("the worst gap is listed first", () => {

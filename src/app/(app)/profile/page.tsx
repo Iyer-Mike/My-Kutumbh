@@ -109,7 +109,7 @@ export default async function ProfilePage() {
           </section>
         )}
 
-        {spend.ok && <AiSpendCard familyPaise={spend.familyPaise} myPaise={spend.myPaise} />}
+        {spend.ok && <AiSpendCard familyRupees={spend.familyRupees} myRupees={spend.myRupees} />}
 
         {/* ── Health Basics ── */}
         <ProfileEditCard

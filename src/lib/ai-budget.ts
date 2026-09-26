@@ -5,20 +5,21 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *
  * The family has a month's allowance; each person has a day's. Either
  * one reached, the AI features wait — and everything the app works out
- * by rule carries on as before. The money is counted in paise so that
- * nothing is ever lost to rounding.
+ * by rule carries on as before. Money is kept in rupees, to four places: a
+ * reading of a bill costs about ₹1.30, and rounding every call to a whole
+ * rupee would drift badly over a few hundred of them.
  */
 
 // ── The ceiling, as the family set it ──
-export const MONTH_FAMILY_PAISE = 50_000; // ₹500 a month, the whole Kutumbh
-export const DAY_PERSON_PAISE   =  5_000; // ₹50 a day, one person
+export const MONTH_FAMILY_RUPEES = 500; // a month, the whole Kutumbh
+export const DAY_PERSON_RUPEES   =  50; // a day, one person
 
 /**
  * The ceiling above the ceilings. One card pays for every Kutumbh, so
  * the app as a whole has a limit of its own — otherwise ten families
  * with ₹500 each would be ₹5,000 on that card.
  */
-export const MONTH_APP_PAISE = Number(process.env.AI_MONTH_APP_PAISE ?? 200_000); // ₹2,000
+export const MONTH_APP_RUPEES = Number(process.env.AI_MONTH_APP_RUPEES ?? 2_000);
 
 /**
  * Dollars to rupees. Approximate on purpose, and deliberately on the
@@ -42,11 +43,11 @@ export type Usage = {
 };
 
 /**
- * What one answer cost, in paise. Cache reads are a tenth of the input
+ * What one answer cost, in rupees. Cache reads are a tenth of the input
  * price and cache writes a quarter more; an unknown model is priced as
  * the dearest we use, so a new model can never slip past the ceiling.
  */
-export function paiseFor(model: string, usage: Usage): number {
+export function rupeesFor(model: string, usage: Usage): number {
   const p = PRICES[model] ?? { in: 5, out: 25 };
   const inTok    = usage.input_tokens ?? 0;
   const outTok   = usage.output_tokens ?? 0;
@@ -59,11 +60,12 @@ export function paiseFor(model: string, usage: Usage): number {
      cacheNew * p.in * 1.25 +
      outTok   * p.out) / 1_000_000;
 
-  return Math.ceil(usd * USD_TO_INR * 100);
+  // Four places kept, rounded up, so that many small calls still add up
+  return Math.ceil(usd * USD_TO_INR * 10_000) / 10_000;
 }
 
 export type BudgetVerdict =
-  | { ok: true; familyPaise: number; myPaise: number }
+  | { ok: true; familyRupees: number; myRupees: number }
   | { ok: false; message: string; status: number };
 
 /**
@@ -82,22 +84,23 @@ export async function checkBudget(
 
   const [familyRes, mineRes, appRes] = await Promise.all([
     kutumbhId
-      ? supabase.from("ai_spend").select("paise").eq("kutumbh_id", kutumbhId).gte("created_at", monthStart)
-      : supabase.from("ai_spend").select("paise").eq("user_id", userId).gte("created_at", monthStart),
-    supabase.from("ai_spend").select("paise").eq("user_id", userId).gte("created_at", dayStart),
+      ? supabase.from("ai_spend").select("cost_rupees").eq("kutumbh_id", kutumbhId).gte("created_at", monthStart)
+      : supabase.from("ai_spend").select("cost_rupees").eq("user_id", userId).gte("created_at", monthStart),
+    supabase.from("ai_spend").select("cost_rupees").eq("user_id", userId).gte("created_at", dayStart),
     // Nobody may read another family's spending, so the app's own total
     // comes back from a function that sees all and returns one number.
     supabase.rpc("ai_spend_month_total"),
   ]);
 
   // A ledger we cannot read must not lock the family out of the app.
-  const sum = (rows: { paise: number }[] | null) => (rows ?? []).reduce((t, r) => t + (r.paise ?? 0), 0);
-  const familyPaise = sum(familyRes.data);
-  const myPaise     = sum(mineRes.data);
+  const sum = (rows: { cost_rupees: number }[] | null) =>
+    (rows ?? []).reduce((t, r) => t + Number(r.cost_rupees ?? 0), 0);
+  const familyRupees = sum(familyRes.data);
+  const myRupees     = sum(mineRes.data);
 
-  const appPaise = Number(appRes.data ?? 0);
+  const appRupees = Number(appRes.data ?? 0);
 
-  if (appPaise >= MONTH_APP_PAISE) {
+  if (appRupees >= MONTH_APP_RUPEES) {
     return {
       ok: false,
       status: 429,
@@ -108,27 +111,27 @@ export async function checkBudget(
     };
   }
 
-  if (familyPaise >= MONTH_FAMILY_PAISE) {
+  if (familyRupees >= MONTH_FAMILY_RUPEES) {
     return {
       ok: false,
       status: 429,
       message:
-        `Your Kutumbh has used its ₹${MONTH_FAMILY_PAISE / 100} of AI for this month. ` +
+        `Your Kutumbh has used its ₹${MONTH_FAMILY_RUPEES} of AI for this month. ` +
         `Menus, logging, the shopping list and recipes all carry on as usual — ` +
         `the photograph readers and the coach will be back next month.`,
     };
   }
-  if (myPaise >= DAY_PERSON_PAISE) {
+  if (myRupees >= DAY_PERSON_RUPEES) {
     return {
       ok: false,
       status: 429,
       message:
-        `You've used your ₹${DAY_PERSON_PAISE / 100} of AI for today, so there's some left ` +
+        `You've used your ₹${DAY_PERSON_RUPEES} of AI for today, so there's some left ` +
         `for the rest of the family. Everything else in the app works as usual; ` +
         `try this again tomorrow.`,
     };
   }
-  return { ok: true, familyPaise, myPaise };
+  return { ok: true, familyRupees, myRupees };
 }
 
 /**
@@ -151,7 +154,7 @@ export async function recordSpend(
       output_tokens:      u.output_tokens ?? 0,
       cache_read_tokens:  u.cache_read_input_tokens ?? 0,
       cache_write_tokens: u.cache_creation_input_tokens ?? 0,
-      paise:              paiseFor(args.model, u),
+      cost_rupees:        rupeesFor(args.model, u),
     });
   } catch {
     // Silence here is deliberate: see the note above.

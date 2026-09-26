@@ -1,12 +1,12 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { paiseFor, checkBudget, MONTH_FAMILY_PAISE, DAY_PERSON_PAISE, MONTH_APP_PAISE } from "./ai-budget.ts";
+import { rupeesFor, checkBudget, MONTH_FAMILY_RUPEES, DAY_PERSON_RUPEES, MONTH_APP_RUPEES } from "./ai-budget.ts";
 
 // A stand-in for the database: it answers with whatever rows we hand it.
 // The gate asks two questions — the family's month, then the person's day.
-function ledger(familyRows: number[], myRows: number[], appPaise = 0) {
+function ledger(familyRows: number[], myRows: number[], appRupees = 0) {
   let call = 0;
-  const rowsFor = () => (call++ === 0 ? familyRows : myRows).map((paise) => ({ paise }));
+  const rowsFor = () => (call++ === 0 ? familyRows : myRows).map((cost_rupees) => ({ cost_rupees }));
   const q = () => {
     const chain = {
       eq: () => chain,
@@ -15,48 +15,54 @@ function ledger(familyRows: number[], myRows: number[], appPaise = 0) {
     return chain;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { from: () => ({ select: q }), rpc: () => Promise.resolve({ data: appPaise }) } as any;
+  return { from: () => ({ select: q }), rpc: () => Promise.resolve({ data: appRupees }) } as any;
 }
 
 describe("what an answer costs", () => {
   test("Opus, a plain question", () => {
-    // 10,000 in + 1,000 out = $0.05 + $0.025 = $0.075 → ₹6.75 → 675 paise
-    assert.equal(paiseFor("claude-opus-5", { input_tokens: 10_000, output_tokens: 1_000 }), 675);
+    // 10,000 in + 1,000 out = $0.05 + $0.025 = $0.075 → ₹6.75
+    assert.equal(rupeesFor("claude-opus-5", { input_tokens: 10_000, output_tokens: 1_000 }), 6.75);
   });
 
   test("Haiku is a fifth of the price", () => {
-    assert.equal(paiseFor("claude-haiku-4-5-20251001", { input_tokens: 10_000, output_tokens: 1_000 }), 135);
+    assert.equal(rupeesFor("claude-haiku-4-5-20251001", { input_tokens: 10_000, output_tokens: 1_000 }), 1.35);
   });
 
   test("a cached read costs a tenth, a cache write a quarter more", () => {
-    const cheap = paiseFor("claude-opus-5", { cache_read_input_tokens: 100_000 });
-    const dear  = paiseFor("claude-opus-5", { cache_creation_input_tokens: 100_000 });
-    assert.equal(cheap, 450);    // $0.05 → ₹4.50
-    assert.equal(dear, 5_625);   // $0.625 → ₹56.25
+    const cheap = rupeesFor("claude-opus-5", { cache_read_input_tokens: 100_000 });
+    const dear  = rupeesFor("claude-opus-5", { cache_creation_input_tokens: 100_000 });
+    assert.equal(cheap, 4.5);      // $0.05 → ₹4.50
+    assert.equal(dear, 56.25);     // $0.625 → ₹56.25
   });
 
   test("an unknown model is charged at the dearest rate we use", () => {
-    const unknown = paiseFor("claude-something-new", { input_tokens: 10_000, output_tokens: 1_000 });
-    assert.equal(unknown, paiseFor("claude-opus-5", { input_tokens: 10_000, output_tokens: 1_000 }));
+    const unknown = rupeesFor("claude-something-new", { input_tokens: 10_000, output_tokens: 1_000 });
+    assert.equal(unknown, rupeesFor("claude-opus-5", { input_tokens: 10_000, output_tokens: 1_000 }));
   });
 
-  test("a fraction of a paisa still counts as one", () => {
-    assert.equal(paiseFor("claude-haiku-4-5", { input_tokens: 1 }), 1);
+  test("a very small call still costs something, not nothing", () => {
+    const tiny = rupeesFor("claude-haiku-4-5", { input_tokens: 1 });
+    assert.ok(tiny > 0 && tiny < 0.001, `expected a hair above zero, got ${tiny}`);
+  });
+
+  test("a thousand small calls add up instead of vanishing", () => {
+    const one = rupeesFor("claude-haiku-4-5", { input_tokens: 1_000, output_tokens: 200 });
+    assert.ok(one * 1000 > 1, "small calls must accumulate");
   });
 
   test("nothing asked, nothing charged", () => {
-    assert.equal(paiseFor("claude-opus-5", {}), 0);
+    assert.equal(rupeesFor("claude-opus-5", {}), 0);
   });
 });
 
 describe("the ceiling", () => {
   test("lets an ordinary question through", async () => {
-    const v = await checkBudget(ledger([1_000], [200]), "u1", "k1");
+    const v = await checkBudget(ledger([10], [2]), "u1", "k1");
     assert.equal(v.ok, true);
   });
 
   test("stops the family for the month, in words they can act on", async () => {
-    const v = await checkBudget(ledger([MONTH_FAMILY_PAISE], [0]), "u1", "k1");
+    const v = await checkBudget(ledger([MONTH_FAMILY_RUPEES], [0]), "u1", "k1");
     assert.equal(v.ok, false);
     if (v.ok) return;
     assert.match(v.message, /₹500 of AI for this month/);
@@ -65,7 +71,7 @@ describe("the ceiling", () => {
   });
 
   test("stops one person for the day without stopping the family", async () => {
-    const v = await checkBudget(ledger([2_000], [DAY_PERSON_PAISE]), "u1", "k1");
+    const v = await checkBudget(ledger([20], [DAY_PERSON_RUPEES]), "u1", "k1");
     assert.equal(v.ok, false);
     if (v.ok) return;
     assert.match(v.message, /₹50 of AI for today/);
@@ -73,26 +79,26 @@ describe("the ceiling", () => {
   });
 
   test("the month is checked before the day, so the plainer reason is given first", async () => {
-    const v = await checkBudget(ledger([MONTH_FAMILY_PAISE], [DAY_PERSON_PAISE]), "u1", "k1");
+    const v = await checkBudget(ledger([MONTH_FAMILY_RUPEES], [DAY_PERSON_RUPEES]), "u1", "k1");
     assert.equal(v.ok, false);
     if (v.ok) return;
     assert.match(v.message, /this month/);
   });
 
   test("a person with no family yet is counted on their own", async () => {
-    const v = await checkBudget(ledger([], [100]), "u1", null);
+    const v = await checkBudget(ledger([], [1]), "u1", null);
     assert.equal(v.ok, true);
   });
 
   test("the whole app has a ceiling of its own, above every family", async () => {
-    const v = await checkBudget(ledger([100], [0], MONTH_APP_PAISE), "u1", "k1");
+    const v = await checkBudget(ledger([1], [0], MONTH_APP_RUPEES), "u1", "k1");
     assert.equal(v.ok, false);
     if (v.ok) return;
     assert.match(v.message, /across all the families/);
   });
 
   test("the app's ceiling is checked before any family's", async () => {
-    const v = await checkBudget(ledger([MONTH_FAMILY_PAISE], [0], MONTH_APP_PAISE), "u1", "k1");
+    const v = await checkBudget(ledger([MONTH_FAMILY_RUPEES], [0], MONTH_APP_RUPEES), "u1", "k1");
     assert.equal(v.ok, false);
     if (v.ok) return;
     assert.match(v.message, /across all the families/);
@@ -100,7 +106,7 @@ describe("the ceiling", () => {
 
   test("a missing app total does not stop an ordinary question", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const noRpc = { ...ledger([100], [0]), rpc: () => Promise.resolve({ data: null }) } as any;
+    const noRpc = { ...ledger([1], [0]), rpc: () => Promise.resolve({ data: null }) } as any;
     const v = await checkBudget(noRpc, "u1", "k1");
     assert.equal(v.ok, true);
   });

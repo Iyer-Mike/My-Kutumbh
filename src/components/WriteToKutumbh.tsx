@@ -72,11 +72,18 @@ export default function WriteToKutumbh({
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="What it's about"
+        placeholder="We miss your cooking"
         maxLength={80}
-        className="w-full text-sm rounded-lg px-3 py-2 mb-2"
+        className="w-full text-sm rounded-lg px-3 py-2"
         style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241C33" }}
       />
+
+      {/* The line a family reads first. One warm thought, and only one:
+          they should feel noticed, not asked to explain themselves. The
+          question goes in the letter, where there is room for it. */}
+      <p className="text-[11px] mt-1 mb-2 m-0" style={{ color: "#8A80A0" }}>
+        One warm line — the question goes in the letter below.
+      </p>
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}

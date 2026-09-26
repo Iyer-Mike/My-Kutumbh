@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import { loadDesk, money, since, type Household } from "@/lib/admin";
+import WriteToKutumbh from "@/components/WriteToKutumbh";
 import { MONTH_APP_RUPEES, MONTH_FAMILY_RUPEES } from "@/lib/ai-budget";
 
 export const dynamic = "force-dynamic";
@@ -138,11 +139,38 @@ export default async function AdminPage() {
                       {share >= 80 ? " ⚠" : ""}
                     </span>
                   </div>
+
+                  <WriteToKutumbh kutumbhId={h.kutumbh_id} kutumbhName={h.name ?? "this Kutumbh"} />
                 </div>
               );
             })}
           </div>
         </section>
+
+        {/* ── What has been said, both ways ── */}
+        {desk.notices.length > 0 && (
+          <section className="rounded-2xl px-4 py-4" style={CARD}>
+            <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-3" style={{ color: "#6A6180" }}>
+              Letters
+            </p>
+            <div className="space-y-3">
+              {desk.notices.map((n) => (
+                <div key={n.id} className="text-xs">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-semibold" style={{ color: n.from_admin ? "#6B46B8" : "#4A7C4A" }}>
+                      {n.from_admin ? `You → ${n.kutumbh_name ?? "a Kutumbh"}` : `${n.kutumbh_name ?? "A Kutumbh"} → you`}
+                    </span>
+                    <span style={{ color: "#8A80A0" }}>
+                      {since(n.created_at).label}{n.from_admin && (n.read_at ? " · read" : " · unread")}
+                    </span>
+                  </div>
+                  <p className="m-0 mt-1" style={{ color: "#241C33" }}>{n.title}</p>
+                  {n.body && <p className="m-0 mt-0.5 whitespace-pre-wrap" style={{ color: "#6A6180" }}>{n.body}</p>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Invitations ── */}
         {desk.invites.length > 0 && (

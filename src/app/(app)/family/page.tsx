@@ -3,6 +3,7 @@ import PageNav from "@/components/PageNav";
 import Face from "@/components/Face";
 import FacePicker from "@/components/FacePicker";
 import { signedFaces } from "@/lib/faces";
+import NoticesCard, { type Notice } from "@/components/NoticesCard";
 import InviteButton from "@/components/InviteButton";
 import Link from "next/link";
 import { todayLocal } from "@/lib/dates";
@@ -121,6 +122,17 @@ export default async function FamilyPage() {
   const familyPhoto: string | null = kutumbhRow?.photo_path ?? null;
   const faceUrls = await signedFaces(supabase, [...members.map((m) => m.photo_path), familyPhoto]);
 
+  const { data: noticeRows } = kutumbhId
+    ? await supabase
+        .from("notices")
+        .select("id, kind, title, body, from_admin, created_at, read_at")
+        .eq("kutumbh_id", kutumbhId)
+        .in("kind", ["admin", "allowance", "member", "dishes"])
+        .order("created_at", { ascending: false })
+        .limit(5)
+    : { data: null };
+  const notices = (noticeRows ?? []) as Notice[];
+
   const primeName = members.find((m) => m.role === "owner")?.full_name ?? null;
 
   let dishTotal = 0;
@@ -176,6 +188,8 @@ export default async function FamilyPage() {
       </header>
 
       <main className="flex-1 px-5 py-6 space-y-5">
+
+        {notices.length > 0 && <NoticesCard notices={notices} isPrime={isOwner} />}
 
         {/* The family together. The Prime Member keeps it; everyone sees it. */}
         {kutumbhId && (familyPhoto || isOwner) && (

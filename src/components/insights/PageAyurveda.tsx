@@ -1,0 +1,135 @@
+"use client";
+
+import type { AyurvedaSummary, Rasa } from "@/lib/insights/ayurveda";
+import { Card, Label, Says, C, T } from "./bits";
+
+/**
+ * 4 · Ayurvedic Analysis
+ *
+ * The six tastes, what is heating and what is cooling, and what the
+ * week has done to each dosha. A complement to the nutrition, never a
+ * replacement for a doctor.
+ */
+
+const RASA: Record<Rasa, string> = {
+  sweet: "Sweet", sour: "Sour", salty: "Salty", pungent: "Pungent", bitter: "Bitter", astringent: "Astringent",
+};
+
+/** Which tastes are so absent they are worth naming. */
+const SCARCE = 0.06;
+
+export default function PageAyurveda({
+  ayurveda, primaryDosha, viewingOther, firstName,
+}: {
+  ayurveda: AyurvedaSummary;
+  primaryDosha: string | null;
+  viewingOther: boolean;
+  firstName: string;
+}) {
+  if (ayurveda.coverage === 0) {
+    return (
+      <Card>
+        <Label n={1}>The six tastes</Label>
+        <Says>
+          The foods logged so far do not carry Ayurvedic details yet. As the family&apos;s own dishes are completed,
+          this page fills in.
+        </Says>
+      </Card>
+    );
+  }
+
+  const tastes = (Object.keys(RASA) as Rasa[])
+    .map((r) => ({ r, share: ayurveda.tasteShare[r] }))
+    .sort((a, b) => b.share - a.share);
+
+  const missing = tastes.filter((t) => t.share < SCARCE).map((t) => RASA[t.r].toLowerCase());
+  const leading = tastes[0];
+
+  return (
+    <div className="grid gap-3">
+
+      {/* 1 · The six tastes */}
+      <Card>
+        <Label n={1} aside={primaryDosha ? `${primaryDosha[0].toUpperCase()}${primaryDosha.slice(1)} Prakriti` : undefined}>
+          The six tastes
+        </Label>
+
+        <div className="mt-3 grid gap-2">
+          {tastes.map(({ r, share }) => (
+            <div key={r} className="flex items-center gap-2.5">
+              <span className="flex-shrink-0" style={{ width: "5.5rem", fontSize: T.body, color: C.ink }}>{RASA[r]}</span>
+              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: C.track }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${Math.max(share * 100, 1)}%`, background: share < SCARCE ? C.warn : "#C8832A" }}
+                />
+              </div>
+              <span
+                className="flex-shrink-0 text-right tabular-nums"
+                style={{ width: "2.6rem", fontSize: T.note, color: share < SCARCE ? C.warn : C.ink3, fontWeight: share < SCARCE ? 600 : 400 }}
+              >
+                {Math.round(share * 100)}%
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <Says>
+          {RASA[leading.r]} leads at {Math.round(leading.share * 100)}%.
+          {missing.length > 0 && ` ${missing.length === 1 ? "The" : "Both"} ${missing.join(" and ")} ${missing.length === 1 ? "taste is" : "tastes are"} nearly absent — karela, methi, drumstick and moong would bring ${missing.length === 1 ? "it" : "them"} back.`}
+        </Says>
+      </Card>
+
+      {/* 2 · Heating and cooling */}
+      <Card>
+        <Label n={2}>Heating and cooling</Label>
+
+        <div className="flex rounded-full overflow-hidden mt-3" style={{ height: "0.7rem" }}>
+          <div style={{ width: `${ayurveda.virya.heating * 100}%`, background: "#D4573A" }} />
+          <div style={{ width: `${ayurveda.virya.neutral * 100}%`, background: "#B9B3A2" }} />
+          <div style={{ width: `${ayurveda.virya.cooling * 100}%`, background: "#3F7FB8" }} />
+        </div>
+        <div className="flex justify-between mt-1.5" style={{ fontSize: T.note, color: C.ink3 }}>
+          <span>Heating {Math.round(ayurveda.virya.heating * 100)}%</span>
+          <span>Neutral {Math.round(ayurveda.virya.neutral * 100)}%</span>
+          <span>Cooling {Math.round(ayurveda.virya.cooling * 100)}%</span>
+        </div>
+
+        <div className="flex gap-2 mt-4">
+          {(["vata", "pitta", "kapha"] as const).map((d) => {
+            const net = ayurveda.doshaNet[d];
+            const mine = ayurveda.primaryDoshas.includes(d);
+            const word = net > 0.15 ? "Balancing" : net < -0.15 ? "Aggravating" : "Neutral";
+            return (
+              <div
+                key={d}
+                className="flex-1 rounded-xl px-2 py-2 text-center"
+                style={{
+                  background: mine ? "#FBEBCB" : "#F3EEFA",
+                  border: mine ? "1px solid #F2B531" : `1px solid ${C.rule}`,
+                }}
+              >
+                <p className="m-0 font-bold capitalize" style={{ fontSize: T.body, color: C.ink }}>
+                  {d}{mine ? " ★" : ""}
+                </p>
+                <p className="m-0 mt-0.5 font-semibold" style={{ fontSize: T.note, color: net < -0.15 ? C.warn : net > 0.15 ? C.leaf : C.ink3 }}>
+                  {word}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {ayurveda.notes.length > 0 && (
+          <ul className="grid gap-1.5 mt-3 mb-0 pl-4" style={{ fontSize: T.body, color: C.ink2, listStyle: "disc", lineHeight: 1.55 }}>
+            {ayurveda.notes.map((n) => <li key={n}>{n}</li>)}
+          </ul>
+        )}
+
+        <p className="m-0 mt-3" style={{ fontSize: T.note, color: C.ink3, lineHeight: 1.5 }}>
+          Ayurveda here sits alongside modern nutrition. It never replaces {viewingOther ? `${firstName}'s` : "your"} doctor&apos;s advice.
+        </p>
+      </Card>
+    </div>
+  );
+}

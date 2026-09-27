@@ -28,8 +28,12 @@ function Reply({ text }: { text: string }) {
   return <div className="grid gap-2 text-sm leading-relaxed" style={{ color: INK }}>{out}</div>;
 }
 
-export default function CoachChat({ memberId, firstName, viewingOther }: {
+export default function CoachChat({ memberId, firstName, viewingOther, page, suggest }: {
   memberId: string | null; firstName: string; viewingOther: boolean;
+  /** Which page the question was asked from, so the answer starts there. */
+  page?: string;
+  /** Questions that suit that page. */
+  suggest?: string[];
 }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
@@ -38,9 +42,11 @@ export default function CoachChat({ memberId, firstName, viewingOther }: {
   const endRef = useRef<HTMLDivElement>(null);
 
   const who = viewingOther ? firstName : "me";
-  const suggestions = viewingOther
-    ? [`What should ${firstName} eat more of this week?`, `Explain ${firstName}'s lab report simply`, `Plan a healthy day of meals for ${firstName}`]
-    : ["What should I eat more of this week?", "Explain my lab report in simple words", "Plan a healthy day of meals for me"];
+  const suggestions = suggest?.length
+    ? suggest
+    : viewingOther
+      ? [`What should ${firstName} eat more of this week?`, `Explain ${firstName}'s lab report simply`, `Plan a healthy day of meals for ${firstName}`]
+      : ["What should I eat more of this week?", "Explain my lab report in simple words", "Plan a healthy day of meals for me"];
 
   async function send(text: string) {
     const q = text.trim();
@@ -55,7 +61,7 @@ export default function CoachChat({ memberId, firstName, viewingOther }: {
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next, member: memberId }),
+        body: JSON.stringify({ messages: next, member: memberId, page }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.reply) {

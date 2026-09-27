@@ -1,14 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
-import InsightsView, { type InsightsPeriod } from "@/components/InsightsView";
+import InsightsPages, { type Period } from "@/components/insights/InsightsPages";
 import { daysAgoLocal } from "@/lib/dates";
 import { loadInsightsData } from "@/lib/insights/load";
-import { computeNeeds } from "@/lib/insights/needs";
+import { computeNeeds, ageOn } from "@/lib/insights/needs";
 import { summarizeIntake } from "@/lib/insights/intake";
 import { summarizeAyurveda } from "@/lib/insights/ayurveda";
 import { evaluateLabs, latestLabValues } from "@/lib/insights/labs";
 import { evaluateIntelligence } from "@/lib/insights/intelligence";
 import { planActions } from "@/lib/insights/actions";
+import { familyOf } from "@/lib/family";
 
 // Insights are individual. A member sees their own; the Prime Member can
 // open any member of their Kutumbh with ?member=<user id>.
@@ -21,7 +22,8 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const needs = computeNeeds(d.profile, d.today);
   const labValues = latestLabValues(d.reports);
 
-  const period = (key: InsightsPeriod["key"], label: string, from: string): InsightsPeriod => {
+  // A week, or four. One day was removed deliberately — see InsightsPages.
+  const period = (key: Period["key"], label: string, from: string): Period => {
     const inRange = d.entries.filter((e) => e.logged_date >= from && e.logged_date <= d.today);
     const intake = summarizeIntake(d.entries, from, d.today);
     const flags = evaluateLabs(labValues, { intake, needs, foods: d.foods, allergies: d.profile.allergies ?? [] });
@@ -30,16 +32,26 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
     return {
       key, label, intake, flags, events,
       ayurveda: summarizeAyurveda(inRange, d.profile.primary_dosha),
-      // Many findings, a few things to do — see lib/insights/actions.ts
       plan: planActions({ events, labFlags: flags, intake, needs, entries: inRange }),
     };
   };
 
-  const periods = [
-    period("today", "Today", d.today),
-    period("week", "7 days", daysAgoLocal(6, d.timeZone)),
-    period("month", "30 days", d.from30),
+  const periods: Period[] = [
+    period("week", "1 week", daysAgoLocal(6, d.timeZone)),
+    period("month", "4 weeks", daysAgoLocal(27, d.timeZone)),
   ];
+
+  // Dishes still waiting for their details, which is why some of the
+  // energy is an estimate rather than a reading. Same count the family
+  // page shows, from the same column.
+  const { kutumbhId } = await familyOf(supabase, user!.id);
+  const { count: dishesToComplete } = kutumbhId
+    ? await supabase
+        .from("food_items")
+        .select("id", { count: "exact", head: true })
+        .eq("kutumbh_id", kutumbhId)
+        .eq("needs_review", true)
+    : { count: 0 };
 
   const reportDate = d.reports[0]?.report_date ?? null;
   const firstName = d.name.split(" ")[0];
@@ -65,11 +77,15 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
       </header>
 
       <main className="flex-1 px-4 py-5">
-        <InsightsView
+        <InsightsPages
           periods={periods}
           needs={needs}
+          profile={d.profile}
+          age={ageOn(d.profile.date_of_birth, d.today)}
           primaryDosha={d.profile.primary_dosha}
           hasReport={!!reportDate}
+          reportDate={reportDate}
+          dishesToComplete={dishesToComplete ?? 0}
           viewingOther={d.viewingOther}
           memberId={d.viewingOther ? d.targetId : null}
           firstName={firstName}

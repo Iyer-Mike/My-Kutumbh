@@ -14,6 +14,18 @@ import { evaluateLabs, latestLabValues } from "@/lib/insights/labs";
 import { evaluateIntelligence } from "@/lib/insights/intelligence";
 import { ayurvedaNarrative, energyNarrative, microNarrative } from "@/lib/insights/narrate";
 
+/**
+ * Where the question was asked from. The coach leans that way — it
+ * never refuses a question for being asked from the wrong page, which
+ * would be an annoyance dressed up as a feature.
+ */
+const FROM_PAGE: Record<string, string> = {
+  needs:    "They are looking at Health Needs Analysis: their lab report set against what they have eaten, and the changes suggested. Start there.",
+  intake:   "They are looking at Food Intake Analysis: their targets, what the food actually gave, and where their logging has gaps. Start there.",
+  report:   "They are looking at their lab report and what the food adds to it. Start there, in plain words, without diagnosing.",
+  ayurveda: "They are looking at the Ayurvedic reading of their food — the six tastes, heating and cooling, the doshas. Start there, as a complement to nutrition rather than a replacement.",
+};
+
 const SYSTEM = `You are the My Kutumbh health coach: a warm, practical guide to food and everyday habits for an Indian family, grounded in modern nutrition and Ayurveda.
 
 You are given one family member's profile, their last 7 days of logged meals, their latest lab findings and the app's alerts. Use those facts; if something needed isn't in the data, say so rather than guessing.
@@ -44,7 +56,7 @@ export async function POST(req: NextRequest) {
   const budget = await checkBudget(supabase, user.id, kutumbhId);
   if (!budget.ok) return NextResponse.json({ error: budget.message }, { status: budget.status });
 
-  let body: { messages?: Msg[]; member?: string | null };
+  let body: { messages?: Msg[]; member?: string | null; page?: string | null };
   try {
     body = await req.json();
   } catch {
@@ -112,7 +124,7 @@ export async function POST(req: NextRequest) {
       messages,
     });
     await recordSpend(supabase, {
-      userId: user.id, kutumbhId, feature: "coach", model: "claude-opus-5", usage: response.usage,
+      userId: user.id, kutumbhId, feature: body.page ? `coach:${body.page}` : "coach", model: "claude-opus-5", usage: response.usage,
     });
 
     if (response.stop_reason === "refusal") {

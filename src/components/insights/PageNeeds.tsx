@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { LabFlag, IntakeSummary, Needs } from "@/lib/insights/types";
 import type { Plan, Action } from "@/lib/insights/actions";
-import { Card, Label, Chip, Says, C, T, num } from "./bits";
+import { Card, Label, Chip, Says, C, T, num, qty } from "./bits";
 
 /**
  * 1 · Health Needs Analysis
@@ -60,9 +60,14 @@ export default function PageNeeds({
   onOpenReport: () => void;
 }) {
   const kcalShare = needs.kcal.value ? intake.perDay.kcal / needs.kcal.value : 0;
-  const carbShare = intake.perDay.kcal ? (intake.perDay.carbs_g * 4) / intake.perDay.kcal : 0;
-  const fatShare = intake.perDay.kcal ? (intake.perDay.fat_g * 9) / intake.perDay.kcal : 0;
-  const protShare = Math.max(0, 1 - carbShare - fatShare);
+  // Each from its own grams. They need not sum to one: some logged food
+  // has no breakdown, and pretending otherwise is how protein came to
+  // read 31% when the truth was nearer 9%.
+  const kcal = intake.perDay.kcal || 1;
+  const carbShare = (intake.perDay.carbs_g * 4) / kcal;
+  const fatShare = (intake.perDay.fat_g * 9) / kcal;
+  const protShare = (intake.perDay.protein_g * 4) / kcal;
+  const unaccounted = Math.max(0, 1 - carbShare - fatShare - protShare);
 
   const worst = flags.filter((f) => f.known).slice(0, 5);
   const forDoctor = plan.doctor.length;
@@ -87,7 +92,7 @@ export default function PageNeeds({
                 const r = f.readings[0];
                 return r ? (
                   <Chip key={f.key} tone={r.status === "low" ? "low" : "high"}>
-                    {f.label.split(" ")[0]} <span className="font-bold">{r.value}</span>
+                    {r.label} <span className="font-bold">{qty(r.value)}</span>
                   </Chip>
                 ) : null;
               })}
@@ -126,12 +131,18 @@ export default function PageNeeds({
               <div style={{ width: `${carbShare * 100}%`, background: "#C8832A" }} />
               <div style={{ width: `${fatShare * 100}%`, background: "#8B6BC9" }} />
               <div style={{ width: `${protShare * 100}%`, background: C.leaf }} />
+              {unaccounted > 0.02 && <div style={{ width: `${unaccounted * 100}%`, background: "#CFC7DD" }} />}
             </div>
             <div className="flex justify-between mt-1.5" style={{ fontSize: T.note, color: C.ink3 }}>
               <span>Carbs {Math.round(carbShare * 100)}%</span>
               <span>Fat {Math.round(fatShare * 100)}%</span>
               <span>Protein {Math.round(protShare * 100)}%</span>
             </div>
+            {unaccounted > 0.02 && (
+              <p className="m-0 mt-1.5" style={{ fontSize: T.note, color: C.ink3 }}>
+                {Math.round(unaccounted * 100)}% of the energy has no breakdown yet — dishes still waiting for their details.
+              </p>
+            )}
           </>
         )}
       </Card>

@@ -138,6 +138,18 @@ BEGIN
   VALUES (v_invite.kutumbh_id, v_user, 'member')
   ON CONFLICT DO NOTHING;
 
+  -- Two doors, and this number opens both. The Admin vouches for a
+  -- household; a Prime Member vouches for their own family, and that
+  -- is vouching enough to be in the app. Written defensively so this
+  -- file still runs before phase 24 has created the table.
+  BEGIN
+    INSERT INTO app_admissions (user_id, status, decided_at)
+    VALUES (v_user, 'admitted', now())
+    ON CONFLICT (user_id) DO UPDATE SET status = 'admitted', decided_at = now();
+  EXCEPTION WHEN undefined_table THEN
+    NULL;
+  END;
+
   -- Spent: one number, one person
   UPDATE kutumbh_invites
      SET used_count = COALESCE(used_count, 0) + 1,

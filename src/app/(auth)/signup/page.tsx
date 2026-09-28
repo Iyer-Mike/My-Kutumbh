@@ -14,6 +14,13 @@ function SignupForm() {
   const redirectTo   = searchParams.get("redirect") ?? null;
 
   const [email, setEmail] = useState("");
+  // The passcode from the letter. Registration needs it; joining a
+  // family later uses a different number entirely.
+  const [passcode, setPasscode] = useState("");
+  // Someone arriving on a family's invitation does not need a passcode
+  // from the Admin: their Prime Member is vouching for them, and the
+  // six-digit number on the next page does the same work.
+  const invitedToFamily = !!inviteFromPath(redirectTo);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +56,29 @@ function SignupForm() {
     }
 
     if (data.session) {
-      window.location.href = redirectTo ?? "/onboarding";
+      if (invitedToFamily) {
+        // Straight to the family's own door, where the number admits them
+        window.location.href = redirectTo!;
+        return;
+      }
+
+      // Knock at the app's own door with the passcode from the letter.
+      // Somebody at My Kutumbh decides; until then they wait.
+      const { error: claimError } = await supabase.rpc("claim_app_invite", { p_code: passcode.trim() });
+
+      if (claimError) {
+        setError(
+          /wrong_passcode/.test(claimError.message)
+            ? "That passcode doesn't match. Check the letter you were sent."
+            : /passcode_expired/.test(claimError.message)
+            ? "That passcode has expired — they last a day. Ask for a fresh one."
+            : "Your account was made, but the passcode wasn't accepted. Sign in and try again.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = "/waiting";
       return;
     }
 
@@ -125,6 +154,39 @@ function SignupForm() {
             placeholder="you@email.com"
           />
         </div>
+
+        {!invitedToFamily && (
+        <div>
+          <label htmlFor="passcode" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
+
+            Passcode from your invitation
+
+          </label>
+
+          <input
+
+            id="passcode"
+
+            type="text"
+
+            autoComplete="off"
+
+            required
+
+            value={passcode}
+
+            onChange={(e) => setPasscode(e.target.value.toUpperCase())}
+
+            placeholder="the code in your letter"
+
+            className="w-full px-4 py-3 rounded-xl text-sm tracking-widest focus:outline-none"
+            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
+          />
+          <p className="text-xs mt-1.5" style={{ color: "#8A80A0" }}>
+            The code in the invitation you were sent. It lasts a day.
+          </p>
+        </div>
+        )}
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>

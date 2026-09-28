@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import BottomNav from "@/components/BottomNav";
 import { FamilyTimeProvider } from "@/lib/family-time";
 import { familyOf } from "@/lib/family";
+import { standingOf } from "@/lib/admission";
 
 export default async function AppLayout({
   children,
@@ -14,6 +15,17 @@ export default async function AppLayout({
 
   if (!user) {
     redirect("/login");
+  }
+
+  // Two doors. This is the first: has the Admin let them into My
+  // Kutumbh at all? Someone still waiting sees the waiting room and
+  // nothing else — no family, no logging, no coach.
+  const standing = await standingOf(supabase, user.id);
+  // Anything but a plain "admitted" waits outside. A person whose
+  // passcode never landed has no row at all, and must not simply
+  // wander in because of it.
+  if (standing !== "admitted") {
+    redirect("/waiting");
   }
 
   const { timeZone } = await familyOf(supabase, user.id);

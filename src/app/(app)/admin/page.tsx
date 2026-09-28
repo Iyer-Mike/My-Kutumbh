@@ -4,6 +4,7 @@ import PageNav from "@/components/PageNav";
 import { loadDesk, money, since, type Household } from "@/lib/admin";
 import WriteToKutumbh from "@/components/WriteToKutumbh";
 import WithdrawLetter from "@/components/WithdrawLetter";
+import AtTheDoor from "@/components/AtTheDoor";
 import { MONTH_APP_RUPEES, MONTH_FAMILY_RUPEES } from "@/lib/ai-budget";
 import { familyOf } from "@/lib/family";
 
@@ -89,6 +90,9 @@ export default async function AdminPage() {
             </div>
           )}
         </section>
+
+        {/* ── Who is waiting to be let into My Kutumbh ── */}
+        <AtTheDoor waiting={desk.waiting} />
 
         {/* ── What is breaking ── */}
         {desk.faults.length > 0 && (

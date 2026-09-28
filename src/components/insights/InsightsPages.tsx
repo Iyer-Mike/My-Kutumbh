@@ -46,27 +46,72 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 /**
- * What to offer asking, on each page. Two voices: asking about
- * yourself, and a Prime Member asking about someone else.
+ * What to offer asking — built from this member's own figures, so the
+ * questions name the thing on the screen rather than a category. "Why
+ * 3 katoris of dal?" is a question somebody might actually type; "What
+ * should I eat more of?" is a form to fill in.
  */
-const ASK: Record<Tab, { mine: string[]; theirs: (n: string) => string[] }> = {
-  needs: {
-    mine: ["What should I change first?", "Why is my sugar still high?", "Plan a day of meals for me"],
-    theirs: (n) => [`What should ${n} change first?`, `Why is ${n}'s sugar still high?`, `Plan a day of meals for ${n}`],
-  },
-  intake: {
-    mine: ["Which dishes would close my protein gap?", "What am I short of most?", "Am I eating enough?"],
-    theirs: (n) => [`Which dishes would close ${n}'s protein gap?`, `What is ${n} short of most?`, `Is ${n} eating enough?`],
-  },
-  report: {
-    mine: ["Explain this report in simple words", "Which foods lower my LDL?", "What should I ask my doctor?"],
-    theirs: (n) => [`Explain ${n}'s report in simple words`, `Which foods lower ${n}'s LDL?`, `What should we ask the doctor?`],
-  },
-  ayurveda: {
-    mine: ["Which bitter dishes can I add?", "What suits my Prakriti?", "Is my food too sweet?"],
-    theirs: (n) => [`Which bitter dishes can ${n} add?`, `What suits ${n}'s Prakriti?`, `Is ${n}'s food too sweet?`],
-  },
-};
+function questionsFor(tab: Tab, p: Period, name: string | null): string[] {
+  const me = name ?? "I";
+  const mine = !name;
+  const top = p.plan.actions[0];
+  const gap = p.plan.gaps[0];
+  const flag = p.flags.find((f) => f.known);
+  const reading = flag?.readings[0];
+
+  switch (tab) {
+    case "needs":
+      return [
+        top ? (mine ? `Why ${top.headline.replace(/[.?!]$/, "")}?` : `Why should ${me} — ${top.headline.replace(/[.?!]$/, "")}?`) : "What should change first?",
+        mine ? "What can I eat instead?" : `What can ${me} eat instead?`,
+        mine ? "Plan a day of meals for me" : `Plan a day of meals for ${me}`,
+      ];
+    case "intake":
+      return [
+        gap
+          ? (mine
+              ? `Which of our dishes would close the ${gap.label.toLowerCase()} gap?`
+              : `Which dishes would close ${me}'s ${gap.label.toLowerCase()} gap?`)
+          : "Which dishes suit us best?",
+        gap ? (mine ? `Why am I short of ${gap.label.toLowerCase()}?` : `Why is ${me} short of ${gap.label.toLowerCase()}?`) : "Am I eating enough?",
+        mine ? "What should a day's food look like?" : `What should ${me}'s day look like?`,
+      ];
+    case "report":
+      return [
+        reading ? `What does ${reading.label} ${reading.value} mean for my food?` : "Explain this report in simple words",
+        flag ? `Which foods bring ${flag.label.toLowerCase()} down?` : "Which foods help most?",
+        "What should I ask my doctor?",
+      ];
+    case "ayurveda":
+      return [
+        "Which bitter dishes can we add?",
+        mine ? "What suits my Prakriti?" : `What suits ${me}'s Prakriti?`,
+        mine ? "Is my food too sweet?" : `Is ${me}'s food too sweet?`,
+      ];
+  }
+}
+
+/** What the page is showing at this moment, in a line or two. */
+function onScreenFor(tab: Tab, p: Period): string {
+  switch (tab) {
+    case "needs":
+      return [
+        `Energy ${Math.round(p.intake.perDay.kcal)} kcal a day on ${p.intake.loggedDays} logged days.`,
+        p.plan.actions.length ? `The changes shown: ${p.plan.actions.map((a) => a.headline).join(" | ")}` : "No changes are being suggested.",
+        p.plan.doctor.length ? `Marked for a doctor: ${p.plan.doctor.join(" ")}` : "",
+      ].filter(Boolean).join("\n");
+    case "intake":
+      return p.plan.gaps.length
+        ? `Short of target: ${p.plan.gaps.map((g) => `${g.label} ${g.had} of ${g.target} ${g.unit}`).join("; ")}.`
+        : "Everything is within range for this period.";
+    case "report":
+      return p.flags.filter((f) => f.known).map((f) =>
+        `${f.label}: ${f.readings.map((r) => `${r.label} ${r.value}${r.unit ? " " + r.unit : ""}`).join(", ")}`,
+      ).join("\n") || "No readings outside range.";
+    case "ayurveda":
+      return `Tastes this period: ${Object.entries(p.ayurveda.tasteShare).map(([t, v]) => `${t} ${Math.round((v as number) * 100)}%`).join(", ")}.`;
+  }
+}
 
 const STORE = "insights-tab-v1";
 
@@ -213,11 +258,26 @@ export default function InsightsPages({
             <p className="m-0 font-semibold uppercase tracking-widest" style={{ fontSize: T.label, color: "#C9B8E4" }}>
               Ask the coach
             </p>
+            {/* Named, and about what is actually on this page — not a
+                general invitation to ask something. */}
             <p className="m-0 mt-1.5" style={{ fontSize: T.body, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>
-              {tab === "needs" && "About these changes, or anything else."}
-              {tab === "intake" && "About what is short, and what would close it."}
-              {tab === "report" && "About these readings, in plain words."}
-              {tab === "ayurveda" && "About the tastes, or what suits this Prakriti."}
+              {viewingOther ? (
+                <>About {firstName}&apos;s {tab === "needs" ? "changes" : tab === "intake" ? "shortfalls" : tab === "report" ? "readings" : "tastes"}, or anything else.</>
+              ) : (
+                <>
+                  {firstName}, ask me about{" "}
+                  {tab === "needs" && (p.plan.actions[0]
+                    ? <>the {p.plan.actions[0].id.replace(/^(more|less)-/, "")} — or anything else.</>
+                    : "these changes, or anything else.")}
+                  {tab === "intake" && (p.plan.gaps[0]
+                    ? <>the {p.plan.gaps[0].label.toLowerCase()} gap, or anything else.</>
+                    : "what is short, or anything else.")}
+                  {tab === "report" && (p.flags.find((f) => f.known)
+                    ? <>{p.flags.find((f) => f.known)!.label.toLowerCase()}, in plain words.</>
+                    : "these readings, in plain words.")}
+                  {tab === "ayurveda" && "the tastes, or what suits your Prakriti."}
+                </>
+              )}
             </p>
             <span
               className="inline-block mt-3 rounded-full px-4 py-2 font-semibold"
@@ -242,7 +302,8 @@ export default function InsightsPages({
                 firstName={firstName}
                 viewingOther={viewingOther}
                 page={tab}
-                suggest={viewingOther ? ASK[tab].theirs(firstName) : ASK[tab].mine}
+                suggest={questionsFor(tab, p, viewingOther ? firstName : null)}
+                onScreen={onScreenFor(tab, p)}
               />
             </div>
           </>

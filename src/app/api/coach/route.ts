@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const budget = await checkBudget(supabase, user.id, kutumbhId);
   if (!budget.ok) return NextResponse.json({ error: budget.message }, { status: budget.status });
 
-  let body: { messages?: Msg[]; member?: string | null; page?: string | null };
+  let body: { messages?: Msg[]; member?: string | null; page?: string | null; onScreen?: string | null };
   try {
     body = await req.json();
   } catch {
@@ -120,7 +120,16 @@ export async function POST(req: NextRequest) {
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       output_config: { effort: "medium" },
-      system: `${SYSTEM}\n\n<member_data>\n${context}\n</member_data>`,
+      // Where they are, and what their eyes are actually on. A question
+      // like "why that one?" only means something against the figures
+      // the page is showing at that moment.
+      system:
+        `${SYSTEM}` +
+        (body.page && FROM_PAGE[body.page] ? `\n\nWhere they are: ${FROM_PAGE[body.page]}` : "") +
+        (typeof body.onScreen === "string" && body.onScreen.trim()
+          ? `\n\nOn the screen in front of them right now:\n${body.onScreen.slice(0, 1200)}`
+          : "") +
+        `\n\n<member_data>\n${context}\n</member_data>`,
       messages,
     });
     await recordSpend(supabase, {

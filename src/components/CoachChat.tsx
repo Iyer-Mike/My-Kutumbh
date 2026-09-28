@@ -28,12 +28,14 @@ function Reply({ text }: { text: string }) {
   return <div className="grid gap-2 text-sm leading-relaxed" style={{ color: INK }}>{out}</div>;
 }
 
-export default function CoachChat({ memberId, firstName, viewingOther, page, suggest }: {
+export default function CoachChat({ memberId, firstName, viewingOther, page, suggest, onScreen }: {
   memberId: string | null; firstName: string; viewingOther: boolean;
   /** Which page the question was asked from, so the answer starts there. */
   page?: string;
   /** Questions that suit that page. */
   suggest?: string[];
+  /** What is actually in front of them — the figures, not the page name. */
+  onScreen?: string;
 }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
@@ -61,7 +63,7 @@ export default function CoachChat({ memberId, firstName, viewingOther, page, sug
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next, member: memberId, page }),
+        body: JSON.stringify({ messages: next, member: memberId, page, onScreen }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.reply) {

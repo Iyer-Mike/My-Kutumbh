@@ -28,15 +28,31 @@ export async function forgetMe(): Promise<{ ok: boolean; error?: string }> {
   }
 
   // ── Their uploaded reports ──
+  //
+  // The bucket is "medical-reports". An earlier version of this wrote
+  // "medical-records" — a name I assumed rather than checked — and the
+  // removal failed silently, leaving a member's blood tests in storage
+  // after they had asked to be forgotten. Exactly the opposite of what
+  // the button promises.
+  //
+  // Older rows saved a full URL and newer ones save the path, so both
+  // are accepted, as MedicalReportsCard does.
   try {
     const { data: records } = await supabase
       .from("medical_records").select("file_url").eq("user_id", user.id);
     const paths = (records ?? [])
       .map((r: { file_url: string | null }) => r.file_url)
-      .filter((p): p is string => !!p);
-    if (paths.length) await supabase.storage.from("medical-records").remove(paths);
+      .filter((p): p is string => !!p)
+      .map((p) => (p.startsWith("http") ? p.replace(/^.*\/medical-reports\//, "") : p));
+
+    if (paths.length) {
+      const { error: gone } = await supabase.storage.from("medical-reports").remove(paths);
+      // A file that will not go is worth knowing about: the account is
+      // still removed, but the leftover should be findable afterwards.
+      if (gone) console.error("forget_me: could not remove report files", gone.message);
+    }
   } catch {
-    // as above
+    // A file that will not budge must not trap someone in the app
   }
 
   // ── The account itself ──

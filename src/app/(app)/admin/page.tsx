@@ -125,16 +125,16 @@ export default async function AdminPage() {
         {desk.stranded.length > 0 && (
           <section className="rounded-2xl px-4 py-4" style={{ background: "#FDF3F2", border: "1px solid #E8C4BF" }}>
             <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#B0453A" }}>
-              Stuck at the door · {desk.stranded.length}
+              Signed up, no family · {desk.stranded.length}
             </p>
             <p className="text-[11px] mt-1 mb-3" style={{ color: "#6A6180" }}>
-              Signed up, but in no Kutumbh. Usually a confirmation email that never arrived.
+Admitted to the app but belonging to no family — they should be sent back to name one.
             </p>
             {desk.stranded.map((s, n) => (
               <div key={n} className="flex items-baseline justify-between text-sm py-1">
                 <span style={{ color: "#241C33" }}>{s.full_name}</span>
                 <span className="text-xs" style={{ color: "#6A6180" }}>
-                  {since(s.joined).label}
+                  {s.email} · {since(s.joined).label}
                   {!s.confirmed && " · never confirmed"}
                 </span>
               </div>

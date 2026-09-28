@@ -25,7 +25,7 @@ export type Household = {
 };
 
 export type FeatureSpend = { feature: string; calls: number; spend_month: number };
-export type Stranded = { full_name: string; joined: string; confirmed: boolean };
+export type Stranded = { full_name: string; email: string | null; joined: string; confirmed: boolean };
 export type Invite = { kutumbh_name: string; made: string; expires: string; active: boolean; used: number };
 export type Waiting = {
   user_id: string; full_name: string | null; email: string | null;

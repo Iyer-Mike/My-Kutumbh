@@ -28,7 +28,16 @@ export default async function AppLayout({
     redirect("/waiting");
   }
 
-  const { timeZone } = await familyOf(supabase, user.id);
+  const { kutumbhId, timeZone } = await familyOf(supabase, user.id);
+
+  // Admitted, but belonging to no family. It should not be possible —
+  // and one account in five was in exactly this state, left there by an
+  // invitation that failed in September while onboarding recorded
+  // itself as finished. Onboarding asks for a family and creates one,
+  // so that is where the thread is picked up rather than dropped.
+  if (!kutumbhId) {
+    redirect("/onboarding");
+  }
 
   return (
     <FamilyTimeProvider tz={timeZone}>

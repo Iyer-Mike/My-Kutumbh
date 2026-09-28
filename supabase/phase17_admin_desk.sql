@@ -146,7 +146,7 @@ GRANT EXECUTE ON FUNCTION admin_spend_by_feature() TO authenticated;
 DROP FUNCTION IF EXISTS admin_stranded_people();
 
 CREATE FUNCTION admin_stranded_people()
-RETURNS TABLE (full_name text, joined timestamptz, confirmed boolean)
+RETURNS TABLE (full_name text, email text, joined timestamptz, confirmed boolean)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
@@ -160,6 +160,7 @@ BEGIN
   RETURN QUERY
   SELECT
     COALESCE(p.full_name, '(no name given)')::text,
+    u.email::text,
     u.created_at,
     (u.email_confirmed_at IS NOT NULL)
   FROM auth.users u

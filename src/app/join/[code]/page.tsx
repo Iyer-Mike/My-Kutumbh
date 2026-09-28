@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import JoinButton from "./JoinButton";
+import EnterJoinCode from "@/components/EnterJoinCode";
 import { BRAND as B } from "@/lib/brand";
 import RememberInvite from "@/components/RememberInvite";
 
@@ -63,6 +63,15 @@ export default async function JoinPage({ params }: Props) {
   // an account to read, so it stays unnamed until they are in.
   if (!user) {
     const next = `/join/${clean}`;
+
+    // Who the invitation was addressed to, so the sign-up form can be
+    // filled in already and they never land outside it by mistyping.
+    const { data: addressed } = await supabase
+      .from("kutumbh_invites")
+      .select("invited_email")
+      .eq("invite_code", clean)
+      .maybeSingle();
+    const forEmail: string | null = addressed?.invited_email ?? null;
     return (
       <Shell eyebrow="An invitation" title="A place has been kept for you in a Kutumbh">
         <RememberInvite code={clean} />
@@ -90,7 +99,13 @@ export default async function JoinPage({ params }: Props) {
           </div>
         </div>
 
-        <Link href={`/signup?redirect=${encodeURIComponent(next)}`}
+        {forEmail && (
+          <p className="m-0 text-center text-[13px]" style={{ color: B.muted }}>
+            This invitation is for <span className="font-semibold" style={{ color: B.ink2 }}>{forEmail}</span>.
+          </p>
+        )}
+
+        <Link href={`/signup?redirect=${encodeURIComponent(next)}${forEmail ? `&email=${encodeURIComponent(forEmail)}` : ""}`}
           className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white" style={{ background: B.button }}>
           Create an account to join
         </Link>
@@ -107,7 +122,7 @@ export default async function JoinPage({ params }: Props) {
   // Look up invite
   const { data: invite } = await supabase
     .from("kutumbh_invites")
-    .select("kutumbh_id, expires_at, is_active, kutumbhs(name)")
+    .select("kutumbh_id, expires_at, is_active, invited_email, kutumbhs(name)")
     .eq("invite_code", clean)
     .maybeSingle();
 
@@ -131,6 +146,18 @@ export default async function JoinPage({ params }: Props) {
   }
 
   const kutumbhName = (invite?.kutumbhs as unknown as { name: string } | null)?.name;
+
+  // Who to ask for the number, by name rather than "whoever invited you"
+  let primeName: string | null = null;
+  if (invite?.kutumbh_id) {
+    const { data: prime } = await supabase
+      .from("family_roster")
+      .select("full_name")
+      .eq("kutumbh_id", invite.kutumbh_id)
+      .eq("role", "owner")
+      .maybeSingle();
+    primeName = prime?.full_name ?? null;
+  }
   const expired = invite && new Date(invite.expires_at) < new Date();
   const invalid = !invite || !invite.is_active || expired;
 
@@ -160,6 +187,26 @@ export default async function JoinPage({ params }: Props) {
     );
   }
 
+  // The invitation named somebody else
+  if (invite && invite.invited_email && user.email
+      && invite.invited_email.toLowerCase() !== user.email.toLowerCase()) {
+    return (
+      <Shell eyebrow="An invitation" title="This invitation is for someone else">
+        <p className="m-0 text-sm text-center" style={{ color: B.muted }}>
+          It was sent to <span className="font-semibold">{invite.invited_email}</span>, and you are signed in
+          as <span className="font-semibold">{user.email}</span>.
+        </p>
+        <p className="m-0 text-xs text-center" style={{ color: B.muted2 }}>
+          Sign in with that address, or ask the Prime Member for an invitation in your own name.
+        </p>
+        <Link href="/dashboard" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
+          style={{ background: B.button }}>
+          Go to my day
+        </Link>
+      </Shell>
+    );
+  }
+
   if (existingMember && !aloneInOwn) {
     return (
       <Shell eyebrow="An invitation" title="You already belong to a Kutumbh">
@@ -176,6 +223,10 @@ export default async function JoinPage({ params }: Props) {
 
   return (
     <Shell eyebrow="An invitation" title={`A place has been kept for you at the ${kutumbhName}`}>
+      <p className="m-0 text-sm text-center" style={{ color: B.muted, lineHeight: 1.6 }}>
+        {primeName ? `${primeName} will have given you a six-digit number.` : "You will have been given a six-digit number."}{" "}
+        Type it below and you are in.
+      </p>
       <div className="rounded-2xl px-4 py-4 grid gap-3" style={{ background: B.page, border: `1px solid ${B.cardEdge}` }}>
         <p className="m-0 text-[11px] font-semibold uppercase" style={{ letterSpacing: "0.1em", color: B.muted2 }}>
           What joining gives you
@@ -218,7 +269,13 @@ export default async function JoinPage({ params }: Props) {
         </p>
       )}
 
-      <JoinButton code={clean} moving={aloneInOwn} />
+      <EnterJoinCode link={clean} kutumbhHint={primeName} />
+
+      {aloneInOwn && (
+        <p className="m-0 text-xs text-center" style={{ color: B.muted2 }}>
+          You have a Kutumbh of your own with nobody else in it. Joining this one will close that.
+        </p>
+      )}
     </Shell>
   );
 }

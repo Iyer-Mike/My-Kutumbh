@@ -5,6 +5,7 @@ import FacePicker from "@/components/FacePicker";
 import { signedFaces } from "@/lib/faces";
 import NoticesCard, { type Notice } from "@/components/NoticesCard";
 import PrimeRole from "@/components/PrimeRole";
+import { RemoveMember, LeaveKutumbh } from "@/components/MemberControls";
 import { primeState, touchLastSeen } from "@/lib/prime";
 import InviteButton from "@/components/InviteButton";
 import Link from "next/link";
@@ -407,26 +408,42 @@ export default async function FamilyPage() {
                     </>
                   );
 
-                  // The Prime Member can open any member's 7-day consumption
-                  return isOwner ? (
-                    <Link key={m.user_id} href={`/family/member/${m.user_id}`} className={cardClass} style={cardStyle}>
-                      {inner}
-                      <span className="text-lg flex-shrink-0" style={{ color: "#6A6180" }}>›</span>
-                    </Link>
-                  ) : (
-                    <div key={m.user_id} className={cardClass} style={cardStyle}>
-                      {inner}
+                  // The Prime Member can open any member's 7-day consumption.
+                  // Removing sits below the card rather than inside it: a
+                  // button within a link is a trap for a thumb.
+                  return (
+                    <div key={m.user_id}>
+                      {isOwner ? (
+                        <Link href={`/family/member/${m.user_id}`} className={cardClass} style={cardStyle}>
+                          {inner}
+                          <span className="text-lg flex-shrink-0" style={{ color: "#6A6180" }}>›</span>
+                        </Link>
+                      ) : (
+                        <div className={cardClass} style={cardStyle}>
+                          {inner}
+                        </div>
+                      )}
+                      {isOwner && !m.isMe && (
+                        <div className="px-4">
+                          <RemoveMember userId={m.user_id} name={m.full_name} />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* ── Non-Prime Member: invite note ── */}
+            {/* ── Non-Prime Member: invite note, and the way out ── */}
             {!isOwner && (
-              <p className="text-xs text-center" style={{ color: "#6A6180" }}>
-                Ask the Prime Member to invite more members.
-              </p>
+              <div className="grid gap-3">
+                <p className="text-xs text-center m-0" style={{ color: "#6A6180" }}>
+                  Ask the Prime Member to invite more members.
+                </p>
+                <div className="text-center">
+                  <LeaveKutumbh kutumbhName={kutumbhName} isPrime={false} />
+                </div>
+              </div>
             )}
 
             {/* ── Quick link to Log ── */}

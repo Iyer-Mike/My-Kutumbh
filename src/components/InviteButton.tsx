@@ -2,8 +2,21 @@
 
 import { useState } from "react";
 
+/**
+ * Inviting someone by name.
+ *
+ * The link used to be the permission: whoever held it joined. Now the
+ * Prime Member says who is being invited, and the link admits that
+ * person alone — a copy forwarded to a family group opens nothing.
+ *
+ * The address travels into the sign-up form as well, so joining is one
+ * continuous motion rather than three disconnected steps.
+ */
 export default function InviteButton() {
+  const [email,   setEmail]   = useState("");
   const [code,    setCode]    = useState<string | null>(null);
+  const [number,  setNumber]  = useState<string | null>(null);
+  const [sentTo,  setSentTo]  = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied,  setCopied]  = useState(false);
   const [error,   setError]   = useState<string | null>(null);
@@ -12,16 +25,24 @@ export default function InviteButton() {
     process.env.NEXT_PUBLIC_APP_URL ||
     (typeof window !== "undefined" ? window.location.origin : "");
 
+  const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+
   async function generate() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/invite/generate", { method: "POST" });
+      const res = await fetch("/api/invite/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Failed to generate link"); return; }
+      if (!res.ok) { setError(data.error ?? "The link couldn't be made. Try again."); return; }
       setCode(data.code);
+      setNumber(data.joinCode ?? null);
+      setSentTo(data.invitedEmail ?? null);
     } catch {
-      setError("Network error — try again");
+      setError("No connection — try again.");
     } finally {
       setLoading(false);
     }
@@ -34,24 +55,42 @@ export default function InviteButton() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      /* clipboard blocked — user can copy manually */
+      /* clipboard blocked — the link is on screen to copy by hand */
     }
   }
 
   if (!code) {
     return (
       <div>
+        <label htmlFor="invite-email" className="block text-xs font-semibold mb-1.5" style={{ color: "#6A6180" }}>
+          Who are you inviting?
+        </label>
+        <input
+          id="invite-email"
+          type="email"
+          inputMode="email"
+          autoComplete="off"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="their email address"
+          className="w-full text-sm rounded-xl px-3 py-2.5 mb-2"
+          style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241C33" }}
+        />
+        <p className="text-[11px] mt-0 mb-3" style={{ color: "#6A6180", lineHeight: 1.5 }}>
+          You&apos;ll get a link to send and a six-digit number to tell them yourself. The link alone
+          lets nobody in, so it is safe to forward; the number is what admits them.
+        </p>
+
         <button
           onClick={generate}
-          disabled={loading}
+          disabled={loading || !looksLikeEmail}
           className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
           style={{ background: "#241238" }}
         >
-          {loading ? "Generating…" : "🔗 Create Invite Link"}
+          {loading ? "Making the link…" : "Create the invitation"}
         </button>
-        {error && (
-          <p className="text-xs text-center mt-2" style={{ color: "#C0392B" }}>{error}</p>
-        )}
+
+        {error && <p className="text-xs text-center mt-2" style={{ color: "#B0453A" }}>{error}</p>}
       </div>
     );
   }
@@ -60,16 +99,23 @@ export default function InviteButton() {
 
   return (
     <div className="space-y-3">
-      <div
-        className="rounded-xl px-4 py-3"
-        style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}
-      >
-        <p className="text-xs font-semibold mb-1" style={{ color: "#6B46B8" }}>Invite link (valid 7 days)</p>
-        <p
-          className="text-xs break-all font-mono"
-          style={{ color: "#241238" }}
-          aria-label="Invite link"
-        >
+      <div className="rounded-xl px-4 py-4 text-center" style={{ background: "#241238" }}>
+        <p className="text-[11px] font-semibold uppercase tracking-widest m-0" style={{ color: "#C9B8E4" }}>
+          Tell them this number
+        </p>
+        <p className="m-0 mt-2 font-bold tabular-nums" style={{ fontSize: "2.2rem", letterSpacing: "0.18em", color: "#fff" }}>
+          {number}
+        </p>
+        <p className="text-[11px] m-0 mt-2" style={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
+          Say it on the phone or in a message to {sentTo ?? "them"}. It works once, for 24 hours.
+        </p>
+      </div>
+
+      <div className="rounded-xl px-4 py-3" style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}>
+        <p className="text-xs font-semibold mb-1" style={{ color: "#6B46B8" }}>
+          And send this link — it opens the right page and admits nobody on its own
+        </p>
+        <p className="text-xs break-all font-mono" style={{ color: "#241238" }} aria-label="Invite link">
           {link}
         </p>
       </div>
@@ -80,17 +126,22 @@ export default function InviteButton() {
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
           style={{ background: copied ? "#6B46B8" : "#241238", color: "#fff" }}
         >
-          {copied ? "Copied ✓" : "Copy Link"}
+          {copied ? "Copied ✓" : "Copy the link"}
         </button>
         <button
-          onClick={generate}
+          onClick={() => { setCode(null); setNumber(null); setSentTo(null); setEmail(""); }}
           className="px-4 py-2.5 rounded-xl text-sm font-semibold"
           style={{ background: "#EDE7F7", color: "#625A75", border: "1px solid #E0D4F2" }}
-          title="Generate a new link (deactivates the old one)"
+          title="Invite somebody else instead"
         >
-          ↺
+          Someone else
         </button>
       </div>
+
+      <p className="text-[11px] m-0" style={{ color: "#6A6180", lineHeight: 1.5 }}>
+        You&apos;ll be told the moment they join, and you can remove anyone from the family at any time.
+        Five wrong numbers and this invitation closes itself.
+      </p>
     </div>
   );
 }

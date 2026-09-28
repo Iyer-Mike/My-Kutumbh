@@ -10,6 +10,7 @@ import PageNeeds from "./PageNeeds";
 import PageIntake from "./PageIntake";
 import PageReport from "./PageReport";
 import PageAyurveda from "./PageAyurveda";
+import Beginning from "./Beginning";
 import { C, T } from "./bits";
 
 /**
@@ -105,9 +106,24 @@ export default function InsightsPages({
   }
 
   const p = periods.find((x) => x.key === periodKey) ?? periods[0];
+
+  // Too little to say anything honest with. Four empty tabs is a poor
+  // way to meet a family; one card that says what is coming is better.
+  const barelyAnything = periods.every((x) => x.intake.loggedDays < 3) && !hasReport;
   const nothingLogged = p.intake.items === 0;
 
   const vitDLow = p.flags.some((f) => f.key === "vitamin_d");
+
+  if (barelyAnything) {
+    return (
+      <Beginning
+        loggedDays={Math.max(...periods.map((x) => x.intake.loggedDays))}
+        hasReport={hasReport}
+        viewingOther={viewingOther}
+        firstName={firstName}
+      />
+    );
+  }
 
   return (
     <div className="grid gap-3">

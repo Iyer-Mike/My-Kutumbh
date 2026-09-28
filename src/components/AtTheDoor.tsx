@@ -25,13 +25,47 @@ function waited(iso: string): string {
 }
 
 /** Writing a passcode to put in a letter. */
-function NewPasscode() {
+function NewPasscode({ signature, appUrl }: { signature: string | null; appUrl: string }) {
   const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
   const [made, setMade] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+
+  const letter = [
+    `Dear ${name.trim() || "friend"},`,
+    "",
+    "I have kept a place for you in My Kutumbh — a small app for an Indian household's food:",
+    "the day's menu, what each person eats, and what the lab report says about it.",
+    "",
+    "To register:",
+    `  ${appUrl}/signup`,
+    "",
+    `Your passcode: ${made}`,
+    "",
+    "The passcode works once and lasts a day. After you register I will welcome you in,",
+    "and then you can name your own Kutumbh and begin.",
+    "",
+    note.trim(),
+    note.trim() ? "" : null,
+    `— ${signature ?? "Mohan Iyer"}`,
+  ]
+    .filter((line): line is string => line !== null)
+    .filter((line, i, all) => !(line === "" && all[i - 1] === ""))
+    .join("\n");
+
+  async function copyLetter() {
+    try {
+      await navigator.clipboard.writeText(letter);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      /* clipboard blocked — the text is on screen to copy by hand */
+    }
+  }
 
   if (made) {
     return (
@@ -43,16 +77,37 @@ function NewPasscode() {
           {made}
         </p>
         <p className="m-0 mt-2 text-xs" style={{ color: "rgba(255,255,255,0.72)", lineHeight: 1.55 }}>
-          Put this in the mail with the registration link. It lasts 24 hours and works once.
-          They register, then wait here for you.
+          Send this from iyer.mike@gmail.com. The letter below is written already — copy it,
+          paste it into Gmail, and address it to {email || "them"}.
         </p>
-        <button
-          onClick={() => { setMade(null); setEmail(""); setNote(""); setOpen(false); }}
-          className="mt-3 text-xs font-semibold px-4 py-2 rounded-full"
-          style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
+
+        <pre
+          className="mt-3 mb-0 whitespace-pre-wrap text-left"
+          style={{
+            background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.92)",
+            borderRadius: 12, padding: "0.75rem 0.85rem", fontSize: "0.8rem",
+            lineHeight: 1.55, fontFamily: "inherit", maxHeight: "16rem", overflow: "auto",
+          }}
         >
-          Done
-        </button>
+{letter}
+        </pre>
+
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={copyLetter}
+            className="text-xs font-semibold px-4 py-2 rounded-full"
+            style={{ background: copied ? "#6B46B8" : "#fff", color: copied ? "#fff" : "#241238" }}
+          >
+            {copied ? "Copied ✓" : "Copy the letter"}
+          </button>
+          <button
+            onClick={() => { setMade(null); setName(""); setEmail(""); setNote(""); setOpen(false); }}
+            className="text-xs font-semibold px-4 py-2 rounded-full"
+            style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
+          >
+            Done
+          </button>
+        </div>
       </div>
     );
   }
@@ -72,16 +127,23 @@ function NewPasscode() {
   return (
     <div className="rounded-xl p-3" style={{ background: "#F3EEFA", border: `1px solid ${C.rule}` }}>
       <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="their name, as you would say it"
+        className="w-full text-sm rounded-lg px-3 py-2 mb-2"
+        style={{ background: "#fff", border: `1px solid ${C.rule}`, color: C.ink }}
+      />
+      <input
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="who are you writing to? (their email)"
+        placeholder="their email address"
         className="w-full text-sm rounded-lg px-3 py-2 mb-2"
         style={{ background: "#fff", border: `1px solid ${C.rule}`, color: C.ink }}
       />
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="a note for your own memory (optional)"
+        placeholder="a line of your own to add to the letter (optional)"
         className="w-full text-sm rounded-lg px-3 py-2"
         style={{ background: "#fff", border: `1px solid ${C.rule}`, color: C.ink }}
       />
@@ -182,7 +244,7 @@ function Knocking({ w }: { w: Waiting }) {
   );
 }
 
-export default function AtTheDoor({ waiting }: { waiting: Waiting[] }) {
+export default function AtTheDoor({ waiting, signature, appUrl }: { waiting: Waiting[]; signature: string | null; appUrl: string }) {
   return (
     <section
       className="rounded-2xl px-4 py-4"
@@ -210,7 +272,7 @@ export default function AtTheDoor({ waiting }: { waiting: Waiting[] }) {
       )}
 
       <div className="mt-4">
-        <NewPasscode />
+        <NewPasscode signature={signature} appUrl={appUrl} />
       </div>
     </section>
   );

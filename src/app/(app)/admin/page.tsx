@@ -92,7 +92,11 @@ export default async function AdminPage() {
         </section>
 
         {/* ── Who is waiting to be let into My Kutumbh ── */}
-        <AtTheDoor waiting={desk.waiting} />
+        <AtTheDoor
+          waiting={desk.waiting}
+          signature={myName}
+          appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "https://my-kutumbh.vercel.app"}
+        />
 
         {/* ── What is breaking ── */}
         {desk.faults.length > 0 && (

@@ -227,6 +227,13 @@ function SignupForm() {
           Sign in
         </Link>
       </p>
+
+      {/* What you would be handing over, before you hand it over */}
+      <p className="text-center text-xs mt-4 mb-0" style={{ color: "#6A6180" }}>
+        <Link href="/privacy" style={{ color: "#6B46B8" }}>What the app knows about you</Link>
+        <span className="mx-1.5">·</span>
+        <Link href="/terms" style={{ color: "#6B46B8" }}>Using My Kutumbh</Link>
+      </p>
     </div>
   );
 }

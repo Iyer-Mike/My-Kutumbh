@@ -13,8 +13,16 @@
 // "Public" means a page that must work with no account at all: the landing
 // page, the sign-in pages, the password ones, an invite link, and the auth
 // callbacks the email links come back to.
+//
+// The two documents belong here too, and it took a browser to notice: asking
+// somebody to sign in before they may read what the app would hold about them
+// is precisely backwards. They are linked from the sign-in and sign-up pages
+// so that the reading can come first.
 
-const PUBLIC_PREFIXES = ["/login", "/signup", "/forgot-password", "/reset-password", "/join/", "/auth/"];
+const PUBLIC_PREFIXES = [
+  "/login", "/signup", "/forgot-password", "/reset-password", "/join/", "/auth/",
+  "/privacy", "/terms",
+];
 
 export const HOME = "/dashboard";
 export const START = "/onboarding";

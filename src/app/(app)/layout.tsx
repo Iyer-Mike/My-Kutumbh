@@ -4,6 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import { FamilyTimeProvider } from "@/lib/family-time";
 import { familyOf } from "@/lib/family";
 import { standingOf } from "@/lib/admission";
+import { pendingConsents } from "@/lib/consent";
 
 export default async function AppLayout({
   children,
@@ -26,6 +27,17 @@ export default async function AppLayout({
   // wander in because of it.
   if (standing !== "admitted") {
     redirect("/waiting");
+  }
+
+  // Let in, but not yet told what the app holds or asked whether that
+  // is acceptable. Being asked comes before naming a Kutumbh: the
+  // question is whether to hand over blood reports at all, and it
+  // should not arrive after somebody has started doing it.
+  //
+  // This re-asks whenever the wording changes, not only the first
+  // time — see pendingConsents.
+  if ((await pendingConsents(supabase, user.id)).length > 0) {
+    redirect("/agree");
   }
 
   const { kutumbhId, timeZone } = await familyOf(supabase, user.id);

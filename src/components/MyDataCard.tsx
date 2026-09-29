@@ -47,6 +47,13 @@ export default function MyDataCard() {
         </p>
       )}
 
+      {/* What you agreed to, kept where the buttons that act on it are */}
+      <p className="text-[11px] mt-3 mb-0" style={{ color: "#6A6180", lineHeight: 1.6 }}>
+        <a href="/privacy" style={{ color: "#6B46B8", fontWeight: 600 }}>What My Kutumbh knows about you</a>
+        <span className="mx-1.5">·</span>
+        <a href="/terms" style={{ color: "#6B46B8", fontWeight: 600 }}>Using My Kutumbh</a>
+      </p>
+
       {/* ── Leaving for good ── */}
       <div className="mt-5 pt-4" style={{ borderTop: "1px solid #E0D4F2" }}>
         {!leaving ? (

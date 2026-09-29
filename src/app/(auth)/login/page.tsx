@@ -188,6 +188,13 @@ function LoginForm() {
           Create account
         </Link>
       </p>
+
+      {/* Readable before registering, not only after */}
+      <p className="text-center text-xs mt-4 mb-0" style={{ color: B.muted }}>
+        <Link href="/privacy" style={{ color: B.violetLink }}>What the app knows about you</Link>
+        <span className="mx-1.5">·</span>
+        <Link href="/terms" style={{ color: B.violetLink }}>Using My Kutumbh</Link>
+      </p>
     </div>
   );
 }

@@ -14,14 +14,15 @@ import { tellAdminIfWaiting } from "./door-alert.ts";
 
 type Call = { name: string; args?: unknown };
 
-function db({ claim = true }: { claim?: boolean | "error" } = {}) {
+function db({ claim = true, nameless = false }: { claim?: boolean | "error"; nameless?: boolean } = {}) {
   const calls: Call[] = [];
   const faults: unknown[] = [];
 
   const profiles = {
     select: () => profiles,
     eq: () => profiles,
-    maybeSingle: () => Promise.resolve({ data: { full_name: "Venkata <b>Ramana</b>" } }),
+    maybeSingle: () =>
+      Promise.resolve({ data: nameless ? { full_name: null } : { full_name: "Venkata <b>Ramana</b>" } }),
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -127,7 +128,7 @@ describe("telling the Admin somebody is waiting", () => {
 });
 
 describe("what the letter says", () => {
-  test("names them in the subject and links to the desk", async () => {
+  test("names the person in the subject and links to the desk", async () => {
     const { client } = db();
     await tellAdminIfWaiting(client, user, URL_ + "/");
 
@@ -145,6 +146,32 @@ describe("what the letter says", () => {
     const html = String(posted[0]!.body.html);
     assert.match(html, /Venkata &lt;b&gt;Ramana&lt;\/b&gt;/);
     assert.doesNotMatch(html, /Venkata <b>Ramana<\/b>/);
+  });
+
+  /**
+   * The app is never told whether a newcomer is a man or a woman, so
+   * "he" would be a guess and "they", of one person at a door, reads
+   * wrong. The letter is written to need neither. This test is here
+   * because that is easy to undo by accident while editing wording.
+   */
+  const PRONOUN = /\b(he|she|him|her|hers|his|they|them|their|theirs)\b/i;
+
+  test("no pronoun stands in for the newcomer", async () => {
+    const { client } = db();
+    await tellAdminIfWaiting(client, user, URL_);
+
+    assert.doesNotMatch(String(posted[0]!.body.text), PRONOUN);
+    assert.doesNotMatch(String(posted[0]!.body.subject), PRONOUN);
+  });
+
+  test("nor when no name was given", async () => {
+    const { client } = db({ nameless: true });
+    await tellAdminIfWaiting(client, user, URL_);
+
+    const mail = posted[0]!.body;
+    assert.doesNotMatch(String(mail.text), PRONOUN);
+    assert.match(String(mail.subject), /Someone is at the door/);
+    assert.match(String(mail.text), /no name was given/);
   });
 
   test("only the Admin is ever written to", async () => {

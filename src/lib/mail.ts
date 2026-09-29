@@ -63,52 +63,66 @@ function esc(s: string): string {
  * Somebody registered with a passcode and is now behind the door.
  *
  * Written the way one person tells another, and it says what to do:
- * open the desk and either welcome them or decline. The name and the
- * address are in it because the Admin has to recognise them to decide
- * — this is the one letter where that is the whole point.
+ * open the desk and either welcome this person in or decline.
+ *
+ * NO PRONOUN APPEARS ANYWHERE IN IT, and that is deliberate. The app
+ * never learns whether a newcomer is a man or a woman — signing up
+ * asks for a name and nothing else — so "he" would be a guess and
+ * "they", for one named person standing at a door, reads wrong. The
+ * way out is not to choose between them but to write sentences that
+ * need neither: the name does the work a pronoun would, and where the
+ * name would repeat too often, "the registration" does.
+ *
+ * If a later message tempts you into "they", rewrite the sentence.
  */
 export async function tellAdminSomebodyWaits(
   who: { name: string | null; email: string | null; invitedEmail?: string | null },
   appUrl: string,
 ): Promise<Sent> {
-  const name = who.name?.trim() || "Someone with no name given";
-  const email = who.email ?? "no address";
+  const name = who.name?.trim() || null;
+  const email = who.email ?? "an address we were not given";
   const desk = `${appUrl.replace(/\/+$/, "")}/admin`;
 
   // Registered with an address other than the one you wrote to. Not
   // wrong in itself — people have several — but worth seeing.
   const odd =
     who.invitedEmail && who.invitedEmail.toLowerCase() !== (who.email ?? "").toLowerCase()
-      ? `You wrote the passcode to ${who.invitedEmail}, and they registered as ${email}.`
+      ? `The passcode was written to ${who.invitedEmail}, and the registration came from ${email}.`
       : null;
 
-  const subject = `At the door: ${name}`;
+  const subject = name ? `At the door: ${name}` : "Someone is at the door";
+
+  const opening = name
+    ? `${name} has registered with My Kutumbh, using ${email}, and is waiting at the door.`
+    : `Someone has registered with My Kutumbh, using ${email}, and is waiting at the door — no name was given.`;
+
+  const closing = name
+    ? `Welcome ${name} in, or decline, at the Admin Desk:`
+    : "Welcome this registration in, or decline, at the Admin Desk:";
 
   const lines = [
-    `${name} has registered with My Kutumbh and is waiting to be let in.`,
-    "",
-    `    Name:  ${name}`,
-    `    Email: ${email}`,
+    opening,
     "",
     odd,
     odd ? "" : null,
-    "They cannot do anything yet — no family, no logging, nothing — until you approve them.",
+    "Nothing can happen until you decide. A waiting account has no Kutumbh, no logging and no coach.",
     "",
-    `Open the Admin Desk to welcome them in or decline:`,
+    closing,
     `    ${desk}`,
     "",
     "— My Kutumbh",
   ].filter((l): l is string => l !== null);
 
+  const openHtml = name
+    ? `<strong>${esc(name)}</strong> has registered with My Kutumbh, using ${esc(email)}, and is waiting at the door.`
+    : `Someone has registered with My Kutumbh, using ${esc(email)}, and is waiting at the door — no name was given.`;
+
   const html = `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:15px;line-height:1.6;color:#241C33;max-width:34rem">
-  <p style="margin:0 0 1rem"><strong>${esc(name)}</strong> has registered with My Kutumbh and is waiting to be let in.</p>
-  <table style="margin:0 0 1rem;border-collapse:collapse;font-size:14px">
-    <tr><td style="padding:2px 12px 2px 0;color:#6A6180">Name</td><td>${esc(name)}</td></tr>
-    <tr><td style="padding:2px 12px 2px 0;color:#6A6180">Email</td><td>${esc(email)}</td></tr>
-  </table>
+  <p style="margin:0 0 1rem">${openHtml}</p>
   ${odd ? `<p style="margin:0 0 1rem;color:#8A5A06">${esc(odd)}</p>` : ""}
-  <p style="margin:0 0 1.25rem;color:#4A4360">They cannot do anything yet — no family, no logging, nothing — until you approve them.</p>
-  <p style="margin:0 0 1.5rem"><a href="${esc(desk)}" style="background:#241238;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;display:inline-block;font-weight:600;font-size:14px">Open the Admin Desk</a></p>
+  <p style="margin:0 0 1.5rem;color:#4A4360">Nothing can happen until you decide. A waiting account has no Kutumbh, no logging and no coach.</p>
+  <p style="margin:0 0 0.9rem"><a href="${esc(desk)}" style="background:#241238;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;display:inline-block;font-weight:600;font-size:14px">Open the Admin Desk</a></p>
+  <p style="margin:0 0 1.5rem;color:#6A6180;font-size:13px">${esc(closing.replace(/:$/, "."))}</p>
   <p style="margin:0;color:#8A80A0;font-size:13px">— My Kutumbh</p>
 </div>`;
 

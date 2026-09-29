@@ -7,6 +7,7 @@ import WithdrawLetter from "@/components/WithdrawLetter";
 import AtTheDoor from "@/components/AtTheDoor";
 import { MONTH_APP_RUPEES, MONTH_FAMILY_RUPEES } from "@/lib/ai-budget";
 import { familyOf } from "@/lib/family";
+import { canSendMail } from "@/lib/mail";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,7 @@ export default async function AdminPage() {
           waiting={desk.waiting}
           signature={myName}
           appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "https://my-kutumbh.vercel.app"}
+          alertsOn={canSendMail()}
         />
 
         {/* ── What is breaking ── */}

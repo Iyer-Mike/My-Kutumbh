@@ -244,7 +244,9 @@ function Knocking({ w }: { w: Waiting }) {
   );
 }
 
-export default function AtTheDoor({ waiting, signature, appUrl }: { waiting: Waiting[]; signature: string | null; appUrl: string }) {
+export default function AtTheDoor({
+  waiting, signature, appUrl, alertsOn,
+}: { waiting: Waiting[]; signature: string | null; appUrl: string; alertsOn: boolean }) {
   return (
     <section
       className="rounded-2xl px-4 py-4"
@@ -274,6 +276,13 @@ export default function AtTheDoor({ waiting, signature, appUrl }: { waiting: Wai
       <div className="mt-4">
         <NewPasscode signature={signature} appUrl={appUrl} />
       </div>
+
+      {/* Whether you will be told, or must remember to look */}
+      <p className="m-0 mt-3 text-[11px]" style={{ color: alertsOn ? C.leaf : C.warn, lineHeight: 1.5 }}>
+        {alertsOn
+          ? "You are emailed once when somebody registers, so this page is not the only way to know."
+          : "Email alerts are off — nobody is told when somebody registers. Add RESEND_API_KEY to switch them on."}
+      </p>
     </section>
   );
 }

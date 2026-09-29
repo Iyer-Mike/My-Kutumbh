@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
 import { standingOf } from "@/lib/admission";
 import EnterAnyCode from "@/components/EnterAnyCode";
+import { tellAdminIfWaiting } from "@/lib/door-alert";
 
 /**
  * The waiting room.
@@ -21,6 +22,16 @@ export default async function WaitingPage() {
 
   const declined = standing === "declined";
   const neverKnocked = standing === "unknown";
+
+  // Somebody is behind the door. The Admin is told once, here, because
+  // waiting for him to think of opening the desk could take days.
+  if (standing === "waiting") {
+    await tellAdminIfWaiting(
+      supabase,
+      user,
+      process.env.NEXT_PUBLIC_APP_URL ?? "https://my-kutumbh.vercel.app",
+    );
+  }
 
   // Whatever the Admin said, in his own words
   const { data: note } = await supabase

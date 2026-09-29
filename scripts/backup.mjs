@@ -13,10 +13,23 @@
  *
  * WHAT IS COPIED — every row of every table, as JSON.
  *
- * WHAT IS NOT — the schema itself, and the stored files. The schema
- * needs no copy: it is the twenty-odd migration files in supabase/,
- * kept in git. Photographs and uploaded reports live in Supabase
- * Storage and are not fetched here; there is a note below on that.
+ * WHAT IS NOT — the schema, and the stored files.
+ *
+ * The schema needs no copy: it is the twenty-odd migration files in
+ * supabase/, kept in git.
+ *
+ * The files are a decision rather than an omission. Photographs and
+ * uploaded medical reports used to be mirrored here too, which meant
+ * a family's blood test sat in the Admin's personal OneDrive and
+ * synced to Microsoft. On 2026-09-29 that was stopped deliberately:
+ * a backup is not worth holding somebody's medical report outside the
+ * app they gave it to. The privacy notice can now say, plainly, that
+ * uploaded files never leave Supabase.
+ *
+ * The cost is real and should be understood: if Supabase lost the
+ * storage buckets, the photographs and reports would be gone. The
+ * ROWS describing them would survive — who uploaded what, and when —
+ * so a family would know what was lost. That is the trade accepted.
  *
  * TO RESTORE — run the migrations in order against a fresh project,
  * then load each table's rows back in. The JSON is plain and ordered,
@@ -26,11 +39,12 @@
  *   setx MY_KUTUMBH_DB_URL "postgresql://postgres.xxxx:PASSWORD@..."
  *   (the Session pooler URI from Supabase → Connect → Direct)
  *
- * For the photographs and uploaded reports as well:
- *   setx MY_KUTUMBH_SUPABASE_URL "https://<project>.supabase.co"
- *   setx MY_KUTUMBH_SERVICE_KEY "<the service_role key>"
- *   (Supabase → Project Settings → API. This key reads everything, so
- *    it belongs in your Windows environment and nowhere near the app.)
+ * That is the only secret this needs. MY_KUTUMBH_SUPABASE_URL and
+ * MY_KUTUMBH_SERVICE_KEY were once required here, to fetch the stored
+ * files; nothing reads them any more, and the service key reads
+ * everything in the project, so it is worth removing from your
+ * environment rather than leaving it lying about:
+ *   setx MY_KUTUMBH_SERVICE_KEY ""
  *
  * ── To run ───────────────────────────────────────────────────────
  *   node scripts/backup.mjs
@@ -74,63 +88,6 @@ const client = new pg.Client({
   ssl: { rejectUnauthorized: false },
 });
 
-/**
- * Mirror the stored files — photographs, uploaded medical reports.
- *
- * Needs the project's URL and service key, which a database connection
- * cannot stand in for. Without them the database copy still runs and
- * says plainly that the files were skipped: half a backup that knows
- * it is half is far better than one that quietly isn't.
- */
-async function mirrorFiles(db, into) {
-  const base = process.env.MY_KUTUMBH_SUPABASE_URL;
-  const key = process.env.MY_KUTUMBH_SERVICE_KEY;
-
-  if (!base || !key) {
-    console.log("Files: skipped — MY_KUTUMBH_SUPABASE_URL or MY_KUTUMBH_SERVICE_KEY is not set");
-    return { mirrored: 0, skipped: "no service key set", listed: 0 };
-  }
-
-  const { rows } = await db.query(`
-    SELECT bucket_id, name, COALESCE((metadata->>'size')::bigint, 0) AS size
-    FROM storage.objects
-    ORDER BY bucket_id, name
-  `);
-
-  const root = join(into, "files");
-  let fetched = 0, already = 0, failed = 0;
-
-  for (const o of rows) {
-    const target = join(root, o.bucket_id, ...o.name.split("/"));
-
-    // The same bytes as last night need no second journey
-    try {
-      if (statSync(target).size === Number(o.size) && Number(o.size) > 0) { already++; continue; }
-    } catch { /* not there yet */ }
-
-    try {
-      const res = await fetch(`${base}/storage/v1/object/${o.bucket_id}/${encodeURI(o.name)}`, {
-        headers: { Authorization: `Bearer ${key}`, apikey: key },
-      });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-
-      mkdirSync(join(root, o.bucket_id, ...o.name.split("/").slice(0, -1)), { recursive: true });
-      writeFileSync(target, Buffer.from(await res.arrayBuffer()));
-      fetched++;
-    } catch (e) {
-      console.log(`  could not fetch ${o.bucket_id}/${o.name}: ${e.message}`);
-      failed++;
-    }
-  }
-
-  console.log(`Files: ${rows.length} in the app — ${fetched} copied, ${already} already held${failed ? `, ${failed} failed` : ""}`);
-  return {
-    listed: rows.length, mirrored: fetched, alreadyHeld: already, failed,
-    where: root,
-    note: "Files are mirrored, not re-copied nightly, and never deleted locally — a file removed from the app stays here.",
-  };
-}
-
 const started = Date.now();
 let file = null;
 
@@ -149,7 +106,7 @@ try {
     what_this_is:
       "Every row of every table in My Kutumbh, as it stood when this was made. " +
       "The schema is not here: it is the migration files in supabase/, kept in git. " +
-      "Photographs and uploaded reports are mirrored beside this file, in files/.",
+      "Uploaded photographs and medical reports are NOT here: they stay in Supabase Storage.",
     made_on: new Date().toISOString(),
     made_on_local: localWhen(),
     tables: {},
@@ -167,14 +124,18 @@ try {
 
   // ── The photographs and the uploaded reports ──
   //
-  // These live in Supabase Storage, which a database connection cannot
-  // reach, so they need the service key. They are mirrored rather than
-  // copied afresh each night: a family photograph is the same bytes
-  // every evening, and fourteen copies of a medical report would fill
-  // OneDrive for nothing. Nothing here is ever deleted locally — a file
-  // removed from the app stays in the mirror, which is the whole point
-  // of keeping a copy somewhere else.
-  copy.files = await mirrorFiles(client, folder);
+  // Not here, on purpose. See the note at the top of this file: a
+  // backup is not worth holding somebody's blood test outside the app
+  // they handed it to. The storage.objects rows ARE copied above, so a
+  // family could still be told exactly what was lost and when it was
+  // uploaded — only the bytes stay in Supabase.
+  copy.files = {
+    mirrored: 0,
+    note:
+      "Uploaded files are deliberately not copied here. They stay in Supabase Storage, " +
+      "which is what the privacy notice promises. The storage.objects rows above record " +
+      "what exists, so a loss could be described even though it could not be undone.",
+  };
 
   const stamp = localStamp();
   file = join(folder, `my-kutumbh_${stamp}.json.gz`);

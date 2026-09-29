@@ -15,18 +15,21 @@ import { PRIVACY, TERMS, DOCS, fingerprint } from "./legal.ts";
 type Row = { doc: string; fingerprint: string };
 
 function db(rows: Row[] | "error") {
+  let filter = "";
   const chain = {
     select: () => chain,
-    eq: () => chain,
-    is: () =>
-      Promise.resolve(
+    or: (f: string) => {
+      filter = f;
+      return Promise.resolve(
         rows === "error"
           ? { data: null, error: { message: 'relation "consents" does not exist' } }
           : { data: rows, error: null },
-      ),
+      );
+    },
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { from: () => chain } as any;
+  const client = { from: () => chain } as any;
+  return Object.assign(client, { seenFilter: () => filter });
 }
 
 const signedToday = (): Row[] => DOCS.map((d) => ({ doc: d.slug, fingerprint: fingerprint(d) }));
@@ -57,6 +60,27 @@ describe("what a member still has to agree to", () => {
 
   test("before the table exists, nobody is shut out of their own food diary", async () => {
     const out = await pendingConsents(db("error"), "u1");
+    assert.equal(out.length, 0);
+  });
+
+  /**
+   * A child's agreement is given by whoever can give it. The filter is
+   * where that lives now, so the filter is what is checked: rows this
+   * person signed for THEMSELVES, plus rows anybody signed FOR them —
+   * and never a row where they signed for somebody else.
+   */
+  test("it asks for both their own consents and any given for them", async () => {
+    const client = db([]);
+    await pendingConsents(client, "child-1");
+
+    assert.equal(
+      client.seenFilter(),
+      "and(user_id.eq.child-1,on_behalf_of.is.null),on_behalf_of.eq.child-1",
+    );
+  });
+
+  test("a guardian's consent settles it for the child", async () => {
+    const out = await pendingConsents(db(signedToday()), "child-1");
     assert.equal(out.length, 0);
   });
 });

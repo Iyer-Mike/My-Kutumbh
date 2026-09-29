@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { DOCS, fingerprint } from "@/lib/legal";
 
 /** Six digits, said aloud. Never placed in a URL. */
 function spokenNumber(): string {
@@ -35,8 +36,13 @@ export async function POST(req: NextRequest) {
   // An invitation is addressed to somebody. The link then admits that
   // person and nobody the message is forwarded to.
   let invitedEmail: string | null = null;
+  // Inviting a child: the Prime Member accepts the two documents on
+  // that child's behalf, because a child cannot meaningfully accept
+  // them. See supabase/phase27_guardian_consent.sql.
+  let forMinor = false;
   try {
-    const body = (await req.json()) as { email?: string };
+    const body = (await req.json()) as { email?: string; forMinor?: boolean };
+    forMinor = body.forMinor === true;
     const raw = body.email?.trim().toLowerCase() ?? "";
     if (raw) {
       if (!/^[^s@]+@[^s@]+.[^s@]{2,}$/.test(raw)) {
@@ -60,6 +66,29 @@ export async function POST(req: NextRequest) {
   const code = randomCode(8);
   const joinCode = spokenNumber();
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  // The guardian's four columns are added ONLY when the box was
+  // ticked, so that an ordinary invitation is the same statement it
+  // always was. Phase 27 may not have run yet on a given deployment,
+  // and inviting an adult must not start failing on a column that does
+  // not exist. Ticking the box before the migration fails loudly, as
+  // it should.
+  //
+  // The fingerprints are the exact wording the guardian was shown.
+  // They come from the app, which owns the documents, never from the
+  // browser — the same rule the agree action follows.
+  const guardian = forMinor
+    ? {
+        for_minor: true,
+        guardian_id: user.id,
+        guardian_agreed_at: new Date().toISOString(),
+        guardian_docs: DOCS.map((d) => ({
+          doc: d.slug,
+          version: d.version,
+          fingerprint: fingerprint(d),
+        })),
+      }
+    : {};
+
   const { error } = await supabase.from("kutumbh_invites").insert({
     kutumbh_id: membership.kutumbh_id,
     invite_code: code,
@@ -67,6 +96,7 @@ export async function POST(req: NextRequest) {
     invited_email: invitedEmail,
     join_code: joinCode,
     expires_at: expires,
+    ...guardian,
   });
 
   if (error) {

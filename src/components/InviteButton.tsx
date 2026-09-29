@@ -14,6 +14,7 @@ import { useState } from "react";
  */
 export default function InviteButton() {
   const [email,   setEmail]   = useState("");
+  const [minor,   setMinor]   = useState(false);
   const [code,    setCode]    = useState<string | null>(null);
   const [number,  setNumber]  = useState<string | null>(null);
   const [sentTo,  setSentTo]  = useState<string | null>(null);
@@ -34,7 +35,7 @@ export default function InviteButton() {
       const res = await fetch("/api/invite/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), forMinor: minor }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "The link couldn't be made. Try again."); return; }
@@ -80,6 +81,36 @@ export default function InviteButton() {
           You&apos;ll get a link to send and a six-digit number to tell them yourself. The link alone
           lets nobody in, so it is safe to forward; the number is what admits them.
         </p>
+
+        {/* A child cannot agree to anything; whoever can, does it here */}
+        <label
+          className="flex gap-2.5 items-start mb-3 rounded-xl px-3 py-2.5 cursor-pointer"
+          style={{ background: minor ? "#FBEBCB" : "#F3EEFA", border: `1px solid ${minor ? "#EBD9B4" : "#E0D4F2"}` }}
+        >
+          <input
+            type="checkbox"
+            checked={minor}
+            onChange={(e) => setMinor(e.target.checked)}
+            className="mt-0.5 flex-shrink-0"
+            style={{ accentColor: "#6B46B8", width: "1rem", height: "1rem" }}
+          />
+          <span className="text-[11px]" style={{ color: minor ? "#6B4A0A" : "#4A4360", lineHeight: 1.55 }}>
+            This person is <strong>under eighteen</strong>, and I am their parent or guardian.
+            {minor && (
+              <>
+                {" "}I accept{" "}
+                <a href="/privacy" target="_blank" style={{ color: "#8A5A06", fontWeight: 600 }}>
+                  what the app knows
+                </a>{" "}
+                and{" "}
+                <a href="/terms" target="_blank" style={{ color: "#8A5A06", fontWeight: 600 }}>
+                  its terms
+                </a>{" "}
+                on their behalf, and this is recorded against my name.
+              </>
+            )}
+          </span>
+        </label>
 
         <button
           onClick={generate}

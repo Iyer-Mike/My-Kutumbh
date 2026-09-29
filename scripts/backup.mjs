@@ -39,7 +39,14 @@
  *   setx MY_KUTUMBH_DB_URL "postgresql://postgres.xxxx:PASSWORD@..."
  *   (the Session pooler URI from Supabase → Connect → Direct)
  *
- * That is the only secret this needs. MY_KUTUMBH_SUPABASE_URL and
+ * And the passphrase the copy is sealed with:
+ *   setx MY_KUTUMBH_BACKUP_PASSPHRASE "a long phrase you will not forget"
+ *   (At least 12 characters. Nothing is written without it — the copy
+ *    holds lab values, allergies and medicines, and OneDrive is not a
+ *    place to put those in the clear. WRITE IT DOWN SOMEWHERE THAT IS
+ *    NOT THIS COMPUTER: lose it and every backup is scrap.)
+ *
+ * MY_KUTUMBH_SUPABASE_URL and
  * MY_KUTUMBH_SERVICE_KEY were once required here, to fetch the stored
  * files; nothing reads them any more, and the service key reads
  * everything in the project, so it is worth removing from your
@@ -47,17 +54,20 @@
  *   setx MY_KUTUMBH_SERVICE_KEY ""
  *
  * ── To run ───────────────────────────────────────────────────────
- *   node scripts/backup.mjs
+ *   node scripts/backup.mjs              make tonight's copy
+ *   node scripts/restore.mjs --list      prove the newest one opens
+ *   node scripts/restore.mjs <file>      write its plain JSON out
  *
  * ── Nightly ──────────────────────────────────────────────────────
  *   See scripts/backup.ps1 for the Windows scheduled-task command.
  */
 
 import pg from "pg";
-import { gzipSync } from "node:zlib";
-import { writeFileSync, appendFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { gzipSync, gunzipSync } from "node:zlib";
+import { writeFileSync, readFileSync, appendFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { seal, open, SEALED_SUFFIX } from "./backup-crypto.mjs";
 
 const KEEP = 14; // a fortnight of nights
 
@@ -137,9 +147,28 @@ try {
       "what exists, so a loss could be described even though it could not be undone.",
   };
 
+  // ── Sealed, then written ──
+  //
+  // What is about to go into OneDrive is lab values, allergies,
+  // medicines and dates of birth. It is encrypted first, with a key
+  // derived from a passphrase that lives only in this machine's
+  // environment. See scripts/backup-crypto.mjs.
   const stamp = localStamp();
-  file = join(folder, `my-kutumbh_${stamp}.json.gz`);
-  writeFileSync(file, gzipSync(Buffer.from(JSON.stringify(copy, null, 1), "utf8")));
+  file = join(folder, `my-kutumbh_${stamp}.json.gz${SEALED_SUFFIX}`);
+  const sealed = seal(gzipSync(Buffer.from(JSON.stringify(copy, null, 1), "utf8")));
+  writeFileSync(file, sealed);
+
+  // ── And opened again, before anything is tidied away ──
+  //
+  // A backup nobody has opened is a hope, not a backup. This one is
+  // unsealed, ungzipped and parsed on the spot, so the night it is
+  // needed is never the first time anyone finds out whether it works.
+  // If it fails, the throw lands in the catch below and the older
+  // copies are left exactly where they are.
+  const check = JSON.parse(gunzipSync(open(readFileSync(file))).toString("utf8"));
+  if (Object.keys(check.tables ?? {}).length !== tables.length) {
+    throw new Error("The sealed copy did not open back into the same thing. Nothing was tidied away.");
+  }
 
   const mb = (statSync(file).size / 1024 / 1024).toFixed(2);
   const total = Object.values(copy.counts).reduce((t, n) => t + n, 0);
@@ -153,7 +182,7 @@ try {
 
   // A fortnight is enough; the older ones are tidied away
   const old = readdirSync(folder)
-    .filter((f) => f.startsWith("my-kutumbh_") && f.endsWith(".json.gz"))
+    .filter((f) => f.startsWith("my-kutumbh_") && f.endsWith(`.json.gz${SEALED_SUFFIX}`))
     .sort()
     .reverse()
     .slice(KEEP);

@@ -11,22 +11,35 @@ import { CUISINES, DIETS } from "@/lib/food-taxonomy";
  * serves, prep, cooking, a line about the dish, a tip, what goes in, how
  * it is made. Nutrition comes from the dish itself, so it is not asked for.
  */
+export type RecipeInitial = {
+  serves: string | null; prep_time: string | null; cook_time: string | null;
+  blurb: string | null; tip: string | null; is_jain: boolean;
+  ingredients: string[]; method: string[]; in_bucket: boolean;
+};
+
 export default function FamilyRecipeForm({
-  dishId, dishName, cuisine, diet, isPrime,
-}: { dishId: string; dishName: string; cuisine: string | null; diet: string | null; isPrime: boolean }) {
+  dishId, dishName, cuisine, diet, isPrime, recipeId, initial, suggestBucket = false,
+}: {
+  dishId?: string; dishName: string; cuisine: string | null; diet: string | null; isPrime: boolean;
+  /** Set when editing an existing recipe */
+  recipeId?: number; initial?: RecipeInitial;
+  /** The dish has no nutrition yet, so the bucket is worth offering first */
+  suggestBucket?: boolean;
+}) {
   const router = useRouter();
   const supabase = createClient();
 
   const [cuisineKey, setCuisine] = useState(cuisine ?? "south_indian");
   const [dietKey, setDiet]       = useState(diet ?? "veg");
-  const [jain, setJain]          = useState(false);
-  const [serves, setServes]      = useState("");
-  const [prep, setPrep]          = useState("");
-  const [cook, setCook]          = useState("");
-  const [blurb, setBlurb]        = useState("");
-  const [tip, setTip]            = useState("");
-  const [ingredients, setIng]    = useState("");
-  const [method, setMethod]      = useState("");
+  const [jain, setJain]          = useState(initial?.is_jain ?? false);
+  const [serves, setServes]      = useState(initial?.serves ?? "");
+  const [prep, setPrep]          = useState(initial?.prep_time ?? "");
+  const [cook, setCook]          = useState(initial?.cook_time ?? "");
+  const [blurb, setBlurb]        = useState(initial?.blurb ?? "");
+  const [tip, setTip]            = useState(initial?.tip ?? "");
+  const [ingredients, setIng]    = useState((initial?.ingredients ?? []).join("\n"));
+  const [method, setMethod]      = useState((initial?.method ?? []).join("\n"));
+  const [bucket, setBucket]      = useState(initial?.in_bucket ?? suggestBucket);
   const [saving, setSaving]      = useState(false);
   const [error, setError]        = useState<string | null>(null);
 
@@ -37,17 +50,28 @@ export default function FamilyRecipeForm({
     if (!ready || saving) return;
     setSaving(true);
     setError(null);
-    const { data, error: err } = await supabase.rpc("submit_family_recipe", {
-      p_food_item_id: dishId,
-      p: {
-        cuisine: cuisineKey, diet: dietKey, is_jain: jain,
-        serves: serves.trim(), prep_time: prep.trim(), cook_time: cook.trim(),
-        blurb: blurb.trim(), tip: tip.trim(),
-        ingredients: lines(ingredients), method: lines(method),
-      },
-    });
+    const body = {
+      cuisine: cuisineKey, diet: dietKey, is_jain: jain,
+      serves: serves.trim(), prep_time: prep.trim(), cook_time: cook.trim(),
+      blurb: blurb.trim(), tip: tip.trim(),
+      ingredients: lines(ingredients), method: lines(method),
+      ...(isPrime ? { in_bucket: bucket } : {}),
+    };
+    if (recipeId != null) {
+      const { error: err } = await supabase.rpc("update_family_recipe", { p_recipe_id: recipeId, p: body });
+      setSaving(false);
+      if (err) { setError(err.message); return; }
+      router.replace(`/recipes/${recipeId}`);
+      router.refresh();
+      return;
+    }
+    const { data, error: err } = await supabase.rpc("submit_family_recipe", { p_food_item_id: dishId, p: body });
     setSaving(false);
     if (err) { setError(err.message); return; }
+    // The Prime Member's bucket choice goes in after the recipe exists
+    if (isPrime && bucket && typeof data === "number") {
+      await supabase.rpc("update_family_recipe", { p_recipe_id: data, p: body });
+    }
     router.replace(`/recipes/${data}`);
   }
 
@@ -112,6 +136,13 @@ export default function FamilyRecipeForm({
         </label>
       </section>
 
+      {isPrime && (
+        <label className="flex items-start gap-2 text-sm px-1" style={{ color: B.ink2, minHeight: 44 }}>
+          <input type="checkbox" className="mt-1" checked={bucket} onChange={(e) => setBucket(e.target.checked)} />
+          <span>Add to the nutrition bucket, to have its values estimated later</span>
+        </label>
+      )}
+
       <p className="text-[11px] px-1" style={{ color: B.muted2 }}>
         Nutrition for {dishName} comes from the dish itself and is marked as estimated.
         {isPrime ? " As Prime Member, your recipe is shown to the family at once." : " The Prime Member approves it before the family sees it."}
@@ -124,7 +155,7 @@ export default function FamilyRecipeForm({
         className="w-full rounded-2xl text-sm font-semibold text-white disabled:opacity-40"
         style={{ background: B.button, minHeight: 48 }}
       >
-        {saving ? "Saving…" : isPrime ? "Save recipe" : "Send for approval"}
+        {saving ? "Saving…" : recipeId != null ? "Save changes" : isPrime ? "Save recipe" : "Send for approval"}
       </button>
     </div>
   );

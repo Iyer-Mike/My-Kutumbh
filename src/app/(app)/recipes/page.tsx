@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { familyOf } from "@/lib/family";
 import PageNav from "@/components/PageNav";
 import RecipeFilters from "@/components/RecipeFilters";
 import { BRAND as B } from "@/lib/brand";
@@ -17,6 +18,13 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
   const type = sp.type ?? "";
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const fam = user ? await familyOf(supabase, user.id) : null;
+  let bucketCount = 0;
+  if (fam?.isPrime && fam.kutumbhId) {
+    const { count } = await supabase.from("recipes").select("id", { count: "exact", head: true }).eq("kutumbh_id", fam.kutumbhId).eq("in_bucket", true);
+    bucketCount = count ?? 0;
+  }
   let query = supabase
     .from("recipes")
     .select("id, name, cuisine, diet, dish_type, serves, prep_time, cook_time, blurb, kcal, protein_g")
@@ -46,6 +54,13 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
       </header>
 
       <main className="flex-1 px-4 py-5 grid gap-4">
+        {fam?.isPrime && (
+          <Link href="/recipes/bucket" className="rounded-2xl px-4 py-3 text-sm font-semibold flex items-center justify-between min-h-11"
+            style={{ background: B.card, border: `1px solid ${B.cardEdge}`, color: B.ink }}>
+            <span>Nutrition bucket</span>
+            <span className="text-xs" style={{ color: B.muted }}>{bucketCount} waiting →</span>
+          </Link>
+        )}
         <RecipeFilters q={q} cuisine={cuisine} diet={diet} type={type} />
 
         {rows.length === 0 ? (

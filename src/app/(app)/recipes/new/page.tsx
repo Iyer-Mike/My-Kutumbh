@@ -15,7 +15,7 @@ export default async function NewRecipePage({ searchParams }: { searchParams: Pr
 
   const { data: dish } = await supabase
     .from("food_items")
-    .select("id, name, cuisine, diet, recipe_id, kutumbh_id")
+    .select("id, name, cuisine, diet, recipe_id, kutumbh_id, calories")
     .eq("id", dishId)
     .maybeSingle();
 
@@ -34,7 +34,7 @@ export default async function NewRecipePage({ searchParams }: { searchParams: Pr
         <p className="text-sm mt-2" style={{ color: B.onDark }}>Write it the way your family makes it.</p>
       </header>
       <main className="flex-1 px-4 py-5">
-        <FamilyRecipeForm dishId={dish.id} dishName={dish.name} cuisine={dish.cuisine} diet={dish.diet} isPrime={isPrime} />
+        <FamilyRecipeForm dishId={dish.id} dishName={dish.name} cuisine={dish.cuisine} diet={dish.diet} isPrime={isPrime} suggestBucket={dish.calories == null} />
       </main>
     </div>
   );

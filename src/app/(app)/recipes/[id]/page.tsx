@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import { BRAND as B } from "@/lib/brand";
@@ -31,7 +32,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   const supabase = await createClient();
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("id, name, cuisine, source_cuisine, diet, is_jain, dish_type, serves, prep_time, cook_time, blurb, tip, badge, tags, ingredients, method, meal_hint, serving_unit, serving_weight_g, kcal, protein_g, carbs_g, fat_g, fibre_g, iron_mg, calcium_mg, vit_b12_mcg, sodium_mg, nutrition_estimated, status, kutumbh_id")
+    .select("id, name, cuisine, source_cuisine, diet, is_jain, dish_type, serves, prep_time, cook_time, blurb, tip, badge, tags, ingredients, method, meal_hint, serving_unit, serving_weight_g, kcal, protein_g, carbs_g, fat_g, fibre_g, iron_mg, calcium_mg, vit_b12_mcg, sodium_mg, nutrition_estimated, status, kutumbh_id, created_by, in_bucket")
     .eq("id", recipeId)
     .maybeSingle();
 
@@ -48,9 +49,11 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   // A family recipe waits for the Prime Member before the family sees it
   const waiting = recipe.status === "draft";
   let canApprove = false;
-  if (waiting) {
+  let canEdit = false;
+  if (recipe.kutumbh_id) {
     const { data: { user } } = await supabase.auth.getUser();
     canApprove = user ? (await familyOf(supabase, user.id)).isPrime : false;
+    canEdit = canApprove || (waiting && !!user && recipe.created_by === user.id);
   }
 
   const mark = DIET_MARK[recipe.diet] ?? DIET_MARK.veg;
@@ -181,6 +184,19 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
                 style={{ background: B.tint, color: B.violet }}>{t}</span>
             ))}
           </div>
+        )}
+
+        {canEdit && (
+          <Link href={`/recipes/${recipe.id}/edit`} data-print-hide
+            className="w-full py-3 rounded-2xl text-sm font-semibold text-center"
+            style={{ background: B.card, color: B.violet, border: `1.5px solid ${B.cardEdge}` }}>
+            ✎ Edit this recipe
+          </Link>
+        )}
+        {recipe.in_bucket && (
+          <p data-print-hide className="text-[11px] text-center" style={{ color: B.muted2 }}>
+            In the nutrition bucket, waiting for an estimate.
+          </p>
         )}
 
         <PrintRecipe name={recipe.name} />

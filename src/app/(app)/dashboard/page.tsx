@@ -20,6 +20,7 @@ type MealLog = {
   quantity_unit: string | null;
   calories: number | null;
   nutrition_estimated: boolean | null;
+  food_items?: { recipe_id: number | null } | { recipe_id: number | null }[] | null;
 };
 
 type PlanFood = {
@@ -87,7 +88,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const [{ data: logs }, { data: planRows }, poolRes, rosterRes] = await Promise.all([
     supabase
       .from("meal_logs")
-      .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated")
+      .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated, food_items(recipe_id)")
       .eq("user_id", user!.id)
       .eq("logged_date", day),
     kutumbhId ? plansQuery.eq("kutumbh_id", kutumbhId) : plansQuery.eq("user_id", user!.id),
@@ -174,7 +175,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <main className="flex-1 px-4 py-5">
         {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools" />}
         <DashboardTabs
-          logs={(logs ?? []) as MealLog[]}
+          logs={((logs ?? []) as MealLog[]).map(({ food_items, ...l }) => ({
+            ...l,
+            recipe_id: (Array.isArray(food_items) ? food_items[0] : food_items)?.recipe_id ?? null,
+          }))}
           totalKcal={totalKcal}
           dailyKcalGoal={profile?.daily_kcal_goal ?? null}
           day={day}

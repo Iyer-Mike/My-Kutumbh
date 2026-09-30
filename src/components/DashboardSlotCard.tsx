@@ -12,6 +12,7 @@ type MealLog = {
   quantity_unit: string | null;
   calories: number | null;
   nutrition_estimated: boolean | null;
+  recipe_id?: number | null;
 };
 
 type Props = {
@@ -190,6 +191,13 @@ export default function DashboardSlotCard({ slotKey, name, icon, time, items, da
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#6B46B8" }} />
                     <p className="text-sm truncate" style={{ color: "#241C33" }}>{log.food_name}</p>
+                    {log.recipe_id != null && (
+                      <Link href={`/recipes/${log.recipe_id}`}
+                        className="text-[11px] font-semibold flex-shrink-0 px-1"
+                        style={{ color: "#6B46B8" }}>
+                        📖 Recipe
+                      </Link>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                     <p className="text-xs" style={{ color: "#6A6180" }}>

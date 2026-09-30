@@ -16,6 +16,7 @@ type MealLog = {
   quantity_unit: string | null;
   calories: number | null;
   nutrition_estimated: boolean | null;
+  recipe_id?: number | null;
 };
 
 type MealPlan = PlanItem & { meal_slot: string };

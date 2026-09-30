@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardSlotCard, { type MealSuggestion } from "./DashboardSlotCard";
 import PlanSlotCard, { type PlanItem } from "./PlanSlotCard";
@@ -35,7 +36,7 @@ type Props = {
 };
 
 export default function DashboardTabs({
-  logs, suggestions = [], totalKcal, dailyKcalGoal, initialPlans, poolNames, memberNames, userId, kutumbhId, day,
+  logs: serverLogs, suggestions = [], totalKcal: serverKcal, dailyKcalGoal, initialPlans, poolNames, memberNames, userId, kutumbhId, day,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -47,6 +48,17 @@ export default function DashboardTabs({
     setTab(t);
     if (t === "log" && day > todayLocal(tz)) router.push("/dashboard");
   }
+
+  // A one-tap log shows at once; the server catches up in the background.
+  // Whatever the server already has is not counted twice, and an undone
+  // log disappears at once as well.
+  const [extra, setExtra]     = useState<MealLog[]>([]);
+  const [removed, setRemoved] = useState<string[]>([]);
+  const logs = [...serverLogs, ...extra.filter((e) => !serverLogs.some((l) => l.id === e.id))]
+    .filter((l) => !removed.includes(l.id));
+  const totalKcal = logs.length === serverLogs.length && !extra.length && !removed.length
+    ? serverKcal
+    : logs.reduce((n, l) => n + (l.calories ?? 0), 0);
 
   const slotLogs: Record<string, MealLog[]>   = {};
   for (const log of logs)         { (slotLogs[log.meal_slot]  ??= []).push(log); }
@@ -97,6 +109,8 @@ export default function DashboardTabs({
                 items={slotLogs[key] ?? []}
                 suggestion={suggestions.find((x) => x.meal_slot === key)}
                 userId={userId}
+                onLogged={(rows) => { setExtra((x) => [...x, ...rows]); setRemoved((r) => r.filter((id) => !rows.some((row) => row.id === id))); }}
+                onUndone={(ids) => { setExtra((x) => x.filter((e) => !ids.includes(e.id))); setRemoved((r) => [...r, ...ids]); }}
                 day={day}
               />
             ))}

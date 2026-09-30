@@ -47,11 +47,13 @@ type Props = {
   day?: string;
   suggestion?: MealSuggestion;
   userId?: string;
+  onLogged?: (rows: (MealLog & { meal_slot: string })[]) => void;
+  onUndone?: (ids: string[]) => void;
 };
 
 const UNITS = ["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"];
 
-export default function DashboardSlotCard({ slotKey, name, icon, time, items, day, suggestion, userId }: Props) {
+export default function DashboardSlotCard({ slotKey, name, icon, time, items, day, suggestion, userId, onLogged, onUndone }: Props) {
   const router   = useRouter();
   const supabase = createClient();
 
@@ -81,8 +83,15 @@ export default function DashboardSlotCard({ slotKey, name, icon, time, items, da
     const { data, error } = await supabase.from("meal_logs").insert(rows).select("id");
     setLogging(false);
     if (error) { setTapError("Could not log this. Please try again."); return; }
-    setUndoIds((data ?? []).map((r) => r.id as string));
+    const ids = (data ?? []).map((r) => r.id as string);
+    setUndoIds(ids);
     setTimeout(() => setUndoIds(null), 8000);
+    // Show it straight away; the page catches up in the background
+    onLogged?.(rows.map((r, i) => ({
+      id: ids[i], meal_slot: slotKey, food_name: r.food_name,
+      quantity_g: r.quantity_g, quantity_unit: r.quantity_unit,
+      calories: r.calories, nutrition_estimated: false,
+    })));
     router.refresh();
   }
 
@@ -90,6 +99,7 @@ export default function DashboardSlotCard({ slotKey, name, icon, time, items, da
     if (!undoIds?.length) return;
     const { error } = await supabase.from("meal_logs").delete().in("id", undoIds);
     if (error) { setTapError("Could not undo. Use the pencil to remove it."); return; }
+    onUndone?.(undoIds);
     setUndoIds(null);
     router.refresh();
   }

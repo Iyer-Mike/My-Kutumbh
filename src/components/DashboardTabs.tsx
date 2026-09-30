@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import DashboardSlotCard from "./DashboardSlotCard";
+import DashboardSlotCard, { type MealSuggestion } from "./DashboardSlotCard";
 import PlanSlotCard, { type PlanItem } from "./PlanSlotCard";
 import { SLOTS } from "@/lib/meal-slots";
 import { dayLabel, todayLocal } from "@/lib/dates";
@@ -23,6 +23,7 @@ type MealPlan = PlanItem & { meal_slot: string };
 
 type Props = {
   logs: MealLog[];
+  suggestions?: MealSuggestion[];
   totalKcal: number;
   dailyKcalGoal: number | null;
   initialPlans: MealPlan[];
@@ -34,7 +35,7 @@ type Props = {
 };
 
 export default function DashboardTabs({
-  logs, totalKcal, dailyKcalGoal, initialPlans, poolNames, memberNames, userId, kutumbhId, day,
+  logs, suggestions = [], totalKcal, dailyKcalGoal, initialPlans, poolNames, memberNames, userId, kutumbhId, day,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -94,6 +95,8 @@ export default function DashboardTabs({
                 icon={icon}
                 time={time}
                 items={slotLogs[key] ?? []}
+                suggestion={suggestions.find((x) => x.meal_slot === key)}
+                userId={userId}
                 day={day}
               />
             ))}

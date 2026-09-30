@@ -15,6 +15,29 @@ type MealLog = {
   recipe_id?: number | null;
 };
 
+export type MealSuggestion = {
+  meal_slot: string;
+  source: "planned" | "same_weekday" | "last_time";
+  based_on: string;
+  total_kcal: number | string | null;
+  items: {
+    food_item_id: string | null;
+    food_name: string;
+    quantity_g: number | null;
+    quantity_unit: string | null;
+    calories: number | null;
+  }[];
+};
+
+function whyText(s: MealSuggestion): string {
+  if (s.source === "planned") return "Planned by the family";
+  if (s.source === "same_weekday") {
+    const d = new Date(`${s.based_on}T00:00:00`).toLocaleDateString("en-IN", { weekday: "long" });
+    return `Same as last ${d}`;
+  }
+  return "Same as last time";
+}
+
 type Props = {
   slotKey: string;
   name: string;
@@ -22,17 +45,54 @@ type Props = {
   time: string;
   items: MealLog[];
   day?: string;
+  suggestion?: MealSuggestion;
+  userId?: string;
 };
 
 const UNITS = ["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"];
 
-export default function DashboardSlotCard({ slotKey, name, icon, time, items, day }: Props) {
+export default function DashboardSlotCard({ slotKey, name, icon, time, items, day, suggestion, userId }: Props) {
   const router   = useRouter();
   const supabase = createClient();
 
   const hasItems   = items.length > 0;
   const slotKcal   = items.reduce((s, l) => s + (l.calories ?? 0), 0);
   const [expanded, setExpanded] = useState(false);
+
+  // One-tap log of the suggested meal, with a few seconds to take it back
+  const [logging, setLogging]   = useState(false);
+  const [undoIds, setUndoIds]   = useState<string[] | null>(null);
+  const [tapError, setTapError] = useState<string | null>(null);
+
+  async function logSuggestion() {
+    if (!suggestion || !userId || logging) return;
+    setLogging(true);
+    setTapError(null);
+    const rows = suggestion.items.map((it) => ({
+      user_id:       userId,
+      food_item_id:  it.food_item_id,
+      food_name:     it.food_name,
+      meal_slot:     slotKey,
+      quantity_g:    it.quantity_g ?? 1,
+      quantity_unit: it.quantity_unit ?? "serving",
+      calories:      it.calories,
+      logged_date:   day,
+    }));
+    const { data, error } = await supabase.from("meal_logs").insert(rows).select("id");
+    setLogging(false);
+    if (error) { setTapError("Could not log this. Please try again."); return; }
+    setUndoIds((data ?? []).map((r) => r.id as string));
+    setTimeout(() => setUndoIds(null), 8000);
+    router.refresh();
+  }
+
+  async function undoLog() {
+    if (!undoIds?.length) return;
+    const { error } = await supabase.from("meal_logs").delete().in("id", undoIds);
+    if (error) { setTapError("Could not undo. Use the pencil to remove it."); return; }
+    setUndoIds(null);
+    router.refresh();
+  }
 
   // Inline edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -123,6 +183,40 @@ export default function DashboardSlotCard({ slotKey, name, icon, time, items, da
           </Link>
         </div>
       </div>
+
+      {/* One-tap suggestion for an empty slot */}
+      {!hasItems && suggestion && suggestion.items.length > 0 && (
+        <div className="px-4 pb-3 -mt-1">
+          <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: "#F3ECFC" }}>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold" style={{ color: "#6B46B8" }}>{whyText(suggestion)}</p>
+              <p className="text-sm truncate" style={{ color: "#241C33" }}>
+                {suggestion.items.map((i) => i.food_name).join(", ")}
+              </p>
+              {Number(suggestion.total_kcal) > 0 && (
+                <p className="text-[11px]" style={{ color: "#6A6180" }}>{Math.round(Number(suggestion.total_kcal))} kcal</p>
+              )}
+            </div>
+            <button
+              onClick={logSuggestion}
+              disabled={logging}
+              className="flex-shrink-0 px-4 rounded-full text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: "#241238", minHeight: 44 }}
+            >
+              {logging ? "…" : "Log"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Undo, for a few seconds after a one-tap log */}
+      {undoIds && (
+        <div className="px-4 pb-3 flex items-center justify-between text-xs" style={{ color: "#6B46B8" }}>
+          <span>Logged.</span>
+          <button onClick={undoLog} className="font-semibold px-3" style={{ minHeight: 44 }}>Undo</button>
+        </div>
+      )}
+      {tapError && <p className="px-4 pb-3 text-xs" style={{ color: "#B42318" }}>{tapError}</p>}
 
       {/* Expanded item list */}
       {hasItems && expanded && (

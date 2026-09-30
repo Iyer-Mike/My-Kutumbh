@@ -11,6 +11,7 @@ import Face from "@/components/Face";
 import { signedFaces } from "@/lib/faces";
 import Link from "next/link";
 import { DashTabProvider } from "@/lib/dash-tab";
+import type { MealSuggestion } from "@/components/DashboardSlotCard";
 
 type MealLog = {
   id: string;
@@ -85,7 +86,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .eq("planned_date", day)
     .order("created_at", { ascending: true });
 
-  const [{ data: logs }, { data: planRows }, poolRes, rosterRes] = await Promise.all([
+  const [{ data: logs }, { data: planRows }, poolRes, rosterRes, sugRes] = await Promise.all([
     supabase
       .from("meal_logs")
       .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated, food_items(recipe_id)")
@@ -100,6 +101,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     kutumbhId
       ? supabase.from("family_roster").select("id, full_name")
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+    // One suggested meal per empty slot (family menu, same weekday last week,
+    // or last time). A day still ahead is planned, not logged, so none there.
+    day <= today
+      ? supabase.rpc("suggest_meals", { p_date: day })
+      : Promise.resolve({ data: [] as unknown[] }),
   ]);
 
   const plans = ((planRows ?? []) as MealPlanRow[]).map(({ food_items, ...p }) => {
@@ -175,6 +181,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <main className="flex-1 px-4 py-5">
         {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools" />}
         <DashboardTabs
+          suggestions={(sugRes.data ?? []) as MealSuggestion[]}
           logs={((logs ?? []) as MealLog[]).map(({ food_items, ...l }) => ({
             ...l,
             recipe_id: (Array.isArray(food_items) ? food_items[0] : food_items)?.recipe_id ?? null,

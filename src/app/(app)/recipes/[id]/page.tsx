@@ -5,6 +5,8 @@ import { BRAND as B } from "@/lib/brand";
 import { CUISINES, dietLabel, dishTypeOf } from "@/lib/food-taxonomy";
 import { slotLabel } from "@/lib/meal-slots";
 import PrintRecipe from "@/components/PrintRecipe";
+import RecipeApproval from "@/components/RecipeApproval";
+import { familyOf } from "@/lib/family";
 
 const DIET_MARK: Record<string, string> = { vegan: "#2F7D32", veg: "#2F7D32", egg: "#C98A0B", nonveg: "#A23A1E" };
 
@@ -29,7 +31,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   const supabase = await createClient();
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("id, name, cuisine, source_cuisine, diet, is_jain, dish_type, serves, prep_time, cook_time, blurb, tip, badge, tags, ingredients, method, meal_hint, serving_unit, serving_weight_g, kcal, protein_g, carbs_g, fat_g, fibre_g, iron_mg, calcium_mg, vit_b12_mcg, sodium_mg, nutrition_estimated")
+    .select("id, name, cuisine, source_cuisine, diet, is_jain, dish_type, serves, prep_time, cook_time, blurb, tip, badge, tags, ingredients, method, meal_hint, serving_unit, serving_weight_g, kcal, protein_g, carbs_g, fat_g, fibre_g, iron_mg, calcium_mg, vit_b12_mcg, sodium_mg, nutrition_estimated, status, kutumbh_id")
     .eq("id", recipeId)
     .maybeSingle();
 
@@ -42,6 +44,14 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     .eq("recipe_id", recipeId)
     .limit(1)
     .maybeSingle();
+
+  // A family recipe waits for the Prime Member before the family sees it
+  const waiting = recipe.status === "draft";
+  let canApprove = false;
+  if (waiting) {
+    const { data: { user } } = await supabase.auth.getUser();
+    canApprove = user ? (await familyOf(supabase, user.id)).isPrime : false;
+  }
 
   const mark = DIET_MARK[recipe.diet] ?? DIET_MARK.veg;
   const macro = (v: number | null, unit: string) => (v == null ? "—" : `${Math.round(v * 10) / 10} ${unit}`);
@@ -60,6 +70,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
             {CUISINES.find((c) => c.key === recipe.cuisine)?.label ?? "Indian"}
             {recipe.source_cuisine && recipe.source_cuisine !== recipe.cuisine ? ` · ${recipe.source_cuisine}` : ""}
             {" · "}{dishTypeOf(recipe.dish_type).label}
+            {recipe.kutumbh_id ? " · Family recipe" : ""}
           </p>
         </div>
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)", lineHeight: 1.2 }}>
@@ -71,6 +82,8 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
       </header>
 
       <main className="flex-1 px-4 py-5 grid gap-4">
+        {waiting && <RecipeApproval recipeId={recipe.id} canApprove={canApprove} />}
+
         {/* At a glance */}
         <section className="rounded-2xl px-4 py-4 grid grid-cols-3 gap-3"
           style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>

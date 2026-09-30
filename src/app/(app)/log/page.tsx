@@ -19,6 +19,7 @@ type FoodItem = {
   serving_unit: string; serving_weight_g: number;
   ingredients: string | null; preparation: string | null;
   needs_review?: boolean | null;
+  kutumbh_id?: string | null;
 };
 type PoolRow = { key: string; food: FoodItem; plannerId: string };
 type MealLog = {
@@ -36,7 +37,7 @@ const UNIT_LABEL: Record<string, string> = {
 };
 
 const FOOD_COLS =
-  "id,name,name_ta,category,cuisine,diet,meal_hint,recipe_id,calories,protein_g,serving_unit,serving_weight_g,ingredients,preparation,needs_review";
+  "id,name,name_ta,category,cuisine,diet,meal_hint,recipe_id,calories,protein_g,serving_unit,serving_weight_g,ingredients,preparation,needs_review,kutumbh_id";
 
 function stepFor(unit: string) { return unit === "g" ? 25 : unit === "tbsp" ? 1 : 0.5; }
 function defaultQty(unit: string) { return unit === "g" ? 100 : 1; }
@@ -527,6 +528,13 @@ export default function LogPage() {
                 className="inline-block text-xs font-semibold px-3 py-1.5 rounded-lg"
                 style={{ background: "#E7DCF7", color: "#6B46B8" }}>
                 📖 See the recipe
+              </a>
+            )}
+            {food.recipe_id == null && food.kutumbh_id && (
+              <a href={`/recipes/new?dish=${food.id}`}
+                className="inline-block text-xs font-semibold px-3 py-1.5 rounded-lg"
+                style={{ background: "#FBEBCB", color: "#7A5A06" }}>
+                📝 No recipe yet. Add yours
               </a>
             )}
             {(food.ingredients || food.preparation) && (

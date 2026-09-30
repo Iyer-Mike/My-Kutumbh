@@ -20,6 +20,7 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
   let query = supabase
     .from("recipes")
     .select("id, name, cuisine, diet, dish_type, serves, prep_time, cook_time, blurb, kcal, protein_g")
+    .eq("status", "published")
     .order("name")
     .limit(80);
 

@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B } from "@/lib/brand";
 
-type Item = { id: number; name: string };
+type Item = { id: string; name: string; kind: "recipe" | "dish" };
 type Est = {
-  id: number; serving_unit: string; serving_weight_g: number; kcal: number; protein_g: number; carbs_g: number;
+  id: string; serving_unit: string; serving_weight_g: number; kcal: number; protein_g: number; carbs_g: number;
   fat_g: number; fibre_g: number; iron_mg: number; calcium_mg: number; vit_b12_mcg: number; sodium_mg: number;
 };
 
@@ -27,13 +27,13 @@ const FIELDS: { key: keyof Est; label: string }[] = [
 
 export default function NutritionBucket({ items }: { items: Item[] }) {
   const router = useRouter();
-  const [picked, setPicked] = useState<Set<number>>(new Set(items.slice(0, 10).map((i) => i.id)));
-  const [ests, setEsts] = useState<Record<number, Est>>({});
+  const [picked, setPicked] = useState<Set<string>>(new Set(items.slice(0, 10).map((i) => i.id)));
+  const [ests, setEsts] = useState<Record<string, Est>>({});
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const nameOf = (id: number) => items.find((i) => i.id === id)?.name ?? `Recipe ${id}`;
+  const nameOf = (id: string) => items.find((i) => i.id === id)?.name ?? `Recipe ${id}`;
 
-  function toggle(id: number) {
+  function toggle(id: string) {
     setPicked((p) => {
       const n = new Set(p);
       if (n.has(id)) n.delete(id);
@@ -45,30 +45,38 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
   async function estimate() {
     setBusy(true); setMsg(null);
     try {
-      const res = await fetch("/api/estimate-nutrition", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipeIds: [...picked] }),
-      });
-      const j = await res.json();
-      if (!res.ok) { setMsg(j.error ?? "Could not estimate."); return; }
-      const map: Record<number, Est> = {};
-      for (const e of j.estimates as Est[]) map[e.id] = e;
-      setEsts(map);
+      const chosen = items.filter((i) => picked.has(i.id));
+      const map: Record<string, Est> = {};
+      for (const kind of ["recipe", "dish"] as const) {
+        const ids = chosen.filter((i) => i.kind === kind).map((i) => i.id);
+        if (!ids.length) continue;
+        const res = await fetch(kind === "recipe" ? "/api/estimate-nutrition" : "/api/estimate-dish-nutrition", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(kind === "recipe" ? { recipeIds: ids.map(Number) } : { dishIds: ids }),
+        });
+        const j = await res.json();
+        if (!res.ok) { setMsg(j.error ?? "Could not estimate."); break; }
+        for (const e of j.estimates as { id: string | number }[]) map[String(e.id)] = { ...(e as unknown as Est), id: String(e.id) };
+      }
+      setEsts((cur) => ({ ...cur, ...map }));
     } catch { setMsg("Could not reach the estimator. Try again."); }
     finally { setBusy(false); }
   }
 
-  function edit(id: number, key: keyof Est, v: string) {
+  function edit(id: string, key: keyof Est, v: string) {
     const num = Number(v);
     setEsts((s) => ({ ...s, [id]: { ...s[id], [key]: Number.isFinite(num) ? num : 0 } }));
   }
 
-  async function save(id: number) {
+  async function save(id: string) {
     setBusy(true); setMsg(null);
     const supabase = createClient();
     const { id: _id, ...n } = ests[id];
     void _id;
-    const { error } = await supabase.rpc("save_family_nutrition", { p_recipe_id: id, n });
+    const item = items.find((i) => i.id === id);
+    const { error } = item?.kind === "dish"
+      ? await supabase.rpc("save_dish_nutrition", { p_food_item_id: id, n })
+      : await supabase.rpc("save_family_nutrition", { p_recipe_id: Number(id), n });
     setBusy(false);
     if (error) { setMsg(error.message); return; }
     setEsts((s) => { const c = { ...s }; delete c[id]; return c; });
@@ -81,7 +89,7 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
   if (items.length === 0 && reviewing.length === 0) {
     return (
       <p className="text-sm text-center py-8" style={{ color: B.muted }}>
-        The bucket is empty. Open a family recipe, choose “Edit this recipe” and tick the bucket box to add it.
+        Nothing is waiting. Every family dish has its values, and no recipe is in the bucket.
       </p>
     );
   }
@@ -124,7 +132,7 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
       {items.length > 0 && (
         <div className="rounded-2xl p-4 grid gap-2" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold" style={{ color: B.ink }}>In the bucket ({items.length})</p>
+            <p className="text-sm font-semibold" style={{ color: B.ink }}>Waiting for values ({items.length})</p>
             <button className="text-xs underline min-h-11 px-2" style={{ color: B.muted }}
               onClick={() => setPicked(picked.size ? new Set() : new Set(items.slice(0, 10).map((i) => i.id)))}>
               {picked.size ? "Clear" : "Select up to 10"}
@@ -134,7 +142,7 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
             <div key={i.id} className="flex items-center gap-3 min-h-11">
               <input type="checkbox" className="w-5 h-5" checked={picked.has(i.id)} onChange={() => toggle(i.id)} aria-label={`Select ${i.name}`} />
               <span className="text-sm flex-1" style={{ color: B.ink }}>{i.name}</span>
-              <Link href={`/recipes/${i.id}`} className="text-xs underline" style={{ color: B.muted }}>View</Link>
+              {i.kind === "recipe" ? <Link href={`/recipes/${i.id}`} className="text-xs underline" style={{ color: B.muted }}>View</Link> : <span className="text-[11px]" style={{ color: B.muted2 }}>dish</span>}
             </div>
           ))}
           <button disabled={busy || picked.size === 0} onClick={estimate}

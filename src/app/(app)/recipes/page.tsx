@@ -23,7 +23,8 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
   let bucketCount = 0;
   if (fam?.isPrime && fam.kutumbhId) {
     const { count } = await supabase.from("recipes").select("id", { count: "exact", head: true }).eq("kutumbh_id", fam.kutumbhId).eq("in_bucket", true);
-    bucketCount = count ?? 0;
+    const { count: dc } = await supabase.from("food_items").select("id", { count: "exact", head: true }).eq("kutumbh_id", fam.kutumbhId).is("calories", null);
+    bucketCount = (count ?? 0) + (dc ?? 0);
   }
   let query = supabase
     .from("recipes")

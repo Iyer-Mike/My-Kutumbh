@@ -103,7 +103,7 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
           <div>
             <p className="text-sm font-semibold" style={{ color: B.ink }}>{nameOf(e.id)}</p>
             <p className="text-[11px]" style={{ color: B.muted2 }}>
-              Estimate for 1 {e.serving_unit}. Change any value, then approve.
+              Estimate for 1 {e.serving_unit}, guided by the Indian Food Composition Tables (IFCT). It is approximate, so change any value, then approve.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2">

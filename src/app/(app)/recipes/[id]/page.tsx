@@ -147,6 +147,11 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
               {recipe.serving_weight_g ? `About ${Math.round(recipe.serving_weight_g)} g per ${recipe.serving_unit ?? "serving"}` : "Per serving"}
               {recipe.nutrition_estimated ? " · estimated" : ""}
             </p>
+            {recipe.nutrition_estimated && (
+              <p className="text-[11px] mt-0.5" style={{ color: B.muted2 }}>
+                Values are an AI estimate guided by the Indian Food Composition Tables (IFCT), checked by your Prime Member. Approximate.
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-3 gap-3">
             <Fact label="Energy" value={recipe.kcal != null ? `${Math.round(recipe.kcal)} kcal` : "—"} />

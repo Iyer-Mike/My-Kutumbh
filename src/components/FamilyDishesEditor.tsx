@@ -109,6 +109,7 @@ export default function FamilyDishesEditor({
   const [estimating, setEstimating] = useState(false);
   const [aiNote, setAiNote]     = useState<string | null>(null);
   const [notice, setNotice]     = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   function open(d: FamilyDish) {
     setAiNote(null);
@@ -226,6 +227,16 @@ export default function FamilyDishesEditor({
         ? `Saved “${update.name}”. Earlier logs couldn't be updated: ${rpcErr.message}`
         : `Saved “${update.name}”${filled ? ` · ${filled} earlier log${filled === 1 ? "" : "s"} updated with exact values` : ""}`,
     );
+  }
+
+  async function removeDish(d: FamilyDish) {
+    setSaving(true);
+    const { error } = await supabase.rpc("remove_family_dish", { p_food_item_id: d.id });
+    setSaving(false);
+    if (error) { alert(`Couldn't remove: ${error.message}`); return; }
+    setDishes(prev => prev.filter(x => x.id !== d.id));
+    setOpenId(null); setDraft(null); setConfirmId(null);
+    setNotice(`Removed “${d.name}” and its recipe. Meals already logged keep their name and values.`);
   }
 
   if (dishes.length === 0) {
@@ -450,6 +461,29 @@ export default function FamilyDishesEditor({
                   style={{ background: "#241238" }}>
                   {saving ? "Saving…" : "Save dish ✓"}
                 </button>
+
+                {confirmId === d.id ? (
+                  <div className="rounded-xl p-3 space-y-2" style={{ background: "#FBE9E4", border: "1px solid #E9B8AA" }}>
+                    <p className="text-xs" style={{ color: "#7A2A14" }}>
+                      Remove “{d.name}” from the list? Its recipe goes too. Meals already logged keep their name and values; planned meals keep their text.
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmId(null)} disabled={saving}
+                        className="flex-1 min-h-11 rounded-xl text-sm font-semibold" style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241238" }}>
+                        Keep it
+                      </button>
+                      <button onClick={() => removeDish(d)} disabled={saving}
+                        className="flex-1 min-h-11 rounded-xl text-sm font-semibold text-white disabled:opacity-40" style={{ background: "#A23A1E" }}>
+                        {saving ? "Removing…" : "Yes, remove"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmId(d.id)} disabled={saving}
+                    className="w-full min-h-11 rounded-xl text-sm font-semibold" style={{ background: "#fff", border: "1px solid #E9B8AA", color: "#A23A1E" }}>
+                    Remove from the list
+                  </button>
+                )}
               </div>
             )}
           </div>

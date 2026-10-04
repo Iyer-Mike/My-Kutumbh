@@ -138,21 +138,21 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     festivalName = own?.[0]?.name ?? null;
   }
   // The dishes offered for it, with their values
-  let festivalDishes: { food_item_id: string; food_name: string; serving_unit: string | null; kcal_per_serving: number | null; recipe_id: number | null; n: Nutr | null }[] = [];
+  let festivalDishes: { food_item_id: string; food_name: string; serving_unit: string | null; category: string | null; kcal_per_serving: number | null; recipe_id: number | null; n: Nutr | null }[] = [];
   if (festivalName && isPrime) {
     const { data: fd } = await supabase
       .from("food_items")
-      .select(`id, name, recipe_id, ${FOOD_NUTRIENT_COLS}`)
+      .select(`id, name, category, recipe_id, ${FOOD_NUTRIENT_COLS}`)
       .in("name", festivalDishNames(builtIn))
       .in("diet", ["veg", "vegan"])
       .is("kutumbh_id", null);
     const order = festivalDishNames(builtIn);
-    festivalDishes = ((fd ?? []) as unknown as (FoodNutrientRow & { id: string; name: string; recipe_id: number | null })[])
+    festivalDishes = ((fd ?? []) as unknown as (FoodNutrientRow & { id: string; name: string; category: string | null; recipe_id: number | null })[])
       .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name))
       .map((f) => {
         const w = f.serving_unit === "g" ? 100 : (f.serving_weight_g ?? 100);
         return {
-          food_item_id: f.id, food_name: f.name, serving_unit: f.serving_unit,
+          food_item_id: f.id, food_name: f.name, serving_unit: f.serving_unit, category: f.category,
           kcal_per_serving: f.calories != null ? Math.round((f.calories * w) / 100) : null,
           recipe_id: f.recipe_id, n: perServing(f),
         };

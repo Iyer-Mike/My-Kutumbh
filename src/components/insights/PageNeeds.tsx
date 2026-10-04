@@ -137,7 +137,7 @@ export default function PageNeeds({
             </div>
             {unaccounted > 0.02 && (
               <p className="m-0 mt-1.5" style={{ fontSize: T.note, color: C.ink3 }}>
-                {Math.round(unaccounted * 100)}% of intake is from dishes needing updates.
+                Energy estimate incomplete: some dishes lack food values. Please complete the dish details.
               </p>
             )}
           </>

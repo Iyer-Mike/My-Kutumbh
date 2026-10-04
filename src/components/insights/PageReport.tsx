@@ -14,45 +14,11 @@ import { Card, Label, Chip, Says, C, T, qty } from "./bits";
  * is how this page became a second sermon the first time round.
  */
 
-/** Which of a member's shortfalls the blood has something to say about. */
-function pairWithBlood(gaps: Gap[], flags: LabFlag[]): { label: string; line: string }[] {
+/** The member's shortfalls, as the food log shows them. */
+function shortfalls(gaps: Gap[]): { label: string; line: string }[] {
   const out: { label: string; line: string }[] = [];
-  const short = new Map(gaps.map((g) => [g.label, g]));
-  const flagged = (k: string) => flags.find((f) => f.key === k);
-
-  const b12 = short.get("Vitamin B12");
-  if (b12) {
-    const lab = flagged("vitamin_b12");
-    out.push({
-      label: "Vitamin B12",
-      line: lab
-        ? "Eaten too little and blood is low. Fix this first."
-        : "Eaten too little; blood still normal. Fix now, before it drops.",
-    });
-  }
-
-  const cal = short.get("Calcium");
-  if (cal) {
-    const d = flagged("vitamin_d");
-    out.push({
-      label: "Calcium",
-      line: d
-        ? "Eaten too little, and low vitamin D reduces absorption. Bones are at risk."
-        : "Eaten too little. Bones need it daily.",
-    });
-  }
-
-  const iron = short.get("Iron");
-  if (iron) {
-    const lab = flagged("iron");
-    out.push({
-      label: "Iron",
-      line: lab
-        ? "Eaten too little and blood is low. Add greens, ragi, with a sour food (lemon, tamarind)."
-        : "Eaten too little; blood normal. Improve, no cause for worry.",
-    });
-  }
-
+  for (const [key, label] of [["Vitamin B12", "B12"], ["Calcium", "calcium"], ["Iron", "iron"]] as const)
+    if (gaps.some((g) => g.label === key)) out.push({ label: key, line: `Low intake of ${label}. Needs fixing.` });
   return out;
 }
 
@@ -70,7 +36,7 @@ export default function PageReport({
 }) {
   const known = flags.filter((f) => f.known);
   const other = flags.filter((f) => !f.known);
-  const together = pairWithBlood(gaps, flags);
+  const together = shortfalls(gaps);
   const forDoctor = new Set(["inflammation", "vitamin_d", "kidney", "liver"]);
 
   if (!hasReport) {
@@ -137,7 +103,7 @@ export default function PageReport({
           <div className="mt-2 grid gap-2.5">
             {together.map((t) => (
               <p key={t.label} className="m-0" style={{ fontSize: T.body, color: C.ink2, lineHeight: 1.55 }}>
-                <span className="font-bold" style={{ color: C.ink }}>{t.label}:</span> {t.line}
+                {t.line}
               </p>
             ))}
           </div>

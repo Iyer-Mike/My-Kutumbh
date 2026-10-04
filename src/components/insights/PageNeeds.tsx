@@ -77,14 +77,13 @@ export default function PageNeeds({
 
       {/* 1 · Your med report says */}
       <Card>
-        <Label n={1}>Your med report says</Label>
+        <Label n={1} aside={worst.length ? `${worst.length - forDoctor} food-linked · ${forDoctor} for doctor` : undefined}>Your med report says</Label>
         {!hasReport ? (
           <Says>
-            No lab report yet. {viewingOther ? `${firstName} can add one` : "Add one"} on Profile, and this page will
-            set the readings against what is actually eaten.
+            No lab report · {viewingOther ? `${firstName} can add one` : "add one"} on Profile
           </Says>
         ) : worst.length === 0 ? (
-          <Says>Everything in the latest report is within its normal range.</Says>
+          <Says>All readings normal ✓</Says>
         ) : (
           <>
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -98,8 +97,6 @@ export default function PageNeeds({
               })}
             </div>
             <Says>
-              {worst.length - forDoctor > 0 && `${worst.length - forDoctor} of these move with food. `}
-              {forDoctor > 0 && `${forDoctor} ${forDoctor === 1 ? "is" : "are"} for a doctor. `}
               <button onClick={onOpenReport} className="font-semibold" style={{ color: C.purple }}>
                 The full report ›
               </button>
@@ -140,7 +137,7 @@ export default function PageNeeds({
             </div>
             {unaccounted > 0.02 && (
               <p className="m-0 mt-1.5" style={{ fontSize: T.note, color: C.ink3 }}>
-                {Math.round(unaccounted * 100)}% of the energy has no breakdown yet — dishes still waiting for their details.
+                {Math.round(unaccounted * 100)}% of intake is from dishes needing updates.
               </p>
             )}
           </>
@@ -152,12 +149,9 @@ export default function PageNeeds({
         <Label n={3} aside={plan.actions.length ? "strongest first" : undefined}>The analysis says</Label>
 
         {plan.actions.length === 0 ? (
-          <Says>Nothing is off at the moment. Eating as {viewingOther ? `${firstName} is` : "you are"}.</Says>
+          <Says>Nothing to change ✓</Says>
         ) : (
           <>
-            <Says>
-              The same few changes answer most of what the report and the food are both showing.
-            </Says>
             <div className="mt-2">
               {plan.actions.map((a) => <Change key={a.id} a={a} />)}
             </div>
@@ -183,7 +177,7 @@ export default function PageNeeds({
             {plan.doctor.map((d) => <li key={d}>{d}</li>)}
           </ul>
           <p className="m-0 mt-2" style={{ fontSize: T.note, color: C.ink3 }}>
-            Food cannot settle these. Not urgent unless {viewingOther ? `${firstName} feels` : "you feel"} unwell.
+            Not food-fixable · urgent only if {viewingOther ? `${firstName} feels` : "you feel"} unwell
           </p>
         </Card>
       )}

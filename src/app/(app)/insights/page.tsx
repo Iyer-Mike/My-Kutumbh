@@ -71,8 +71,8 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         </h1>
         <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
           {reportDate
-            ? `Using the lab report of ${new Date(`${reportDate}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })}`
-            : "No lab report yet — upload one on Profile for health-based food guidance"}
+            ? `Lab report · ${new Date(`${reportDate}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })}`
+            : "No lab report · add one on Profile"}
         </p>
       </header>
 

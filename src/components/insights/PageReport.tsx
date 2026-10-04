@@ -26,8 +26,8 @@ function pairWithBlood(gaps: Gap[], flags: LabFlag[]): { label: string; line: st
     out.push({
       label: "Vitamin B12",
       line: lab
-        ? "Short in the food and low in the blood. Two signals agreeing — the one to act on first."
-        : "Short in the food. The blood has not flagged it yet, which is the easier moment to fix it.",
+        ? "Eaten too little and blood is low. Fix this first."
+        : "Eaten too little; blood still normal. Fix now, before it drops.",
     });
   }
 
@@ -37,8 +37,8 @@ function pairWithBlood(gaps: Gap[], flags: LabFlag[]): { label: string; line: st
     out.push({
       label: "Calcium",
       line: d
-        ? "Short in the food, and with vitamin D low it is absorbed poorly anyway. Bone is the concern here, not blood."
-        : "Short in the food. Bone is rebuilt daily and this is what it is rebuilt from.",
+        ? "Eaten too little, and low vitamin D reduces absorption. Bones are at risk."
+        : "Eaten too little. Bones need it daily.",
     });
   }
 
@@ -48,8 +48,8 @@ function pairWithBlood(gaps: Gap[], flags: LabFlag[]): { label: string; line: st
     out.push({
       label: "Iron",
       line: lab
-        ? "Short in the food and the blood shows it. Greens and ragi, with something sour alongside so it is absorbed."
-        : "Short in the food, but the blood counts are normal. Worth improving, not worth worrying about.",
+        ? "Eaten too little and blood is low. Add greens, ragi, with a sour food (lemon, tamarind)."
+        : "Eaten too little; blood normal. Improve, no cause for worry.",
     });
   }
 
@@ -78,9 +78,9 @@ export default function PageReport({
       <Card>
         <Label n={1}>What the report says</Label>
         <Says>
-          No lab report yet. {viewingOther ? `${firstName} can add one` : (
-            <>Add one on <Link href="/profile" className="font-semibold underline" style={{ color: C.purple }}>Profile</Link></>
-          )} and this page will read it in plain words, and set it against what is actually eaten.
+          No lab report · {viewingOther ? `${firstName} can add one` : (
+            <>add one on <Link href="/profile" className="font-semibold underline" style={{ color: C.purple }}>Profile</Link></>
+          )}
         </Says>
       </Card>
     );
@@ -91,12 +91,12 @@ export default function PageReport({
 
       {/* 1 · What the report says */}
       <Card>
-        <Label n={1} aside={reportDate ? new Date(`${reportDate}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : undefined}>
+        <Label n={1}>
           What the report says
         </Label>
 
         {known.length === 0 ? (
-          <Says>Every value in this report sits inside its normal range.</Says>
+          <Says>All readings normal ✓</Says>
         ) : (
           <div className="mt-2 grid gap-3">
             {known.map((f, i) => (
@@ -111,11 +111,16 @@ export default function PageReport({
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {f.readings.map((r) => (
-                    <Chip key={r.key} tone={r.status === "low" ? "low" : "high"}>
-                      {r.label} <span className="font-bold">{r.value}</span>{r.unit ? ` ${r.unit}` : ""}
-                    </Chip>
-                  ))}
+                  {f.readings.filter((r) => !r.label.includes("(IFCC)")).map((r) => {
+                    const ifcc = r.label === "HbA1c" ? f.readings.find((x) => x.label.includes("(IFCC)")) : undefined;
+                    return (
+                      <Chip key={r.key} tone={r.status === "low" ? "low" : "high"}>
+                        {r.label} <span className="font-bold">{r.value}</span>{r.unit ? ` ${r.unit}` : ""}
+                        {ifcc ? ` (${Math.round(ifcc.value * 10) / 10} ${ifcc.unit})` : ""}
+                        {f.key === "lipids" ? ` (normal ${r.range})` : ""}
+                      </Chip>
+                    );
+                  })}
                 </div>
 
                 <p className="m-0 mt-2" style={{ fontSize: T.body, color: C.ink2, lineHeight: 1.55 }}>{f.meaning}</p>
@@ -129,18 +134,15 @@ export default function PageReport({
       {together.length > 0 && (
         <Card>
           <Label n={2}>What {viewingOther ? "the" : "your"} food adds to this</Label>
-          <p className="m-0 mt-1" style={{ fontSize: T.note, color: C.ink3 }}>
-            The blood and the plate read together — one tells what the other cannot.
-          </p>
           <div className="mt-2 grid gap-2.5">
             {together.map((t) => (
               <p key={t.label} className="m-0" style={{ fontSize: T.body, color: C.ink2, lineHeight: 1.55 }}>
-                <span className="font-bold" style={{ color: C.ink }}>{t.label}</span> — {t.line}
+                <span className="font-bold" style={{ color: C.ink }}>{t.label}:</span> {t.line}
               </p>
             ))}
           </div>
           <button onClick={onOpenIntake} className="mt-3 font-semibold" style={{ fontSize: T.note, color: C.purple }}>
-            The numbers behind these ›
+            Numbers ›
           </button>
         </Card>
       )}
@@ -149,17 +151,15 @@ export default function PageReport({
       {other.length > 0 && (
         <div className="rounded-2xl px-4 py-3" style={{ background: "#F3EEFA", border: `1px dashed #D6C9EA` }}>
           <p className="m-0" style={{ fontSize: T.note, color: C.ink3, lineHeight: 1.5 }}>
-            {other.reduce((n, f) => n + f.readings.length, 0)} other{" "}
-            {other.reduce((n, f) => n + f.readings.length, 0) === 1 ? "reading is" : "readings are"} outside range with no
-            food advice attached — {other.flatMap((f) => f.readings.map((r) => `${r.label} ${qty(r.value)}`)).slice(0, 3).join(", ")}.
-            Worth asking about at your next visit.
+            {other.reduce((n, f) => n + f.readings.length, 0)} more outside range, no food advice:{" "}
+            {other.flatMap((f) => f.readings.map((r) => `${r.label} ${qty(r.value)}`)).slice(0, 3).join(", ")} → ask your doctor
           </p>
         </div>
       )}
 
       {doctorNotes.length > 0 && (
         <p className="m-0 px-1" style={{ fontSize: T.note, color: C.ink3, lineHeight: 1.5 }}>
-          General guidance, not medical advice. Always follow your doctor, especially about medicines and supplements.
+          Guidance only, not medical advice · follow your doctor on medicines and supplements
         </p>
       )}
     </div>

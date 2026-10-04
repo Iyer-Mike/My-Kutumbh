@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { LabFlag } from "@/lib/insights/types";
 import type { Gap } from "@/lib/insights/actions";
-import { Card, Label, Chip, Says, C, T, qty } from "./bits";
+import { Card, Label, Says, C, T, qty } from "./bits";
 
 /**
  * 3 · Your Lab Report
@@ -83,7 +83,7 @@ export default function PageReport({
     <div className="grid gap-3">
 
       {/* 1 · What the report says */}
-      <Card>
+      <Card tone="sky">
         <Label n={1}>
           What the report says
         </Label>
@@ -103,15 +103,20 @@ export default function PageReport({
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                <div className="mt-1.5 grid gap-1">
                   {f.readings.filter((r) => !r.label.includes("(IFCC)")).map((r) => {
                     const ifcc = r.label === "HbA1c" ? f.readings.find((x) => x.label.includes("(IFCC)")) : undefined;
                     return (
-                      <Chip key={r.key} tone={r.status === "low" ? "low" : "high"}>
-                        {r.label} <span className="font-bold">{r.value}</span>{r.unit ? ` ${r.unit}` : ""}
-                        {ifcc ? ` (${Math.round(ifcc.value * 10) / 10} ${ifcc.unit})` : ""}
-                        {f.key === "lipids" ? ` (normal ${r.range})` : ""}
-                      </Chip>
+                      <div key={r.key} className="flex items-baseline justify-between gap-3 tabular-nums" style={{ fontSize: T.body, color: C.ink }}>
+                        <span>
+                          {r.label}{" "}
+                          <span className="font-bold" style={{ color: r.status === "low" ? "#1F4A78" : "#B0302A" }}>
+                            {qty(r.value)}{r.unit ? ` ${r.unit}` : ""}
+                            {ifcc ? ` (${Math.round(ifcc.value * 10) / 10} ${ifcc.unit})` : ""}
+                          </span>
+                        </span>
+                        <span className="flex-shrink-0" style={{ fontSize: T.note, color: C.ink3 }}>normal {r.range}</span>
+                      </div>
                     );
                   })}
                 </div>
@@ -125,7 +130,7 @@ export default function PageReport({
 
       {/* 2 · What the food adds to this */}
       {together.length > 0 && (
-        <Card>
+        <Card tone="mint">
           <Label n={2}>What {viewingOther ? "the" : "your"} food adds to this</Label>
           <div className="mt-2 grid gap-2.5">
             {together.map((t) => (

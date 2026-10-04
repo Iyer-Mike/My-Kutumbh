@@ -10,7 +10,8 @@ import CouldNotRead from "@/components/CouldNotRead";
 import Face from "@/components/Face";
 import { signedFaces } from "@/lib/faces";
 import Link from "next/link";
-import { builtInOn, festivalMenu, shortFestivalName } from "@/lib/festivals";
+import type { QuickPick } from "@/components/PlanSlotCard";
+import { builtInOn, festivalMenu, shortFestivalName, EVERYDAY, MEAL_KEYS } from "@/lib/festivals";
 import { FOOD_NUTRIENT_COLS, perServing, type FoodNutrientRow, type Nutr } from "@/lib/serving-nutrition";
 
 type MealLog = {
@@ -137,27 +138,37 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const { data: own } = await supabase.from("family_festivals").select("name").eq("kutumbh_id", kutumbhId).eq("festival_date", day).limit(1);
     festivalName = own?.[0]?.name ?? null;
   }
-  // The dishes offered for it, with their values
-  let festivalDishes: { meal: string; food_item_id: string; food_name: string; serving_unit: string | null; category: string | null; kcal_per_serving: number | null; recipe_id: number | null; n: Nutr | null }[] = [];
-  if (festivalName && isPrime) {
+  // Quick picks for each meal's "Change menu": a festival's own dishes on a festival day,
+  // otherwise what this family plans most often, topped up with everyday dishes (at least five)
+  const quickPicks: Record<string, QuickPick[]> = {};
+  if (isPrime) {
+    const want: Record<string, string[]> = {};
+    if (festivalName) {
+      for (const x of festivalMenu(builtIn)) (want[x.meal] ??= []).push(x.name);
+    } else {
+      const since = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10);
+      const { data: hist } = kutumbhId
+        ? await supabase.from("meal_plans").select("meal_slot, food_name").eq("kutumbh_id", kutumbhId).gte("planned_date", since).limit(1500)
+        : { data: [] as { meal_slot: string; food_name: string }[] };
+      const count: Record<string, Record<string, number>> = {};
+      for (const h of hist ?? []) { const c = (count[h.meal_slot] ??= {}); c[h.food_name] = (c[h.food_name] ?? 0) + 1; }
+      for (const m of MEAL_KEYS) {
+        const often = Object.entries(count[m] ?? {}).sort((a, b) => b[1] - a[1]).map(([n]) => n).slice(0, 8);
+        want[m] = [...often, ...EVERYDAY[m].filter((n) => !often.includes(n))].slice(0, Math.max(often.length, 8));
+      }
+    }
+    const names = [...new Set(Object.values(want).flat())];
     const { data: fd } = await supabase
       .from("food_items")
-      .select(`id, name, category, recipe_id, ${FOOD_NUTRIENT_COLS}`)
-      .in("name", festivalMenu(builtIn).map((x) => x.name))
-      .in("diet", ["veg", "vegan"])
-      .is("kutumbh_id", null);
-    const menu = festivalMenu(builtIn);
-    const order = menu.map((x) => x.name);
-    festivalDishes = ((fd ?? []) as unknown as (FoodNutrientRow & { id: string; name: string; category: string | null; recipe_id: number | null })[])
-      .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name))
-      .map((f) => {
-        const w = f.serving_unit === "g" ? 100 : (f.serving_weight_g ?? 100);
-        return {
-          meal: menu[order.indexOf(f.name)].meal, food_item_id: f.id, food_name: f.name, serving_unit: f.serving_unit, category: f.category,
-          kcal_per_serving: f.calories != null ? Math.round((f.calories * w) / 100) : null,
-          recipe_id: f.recipe_id, n: perServing(f),
-        };
-      });
+      .select("id, name, category, diet, meal_hint, recipe_id, calories, serving_weight_g, serving_unit, kutumbh_id, needs_review")
+      .in("name", names);
+    const byName = new Map<string, QuickPick>();
+    for (const f of (fd ?? []) as QuickPick[]) {
+      const have = byName.get(f.name);
+      // a family's own dish of the same name wins over the shared one
+      if (!have || f.kutumbh_id) byName.set(f.name, f);
+    }
+    for (const [m, list] of Object.entries(want)) quickPicks[m] = list.map((n) => byName.get(n)).filter(Boolean) as QuickPick[];
   }
   const festivalTab = festivalName
     ? `${shortFestivalName(festivalName)} · ${new Date(`${day}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
@@ -232,7 +243,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           tomorrow={tomorrow}
           isPrime={isPrime}
           festivalTab={festivalTab}
-          festivalDishes={festivalDishes}
+          quickPicks={quickPicks}
+          quickLabel={festivalName ? `Made for ${shortFestivalName(festivalName)}` : "Often on your menu"}
           plans={plans}
           poolNames={poolNames}
           memberNames={memberNames}

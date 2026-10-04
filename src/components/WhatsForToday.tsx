@@ -8,7 +8,7 @@ import { SLOTS } from "@/lib/meal-slots";
 import { dayLabel } from "@/lib/dates";
 import { useFamilyTimeZone } from "@/lib/family-time";
 import { microCells, nutrientCells, scaled, sum, type Nutr } from "@/lib/serving-nutrition";
-import PlanSlotCard, { type PlanItem } from "./PlanSlotCard";
+import PlanSlotCard, { type PlanItem, type QuickPick } from "./PlanSlotCard";
 
 export type MealSuggestion = {
   meal_slot: string;
@@ -37,11 +37,6 @@ type Log = {
   n: Nutr | null;
 };
 
-export type FestivalDish = {
-  meal: string;
-  food_item_id: string; food_name: string; serving_unit: string | null; category: string | null;
-  kcal_per_serving: number | null; recipe_id: number | null; n: Nutr | null;
-};
 
 type Plan = PlanItem & { meal_slot: string; food_item_id: string | null; n: Nutr | null };
 
@@ -54,7 +49,8 @@ type Props = {
   tomorrow: string;
   isPrime: boolean;
   festivalTab: string | null;
-  festivalDishes: FestivalDish[];
+  quickPicks: Record<string, QuickPick[]>;
+  quickLabel: string;
   plans: Plan[];
   poolNames: Record<string, string>;
   memberNames: Record<string, string>;
@@ -79,7 +75,7 @@ const PLUM = "#3B1F5C";
 const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, day, today, tomorrow, isPrime, festivalTab, festivalDishes, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, dailyKcalGoal, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -93,7 +89,6 @@ export default function WhatsForToday({
   const [plans, setPlans] = useState<Plan[]>(serverPlans);
   useEffect(() => setPlans(serverPlans), [serverPlans]);
   // The festival menu starts open on a festival day, so it is the first thing seen
-  const [festOpen, setFestOpen] = useState(false);
 
   const [open, setOpen]         = useState<Record<string, boolean>>({});
   const [editing, setEditing]   = useState<Record<string, boolean>>({});
@@ -171,31 +166,6 @@ export default function WhatsForToday({
       setTimeout(() => setUndo((u) => (u && u.ids === ids ? null : u)), 8000);
       router.refresh();
     }
-  }
-
-  async function toggleFestivalDish(d: FestivalDish) {
-    if (busy) return;
-    setBusy(true); setError(null);
-    const have = plans.find((p) => p.food_item_id === d.food_item_id);
-    if (have) {
-      const { error: err } = await supabase.from("meal_plans").delete().eq("id", have.id);
-      if (err) setError("Could not take this off the menu. Please try again.");
-      else setPlans((cur) => cur.filter((p) => p.id !== have.id));
-    } else {
-      const slot = d.meal;
-      const { data, error: err } = await supabase.from("meal_plans").insert({
-        user_id: userId, kutumbh_id: kutumbhId ?? null, planned_date: day, meal_slot: slot, food_name: d.food_name,
-        quantity_g: 1, quantity_unit: d.serving_unit ?? "serving", food_item_id: d.food_item_id,
-      }).select("id").single();
-      if (err || !data) setError("Could not add this to the menu. Please try again.");
-      else setPlans((cur) => [...cur, {
-        id: data.id as string, user_id: userId, food_name: d.food_name, meal_slot: slot, food_item_id: d.food_item_id,
-        recipe_id: d.recipe_id, needs_review: false, category: d.category, serving_unit: d.serving_unit,
-        kcal_per_serving: d.kcal_per_serving, n: d.n,
-      }]);
-    }
-    setBusy(false);
-    router.refresh();
   }
 
   async function undoLog() {
@@ -290,48 +260,6 @@ export default function WhatsForToday({
         {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{noValues} {noValues === 1 ? "dish has" : "dishes have"} no food values yet and {noValues === 1 ? "is" : "are"} left out.</p>}
         <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>Estimates, guided by the Indian Food Composition Tables (IFCT). Approximate.</p>
       </div>
-
-      {isPrime && festivalDishes.length > 0 && (
-        <div style={{ background: "#FFF6DD", borderBottom: "1px solid #F0D9A0" }}>
-          <button onClick={() => setFestOpen((o) => !o)} aria-expanded={festOpen}
-            className="w-full flex items-center justify-between gap-2 px-3 text-left text-sm font-bold" style={{ minHeight: 52, color: "#5A3E00" }}>
-            <span>🪔 Festival menu{festivalTab ? ` · ${festivalTab.split(" · ")[0]}` : ""}
-              <span className="font-normal text-xs"> · {plans.filter((p) => festivalDishes.some((d) => d.food_item_id === p.food_item_id)).length} chosen</span>
-            </span>
-            <span aria-hidden style={{ transform: festOpen ? "rotate(180deg)" : undefined }}>⌄</span>
-          </button>
-          {festOpen && (
-            <div className="px-2 pb-2 flex flex-col">
-              <p className="m-0 px-1 pb-1 text-[11px]" style={{ color: "#7A5A06" }}>
-                Vegetarian dishes for this festival, meal by meal. Tick as many as the family will have.
-              </p>
-              {SLOTS.map((m) => {
-                const dishes = festivalDishes.filter((d) => d.meal === m.key);
-                if (!dishes.length) return null;
-                return (
-                  <div key={m.key}>
-                    <p className="m-0 px-1 pt-2 pb-1 text-xs font-bold" style={{ color: "#5A3E00" }}>{m.icon} {m.label}</p>
-                    {dishes.map((d) => {
-                      const on = plans.some((p) => p.food_item_id === d.food_item_id);
-                      return (
-                        <button key={d.food_item_id} onClick={() => toggleFestivalDish(d)} aria-pressed={on} disabled={busy}
-                          className="flex items-center gap-3 w-full px-2 text-left" style={{ minHeight: 52, borderTop: "1px solid #F0D9A0" }}>
-                          <span className="w-[24px] h-[24px] rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm"
-                            style={{ background: on ? PLUM : "#fff", border: `2px solid ${on ? PLUM : "#8D7FA6"}` }}>{on ? "✓" : ""}</span>
-                          <span className="flex flex-col min-w-0">
-                            <span className="text-sm" style={{ color: INK }}>{d.food_name}</span>
-                            <span className="text-xs" style={{ color: MUTED }}>{d.kcal_per_serving != null ? `${d.kcal_per_serving} kcal / ${d.serving_unit === "g" ? "100 g" : (d.serving_unit ?? "serving")}` : "No values yet"}</span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       {SLOTS.map(({ key, label, icon, time }) => {
         const ps = slotPlans(key);
@@ -448,7 +376,7 @@ export default function WhatsForToday({
                 {isPrime && editing[key] && (
                   <PlanSlotCard key={`${key}-${version}`} slotKey={key} name={label} icon={icon} time={time}
                     userId={userId} kutumbhId={kutumbhId} plannedDate={day}
-                    initialItems={ps} initialPoolName={poolNames[key] ?? null} memberNames={memberNames} />
+                    quickPicks={quickPicks[key]} quickLabel={quickLabel} initialItems={ps} initialPoolName={poolNames[key] ?? null} memberNames={memberNames} />
                 )}
 
               </div>

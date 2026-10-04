@@ -24,7 +24,7 @@ export type MealKey = "breakfast" | "morning_snack" | "lunch" | "evening_snack" 
 export const MEAL_KEYS: MealKey[] = ["breakfast", "morning_snack", "lunch", "evening_snack", "dinner"];
 type Menu = Partial<Record<MealKey, string[]>>;
 
-const EVERYDAY: Record<MealKey, string[]> = {
+export const EVERYDAY: Record<MealKey, string[]> = {
   breakfast: ["Idli with Sambar", "Dosa", "Vegetable Uttapam", "Poha (Flattened Rice Stir-Fry)", "Rava Upma", "Aloo Paratha", "Besan Chilla (Gram Flour Crepe)", "Moong Dal Cheela"],
   morning_snack: ["Seasonal Fruit Bowl", "Banana", "Dates (dry)", "Roasted Makhana", "Tender Coconut Water", "Pomegranate", "Filter Coffee", "Masala Chai"],
   lunch: ["Vegetable Pulao", "Dal Tadka", "Jeera Rice", "Phulka", "Aloo Gobi", "Sambar", "Plain Rice", "Kootu (Vegetable & Lentil Curry)"],

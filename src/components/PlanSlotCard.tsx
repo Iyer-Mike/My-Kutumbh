@@ -19,6 +19,7 @@ export type PlanItem = {
   kcal_per_serving: number | null;
 };
 
+export type QuickPick = FoodSuggestion;
 type FoodSuggestion = {
   id: string;
   name: string;
@@ -46,6 +47,9 @@ type Props = {
   initialItems: PlanItem[];
   initialPoolName: string | null;
   memberNames: Record<string, string>;
+  /** Dishes to offer first for this meal (festival dishes, or the family's usual); the search still reaches everything */
+  quickPicks?: QuickPick[];
+  quickLabel?: string;
 };
 
 function perServingKcal(f: { calories: number | null; serving_weight_g: number | null; serving_unit: string | null }) {
@@ -62,7 +66,7 @@ export function servingHint(item: Pick<PlanItem, "needs_review" | "category" | "
 }
 
 export default function PlanSlotCard({
-  slotKey, plannedDate, name, icon, time, userId, kutumbhId, initialItems, initialPoolName, memberNames,
+  slotKey, plannedDate, name, icon, time, userId, kutumbhId, initialItems, initialPoolName, memberNames, quickPicks, quickLabel,
 }: Props) {
   const supabase = createClient();
   const [items, setItems]               = useState<PlanItem[]>(initialItems);
@@ -392,8 +396,16 @@ export default function PlanSlotCard({
             style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: "#241C33", outline: "none" }}
           />
 
-          {/* Browse by filters — tick as many as you like */}
-          {!typed && (
+          {/* Quick picks for this meal, or browse by filters when none are given — tick as many as you like */}
+          {!typed && (quickPicks?.length ?? 0) > 0 && (
+            <div className="space-y-1.5">
+              <p className="m-0 text-xs font-bold" style={{ color: "#5A3E00" }}>{quickLabel ?? "Suggested"} · {name}</p>
+              <div className="rounded-xl overflow-y-auto" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", maxHeight: 340 }}>
+                {quickPicks!.map(dishRow)}
+              </div>
+            </div>
+          )}
+          {!typed && !(quickPicks?.length) && (
             <div className="space-y-2">
               <FoodFilterBar value={filter} onChange={setFilter} idPrefix={`plan-${slotKey}`} slot={slotKey} />
               <div className="rounded-xl overflow-y-auto" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", maxHeight: 300 }}>

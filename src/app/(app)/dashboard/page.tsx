@@ -39,8 +39,8 @@ type MealPlanRow = {
   food_items: PlanFood | PlanFood[] | null;
 };
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
-  const { date } = await searchParams;
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string; fest?: string }> }) {
+  const { date, fest } = await searchParams;
   // One day at a time: a month back to catch up, a week ahead to plan
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -68,7 +68,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const { kutumbhId, isPrime, timeZone } = membership;
   const kutumbhName = membership.kutumbhName ?? "My Kutumbh";
-  const day = clampDay(date, 30, 6, timeZone);
+  // A festival day can be a long way off; it is opened from the Festival days list
+  const day = clampDay(date, 30, fest === "1" ? 400 : 6, timeZone);
   const today = todayLocal(timeZone);
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
@@ -172,7 +173,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
 
-        <DayNav date={day} back={30} ahead={6} path="/dashboard" onDark />
+        {fest === "1" && day > daysAheadLocal(6, timeZone) ? (
+          <Link href="/festivals" className="inline-flex items-center px-3 rounded-xl text-sm font-semibold"
+            style={{ minHeight: 44, background: "rgba(255,255,255,0.14)", color: "#fff" }}>
+            ‹ Festival days · {longDateFor(day)}
+          </Link>
+        ) : (
+          <DayNav date={day} back={30} ahead={6} path="/dashboard" onDark />
+        )}
       </header>
 
       {/* ── Tabs + content ── */}

@@ -208,6 +208,10 @@ export default function WhatsForToday({
                    color: isTomorrow ? "#fff" : "#C9B8E4", fontWeight: isTomorrow ? 700 : 500 }}>
           Tomorrow
         </Link>
+        <Link href="/festivals" className={tabBase}
+          style={{ display: "flex", alignItems: "center", gap: 4, borderColor: "transparent", color: "#F5B82E", fontWeight: 600 }}>
+          <span aria-hidden>🪔</span> Festivals
+        </Link>
         {!isToday && !isTomorrow && (
           <span className={tabBase} style={{ display: "flex", alignItems: "center", borderColor: "#F5B82E", color: "#fff", fontWeight: 700 }}>
             {dayLabel(day, tz)}

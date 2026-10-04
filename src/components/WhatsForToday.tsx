@@ -83,7 +83,6 @@ export default function WhatsForToday({
 
   const [open, setOpen]         = useState<Record<string, boolean>>({});
   const [editing, setEditing]   = useState<Record<string, boolean>>({});
-  const [estimated, setEst]     = useState<Record<string, string>>({});
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [undo, setUndo]         = useState<{ ids: string[]; text: string } | null>(null);
@@ -95,9 +94,6 @@ export default function WhatsForToday({
   const slotLogs  = (slot: string) => logs.filter((l) => l.meal_slot === slot);
   const logFor    = (slot: string, p: Plan) => slotLogs(slot).find((l) => same(p, l));
   const nOf       = (l: Log) => (l.n ? scaled(l.n, Number(l.quantity_g) || 1) : null);
-  // The key changes whenever what was eaten in a meal changes, which is
-  // when its estimate stops being true
-  const sig = (slot: string) => slotLogs(slot).map((l) => l.id).sort().join(",");
 
   function toLog(p: Plan, slot: string) {
     return {
@@ -172,23 +168,16 @@ export default function WhatsForToday({
     router.refresh();
   }
 
-  // ── Estimates ──────────────────────────────────────────────────────────
-  const marked  = SLOTS.filter((s) => slotLogs(s.key).length > 0);
-  const pending = marked.filter((s) => estimated[s.key] !== sig(s.key));
-  const isDone  = (key: string) =>
-    (slotPlans(key).length === 0 && slotLogs(key).length === 0) || (slotLogs(key).length > 0 && estimated[key] === sig(key));
-  const dayDone = canLog && marked.length > 0 && SLOTS.every((s) => isDone(s.key));
-
-  function estimate() {
-    const next = { ...estimated };
-    for (const s of marked) next[s.key] = sig(s.key);
-    setEst(next);
-    setOpen((o) => { const m = { ...o }; for (const s of marked) m[s.key] = true; return m; });
-  }
-
-  const allEaten = logs.flatMap((l) => { const n = nOf(l); return n ? [n] : []; });
-  const dayTotal = sum(allEaten);
-  const noValues = logs.filter((l) => !l.n).length;
+  // ── Food values: worked out afresh from what has been logged, so they
+  // are right after every tap. A day still ahead shows what the menu holds.
+  const eatenOf = (slot: string) => sum(slotLogs(slot).flatMap((l) => { const n = nOf(l); return n ? [n] : []; }));
+  const plannedOf = (slot: string) => sum(slotPlans(slot).flatMap((p) => (p.n ? [p.n] : [])));
+  const valueOf = (slot: string) => (canLog ? eatenOf(slot) : plannedOf(slot));
+  const dayTotal = sum(SLOTS.map((s) => valueOf(s.key)));
+  const noValues = canLog
+    ? logs.filter((l) => !l.n).length
+    : plans.filter((p) => !p.n).length;
+  const anything = canLog ? logs.length > 0 : plans.length > 0;
 
   const tabBase = "px-3 text-sm min-h-[44px] self-end border-b-[3px] whitespace-nowrap";
   const isToday = day === today;
@@ -224,18 +213,46 @@ export default function WhatsForToday({
           : "The menu set by your Prime Member. Tap a meal, mark what you ate."}
       </p>
 
+      {/* Food values: first thing under the title bar, right after every log */}
+      <div className="px-3 py-3 flex flex-col gap-2.5" style={{ background: INK }} aria-live="polite">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="m-0 text-sm font-bold text-white">{canLog ? "Food values so far" : "Food values of the menu"}</p>
+          <p className="m-0 text-xs" style={{ color: "#C9B8E4" }}>
+            {Math.round(dayTotal.kcal)} kcal{canLog && dailyKcalGoal ? ` of ${dailyKcalGoal}` : ""}
+          </p>
+        </div>
+        {canLog && dailyKcalGoal ? (
+          <div className="rounded-full h-1.5 overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
+            <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, Math.round((dayTotal.kcal / dailyKcalGoal) * 100))}%`, background: dayTotal.kcal >= dailyKcalGoal ? "#E07B39" : "#F5B82E" }} />
+          </div>
+        ) : null}
+        <div className="grid grid-cols-5 gap-1">
+          {SLOTS.map((s) => (
+            <div key={s.key} className="flex flex-col min-w-0">
+              <span className="text-sm font-bold leading-[18px] text-white">{Math.round(valueOf(s.key).kcal) || "–"}</span>
+              <span className="text-[10px] leading-3 truncate" style={{ color: "#C9B8E4" }}>{s.label.replace(" Snack", " snack")}</span>
+            </div>
+          ))}
+        </div>
+        <div className="pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+          <Values title="" color="#C9B8E4" dark cells={nutrientCells(dayTotal)} />
+        </div>
+        <Values title="" color="#C9B8E4" dark cells={microCells(dayTotal)} />
+        {!anything && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{canLog ? "Mark what was eaten and the values appear here." : "Plan the menu and the values appear here."}</p>}
+        {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{noValues} {noValues === 1 ? "dish has" : "dishes have"} no food values yet and {noValues === 1 ? "is" : "are"} left out.</p>}
+        <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>Estimates, guided by the Indian Food Composition Tables (IFCT). Approximate.</p>
+      </div>
+
       {SLOTS.map(({ key, label, icon, time }) => {
         const ps = slotPlans(key);
         const ls = slotLogs(key);
         const isOpen = !!open[key];
-        const done = estimated[key] === sig(key) && ls.length > 0;
-        const eatenHere = sum(ls.flatMap((l) => { const n = nOf(l); return n ? [n] : []; }));
-        const missing = ls.filter((l) => !l.n).length;
+        const kcalHere = Math.round(valueOf(key).kcal);
         const extra = ls.filter((l) => !ps.some((p) => same(p, l)));
         const sug = suggestions.find((x) => x.meal_slot === key);
         const eatenCount = ps.filter((p) => logFor(key, p)).length;
         const summary = ps.length
-          ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}`)
+          ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten${kcalHere ? ` · ${kcalHere} kcal` : ""}` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}`)
           : (ls.length ? `${ls.length} logged` : "Not planned yet");
 
         return (
@@ -251,8 +268,7 @@ export default function WhatsForToday({
                 </span>
               </span>
               <span className="flex items-center gap-2 flex-shrink-0">
-                {done && <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ background: "#F5B82E", color: INK }}>Estimated</span>}
-                <span aria-hidden style={{ color: PLUM, transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
+                                <span aria-hidden style={{ color: PLUM, transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
               </span>
             </button>
 
@@ -345,17 +361,6 @@ export default function WhatsForToday({
                     initialItems={ps} initialPoolName={poolNames[key] ?? null} memberNames={memberNames} />
                 )}
 
-                {done && (
-                  <div className="rounded-xl px-2.5 py-2.5 flex flex-col gap-1.5" style={{ background: "#F7F3FC" }}>
-                    <Values title="Nutrients eaten" color={PLUM} cells={nutrientCells(eatenHere)} />
-                    <Values title="Micronutrients eaten" color="#8A5A06" cells={microCells(eatenHere)} />
-                    {missing > 0 && (
-                      <p className="text-[11px]" style={{ color: MUTED }}>
-                        {missing} {missing === 1 ? "dish has" : "dishes have"} no food values yet, so {missing === 1 ? "it is" : "they are"} left out.
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -370,39 +375,6 @@ export default function WhatsForToday({
         </div>
       )}
 
-      {canLog && (
-        <div className="px-3 py-2.5 flex items-center justify-between gap-3" style={{ background: "#FFF6DD" }}>
-          <span className="text-xs leading-4" style={{ color: "#5A3E00" }}>
-            {dayDone ? "All five meals estimated."
-              : marked.length === 0 ? "Tap each meal, mark what was eaten, then estimate."
-              : `${marked.length} of 5 meals marked. Day’s Total shows once every meal is estimated.`}
-          </span>
-          <button onClick={estimate} disabled={pending.length === 0}
-            className="flex-shrink-0 px-3.5 rounded-full text-sm font-bold"
-            style={{ minHeight: 44, border: 0, background: pending.length ? PLUM : "#E4DBF0", color: pending.length ? "#fff" : "#7D6B9E" }}>
-            Estimate Food Values
-          </button>
-        </div>
-      )}
-
-      {dayDone && (
-        <div className="px-3 py-3 flex flex-col gap-2" style={{ background: INK }}>
-          <p className="text-sm font-bold text-white">Day&apos;s Total</p>
-          <Values title="" color="#C9B8E4" dark cells={nutrientCells(dayTotal)} />
-          <div className="pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}>
-            <Values title="" color="#C9B8E4" dark cells={microCells(dayTotal)} />
-          </div>
-          {dailyKcalGoal ? (
-            <p className="text-xs" style={{ color: "#C9B8E4" }}>
-              {dayTotal.kcal >= dailyKcalGoal
-                ? `${Math.round(dayTotal.kcal - dailyKcalGoal)} kcal over your ${dailyKcalGoal} kcal goal`
-                : `${Math.round(dailyKcalGoal - dayTotal.kcal)} kcal under your ${dailyKcalGoal} kcal goal`}
-            </p>
-          ) : null}
-          {noValues > 0 && <p className="text-[11px]" style={{ color: "#C9B8E4" }}>{noValues} logged {noValues === 1 ? "item has" : "items have"} no food values yet and {noValues === 1 ? "is" : "are"} left out.</p>}
-          <p className="text-[11px]" style={{ color: "#C9B8E4" }}>Estimates, guided by the Indian Food Composition Tables (IFCT). Approximate.</p>
-        </div>
-      )}
     </div>
   );
 }

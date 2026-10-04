@@ -38,6 +38,7 @@ type Log = {
 };
 
 export type FestivalDish = {
+  meal: string;
   food_item_id: string; food_name: string; serving_unit: string | null; category: string | null;
   kcal_per_serving: number | null; recipe_id: number | null; n: Nutr | null;
 };
@@ -92,8 +93,7 @@ export default function WhatsForToday({
   const [plans, setPlans] = useState<Plan[]>(serverPlans);
   useEffect(() => setPlans(serverPlans), [serverPlans]);
   // The festival menu starts open on a festival day, so it is the first thing seen
-  const [festOpen, setFestOpen] = useState(true);
-  const [festMeal, setFestMeal] = useState<Record<string, string>>({});
+  const [festOpen, setFestOpen] = useState(false);
 
   const [open, setOpen]         = useState<Record<string, boolean>>({});
   const [editing, setEditing]   = useState<Record<string, boolean>>({});
@@ -173,11 +173,6 @@ export default function WhatsForToday({
     }
   }
 
-  // Which meal a festival dish goes to unless the Prime Member picks another
-  const defaultSlot = (d: FestivalDish) =>
-    d.category === "snack" || d.category === "drink" ? "evening_snack" : d.category === "dessert" ? "lunch" : "lunch";
-  const slotFor = (d: FestivalDish) => festMeal[d.food_item_id] ?? defaultSlot(d);
-
   async function toggleFestivalDish(d: FestivalDish) {
     if (busy) return;
     setBusy(true); setError(null);
@@ -187,7 +182,7 @@ export default function WhatsForToday({
       if (err) setError("Could not take this off the menu. Please try again.");
       else setPlans((cur) => cur.filter((p) => p.id !== have.id));
     } else {
-      const slot = slotFor(d);
+      const slot = d.meal;
       const { data, error: err } = await supabase.from("meal_plans").insert({
         user_id: userId, kutumbh_id: kutumbhId ?? null, planned_date: day, meal_slot: slot, food_name: d.food_name,
         quantity_g: 1, quantity_unit: d.serving_unit ?? "serving", food_item_id: d.food_item_id,
@@ -266,48 +261,6 @@ export default function WhatsForToday({
           : "The menu set by your Prime Member. Tap a meal, mark what you ate."}
       </p>
 
-      {isPrime && festivalDishes.length > 0 && (
-        <div style={{ background: "#FFF6DD", borderBottom: "1px solid #F0D9A0" }}>
-          <button onClick={() => setFestOpen((o) => !o)} aria-expanded={festOpen}
-            className="w-full flex items-center justify-between gap-2 px-3 text-left text-sm font-bold" style={{ minHeight: 52, color: "#5A3E00" }}>
-            <span>🪔 Festival menu{festivalTab ? ` · ${festivalTab.split(" · ")[0]}` : ""}
-              <span className="font-normal text-xs"> · {plans.filter((p) => festivalDishes.some((d) => d.food_item_id === p.food_item_id)).length} chosen</span>
-            </span>
-            <span aria-hidden style={{ transform: festOpen ? "rotate(180deg)" : undefined }}>⌄</span>
-          </button>
-          {festOpen && (
-            <div className="px-2 pb-2 flex flex-col">
-              <p className="m-0 px-1 pb-1 text-[11px]" style={{ color: "#7A5A06" }}>
-                Vegetarian dishes made for this festival. Tick as many as the family will have, and choose the meal for each.
-              </p>
-              {festivalDishes.map((d) => {
-                const have = plans.find((p) => p.food_item_id === d.food_item_id);
-                const on = !!have;
-                const slot = have ? have.meal_slot : slotFor(d);
-                return (
-                  <div key={d.food_item_id} className="flex items-center gap-2" style={{ borderTop: "1px solid #F0D9A0" }}>
-                    <button onClick={() => toggleFestivalDish(d)} aria-pressed={on} disabled={busy}
-                      className="flex items-center gap-3 flex-1 min-w-0 px-2 text-left" style={{ minHeight: 52 }}>
-                      <span className="w-[24px] h-[24px] rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm"
-                        style={{ background: on ? PLUM : "#fff", border: `2px solid ${on ? PLUM : "#8D7FA6"}` }}>{on ? "✓" : ""}</span>
-                      <span className="flex flex-col min-w-0">
-                        <span className="text-sm" style={{ color: INK }}>{d.food_name}</span>
-                        <span className="text-xs" style={{ color: MUTED }}>{d.kcal_per_serving != null ? `${d.kcal_per_serving} kcal / ${d.serving_unit === "g" ? "100 g" : (d.serving_unit ?? "serving")}` : "No values yet"}</span>
-                      </span>
-                    </button>
-                    <select value={slot} disabled={on || busy} aria-label={`Meal for ${d.food_name}`}
-                      onChange={(e) => setFestMeal((m) => ({ ...m, [d.food_item_id]: e.target.value }))}
-                      className="text-xs rounded-lg px-1 mr-2 flex-shrink-0" style={{ minHeight: 40, maxWidth: 108, border: "1px solid #D9CBF0", background: on ? "#EDE4F8" : "#fff", color: INK }}>
-                      {SLOTS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
-                    </select>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Food values: first thing under the title bar, right after every log */}
       <div className="px-3 py-3 flex flex-col gap-2.5" style={{ background: INK }} aria-live="polite">
         <div className="flex items-baseline justify-between gap-2">
@@ -337,6 +290,48 @@ export default function WhatsForToday({
         {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{noValues} {noValues === 1 ? "dish has" : "dishes have"} no food values yet and {noValues === 1 ? "is" : "are"} left out.</p>}
         <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>Estimates, guided by the Indian Food Composition Tables (IFCT). Approximate.</p>
       </div>
+
+      {isPrime && festivalDishes.length > 0 && (
+        <div style={{ background: "#FFF6DD", borderBottom: "1px solid #F0D9A0" }}>
+          <button onClick={() => setFestOpen((o) => !o)} aria-expanded={festOpen}
+            className="w-full flex items-center justify-between gap-2 px-3 text-left text-sm font-bold" style={{ minHeight: 52, color: "#5A3E00" }}>
+            <span>🪔 Festival menu{festivalTab ? ` · ${festivalTab.split(" · ")[0]}` : ""}
+              <span className="font-normal text-xs"> · {plans.filter((p) => festivalDishes.some((d) => d.food_item_id === p.food_item_id)).length} chosen</span>
+            </span>
+            <span aria-hidden style={{ transform: festOpen ? "rotate(180deg)" : undefined }}>⌄</span>
+          </button>
+          {festOpen && (
+            <div className="px-2 pb-2 flex flex-col">
+              <p className="m-0 px-1 pb-1 text-[11px]" style={{ color: "#7A5A06" }}>
+                Vegetarian dishes for this festival, meal by meal. Tick as many as the family will have.
+              </p>
+              {SLOTS.map((m) => {
+                const dishes = festivalDishes.filter((d) => d.meal === m.key);
+                if (!dishes.length) return null;
+                return (
+                  <div key={m.key}>
+                    <p className="m-0 px-1 pt-2 pb-1 text-xs font-bold" style={{ color: "#5A3E00" }}>{m.icon} {m.label}</p>
+                    {dishes.map((d) => {
+                      const on = plans.some((p) => p.food_item_id === d.food_item_id);
+                      return (
+                        <button key={d.food_item_id} onClick={() => toggleFestivalDish(d)} aria-pressed={on} disabled={busy}
+                          className="flex items-center gap-3 w-full px-2 text-left" style={{ minHeight: 52, borderTop: "1px solid #F0D9A0" }}>
+                          <span className="w-[24px] h-[24px] rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm"
+                            style={{ background: on ? PLUM : "#fff", border: `2px solid ${on ? PLUM : "#8D7FA6"}` }}>{on ? "✓" : ""}</span>
+                          <span className="flex flex-col min-w-0">
+                            <span className="text-sm" style={{ color: INK }}>{d.food_name}</span>
+                            <span className="text-xs" style={{ color: MUTED }}>{d.kcal_per_serving != null ? `${d.kcal_per_serving} kcal / ${d.serving_unit === "g" ? "100 g" : (d.serving_unit ?? "serving")}` : "No values yet"}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {SLOTS.map(({ key, label, icon, time }) => {
         const ps = slotPlans(key);

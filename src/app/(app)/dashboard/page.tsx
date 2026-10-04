@@ -1,41 +1,39 @@
 import { createClient } from "@/lib/supabase/server";
 import KutumbhLogo from "@/components/KutumbhLogo";
-import DashboardTabs from "@/components/DashboardTabs";
+import WhatsForToday, { type MealSuggestion } from "@/components/WhatsForToday";
 import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
-import { clampDay, longDateFor, todayLocal } from "@/lib/dates";
+import { clampDay, daysAheadLocal, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
-import DashboardDayNav from "@/components/DashboardDayNav";
+import DayNav from "@/components/DayNav";
 import CouldNotRead from "@/components/CouldNotRead";
 import Face from "@/components/Face";
 import { signedFaces } from "@/lib/faces";
 import Link from "next/link";
-import { DashTabProvider } from "@/lib/dash-tab";
-import type { MealSuggestion } from "@/components/DashboardSlotCard";
+import { FOOD_NUTRIENT_COLS, perServing, type FoodNutrientRow, type Nutr } from "@/lib/serving-nutrition";
 
 type MealLog = {
   id: string;
+  food_item_id: string | null;
   food_name: string;
   meal_slot: string;
   quantity_g: number;
   quantity_unit: string | null;
   calories: number | null;
   nutrition_estimated: boolean | null;
-  food_items?: { recipe_id: number | null } | { recipe_id: number | null }[] | null;
+  food_items?: (FoodNutrientRow & { recipe_id: number | null }) | (FoodNutrientRow & { recipe_id: number | null })[] | null;
 };
 
-type PlanFood = {
+type PlanFood = FoodNutrientRow & {
   needs_review: boolean | null;
   category: string | null;
-  serving_unit: string | null;
-  serving_weight_g: number | null;
-  calories: number | null;
   recipe_id: number | null;
 };
 
 type MealPlanRow = {
   id: string;
   user_id: string;
+  food_item_id: string | null;
   food_name: string;
   meal_slot: string;
   food_items: PlanFood | PlanFood[] | null;
@@ -82,14 +80,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const plansQuery = supabase
     .from("meal_plans")
-    .select("id, user_id, food_name, meal_slot, food_items(needs_review, category, serving_unit, serving_weight_g, calories, recipe_id)")
+    .select(`id, user_id, food_item_id, food_name, meal_slot, food_items(needs_review, category, recipe_id, ${FOOD_NUTRIENT_COLS})`)
     .eq("planned_date", day)
     .order("created_at", { ascending: true });
 
   const [{ data: logs }, { data: planRows }, poolRes, rosterRes, sugRes] = await Promise.all([
     supabase
       .from("meal_logs")
-      .select("id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated, food_items(recipe_id)")
+      .select(`id, food_item_id, food_name, meal_slot, quantity_g, quantity_unit, calories, nutrition_estimated, food_items(recipe_id, ${FOOD_NUTRIENT_COLS})`)
       .eq("user_id", user!.id)
       .eq("logged_date", day),
     kutumbhId ? plansQuery.eq("kutumbh_id", kutumbhId) : plansQuery.eq("user_id", user!.id),
@@ -118,6 +116,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       serving_unit:     fi?.serving_unit ?? null,
       kcal_per_serving: fi?.calories != null ? Math.round((fi.calories * w) / 100) : null,
       recipe_id:        fi?.recipe_id ?? null,
+      n:                perServing(fi) as Nutr | null,
     };
   });
 
@@ -127,11 +126,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const memberNames: Record<string, string> = {};
   for (const p of rosterRes.data ?? []) memberNames[p.id] = p.full_name?.split(" ")[0] ?? "Family";
 
-  const totalKcal = ((logs ?? []) as MealLog[]).reduce((s, l) => s + (l.calories ?? 0), 0);
+  const tomorrow = daysAheadLocal(1, timeZone);
 
-  // A day still ahead can only be planned, so it opens on the Plan
   return (
-    <DashTabProvider initial={day > today ? "plan" : "log"}>
+    <>
       <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
 
       {/* ── Header ── */}
@@ -174,22 +172,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
 
-        <DashboardDayNav date={day} />
+        <DayNav date={day} back={30} ahead={6} path="/dashboard" onDark />
       </header>
 
       {/* ── Tabs + content ── */}
       <main className="flex-1 px-4 py-5">
         {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools" />}
-        <DashboardTabs
+        <WhatsForToday
           suggestions={(sugRes.data ?? []) as MealSuggestion[]}
-          logs={((logs ?? []) as MealLog[]).map(({ food_items, ...l }) => ({
-            ...l,
-            recipe_id: (Array.isArray(food_items) ? food_items[0] : food_items)?.recipe_id ?? null,
-          }))}
-          totalKcal={totalKcal}
+          logs={((logs ?? []) as MealLog[]).map(({ food_items, ...l }) => {
+            const fi = Array.isArray(food_items) ? food_items[0] : food_items;
+            return { ...l, recipe_id: fi?.recipe_id ?? null, n: perServing(fi) as Nutr | null };
+          })}
           dailyKcalGoal={profile?.daily_kcal_goal ?? null}
           day={day}
-          initialPlans={plans}
+          today={today}
+          tomorrow={tomorrow}
+          isPrime={isPrime}
+          plans={plans}
           poolNames={poolNames}
           memberNames={memberNames}
           userId={user!.id}
@@ -198,6 +198,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </main>
 
       </div>
-    </DashTabProvider>
+    </>
   );
 }

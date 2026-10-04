@@ -163,6 +163,30 @@ export default async function JoinPage({ params }: Props) {
 
   // Already in this same kutumbh → go straight to family page
   if (existingMember && invite && existingMember.kutumbh_id === invite.kutumbh_id) {
+    // An invitation addressed to somebody else, opened by a person already in
+    // this family (the Prime Member trying their own link, most often): say so
+    // rather than silently landing on the Kutumbh page, which looks like the
+    // link does not work.
+    const forOther = invite.invited_email && user.email
+      && invite.invited_email.toLowerCase() !== user.email.toLowerCase();
+    if (forOther) {
+      return (
+        <Shell eyebrow="An invitation" title="You are already in this Kutumbh">
+          <p className="m-0 text-sm text-center" style={{ color: B.muted, lineHeight: 1.6 }}>
+            This link is for <span className="font-semibold">{invite.invited_email}</span>, and this browser is signed in
+            as <span className="font-semibold">{user.email}</span>, who belongs to {kutumbhName ?? "this Kutumbh"} already.
+          </p>
+          <p className="m-0 text-xs text-center" style={{ color: B.muted2, lineHeight: 1.6 }}>
+            Send the link to {invite.invited_email}. They open it on their own phone, or in a private window
+            here, and sign up with that address. Nothing is wrong with the link.
+          </p>
+          <Link href="/family" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
+            style={{ background: B.button }}>
+            View my Kutumbh
+          </Link>
+        </Shell>
+      );
+    }
     redirect("/family");
   }
 

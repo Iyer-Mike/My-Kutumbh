@@ -292,10 +292,8 @@ export default function WhatsForToday({
 
             {isOpen && (
               <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
-                {ps.length === 0 && ls.length === 0 && (
-                  <p className="text-sm italic py-1" style={{ color: MUTED }} hidden={isPrime && !!editing[key]}>
-                    {isPrime ? "Nothing here yet. Add the dishes for this meal." : "The Prime Member has not planned this meal yet."}
-                  </p>
+                {!isPrime && ps.length === 0 && ls.length === 0 && (
+                  <p className="text-sm italic py-1" style={{ color: MUTED }}>The Prime Member has not planned this meal yet.</p>
                 )}
 
                 {!(isPrime && editing[key]) && canLog && ps.length > 1 && ps.some((p) => !logFor(key, p)) && (

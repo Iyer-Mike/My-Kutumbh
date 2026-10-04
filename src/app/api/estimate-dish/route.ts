@@ -49,9 +49,9 @@ const SYSTEM = `You estimate nutrition and Ayurvedic properties for home-cooked 
 
 Base nutrient figures on Indian Food Composition Tables (IFCT 2017) and standard references, reasoning from the listed ingredients and preparation method. Report every nutrient per 100 g of the dish as served (cooked, with its water). Include typical home salt in sodium unless the preparation says otherwise; account for oil or ghee in the method.
 
-Choose the serving unit and weight a household would naturally use for this dish (e.g. sambar: bowl ≈ 150 g; idli: piece ≈ 40 g; rice: cup ≈ 150 g).
+The Prime Member has already chosen the cuisine, diet, dish type and serving unit. Use them as given: they say what kind of dish this is and how it is served, so reason from them together with the ingredients. Work out what the dish is from the ingredients and method, then work out how many grams one serving in the chosen unit weighs (serving_weight_g), from the amounts listed and the dish's total yield. Where no unit is chosen, pick the one a household would naturally use (e.g. sambar: bowl ≈ 150 g; idli: piece ≈ 40 g; rice: cup ≈ 150 g). Repeat the chosen cuisine, diet, dish type and serving unit unchanged in the result.
 
-Classify the dish: category is its dish type (${DISH_TYPES.map((d) => `${d.key} = ${d.hint}`).join("; ")}). cuisine is its regional cuisine (${CUISINES.map((c) => `${c.key}: ${c.examples}`).join("; ")}). diet is the strictest diet it fits from the ingredients: vegan (no animal products), veg (dairy allowed), egg, or nonveg (meat, fish, seafood).
+Where the family has not chosen them, classify the dish: category is its dish type (${DISH_TYPES.map((d) => `${d.key} = ${d.hint}`).join("; ")}). cuisine is its regional cuisine (${CUISINES.map((c) => `${c.key}: ${c.examples}`).join("; ")}). diet is the strictest diet it fits from the ingredients: vegan (no animal products), veg (dairy allowed), egg, or nonveg (meat, fish, seafood).
 
 For Ayurvedic properties use classical texts: rasa (tastes present, most dominant first), guna (qualities), vipaka, virya, and the dish's effect on each dosha.
 
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only the Prime Member can estimate dishes" }, { status: 403 });
   }
 
-  let body: { name?: string; ingredients?: string; preparation?: string };
+  let body: { name?: string; ingredients?: string; preparation?: string; cuisine?: string; diet?: string; category?: string; serving_unit?: string };
   try {
     body = await req.json();
   } catch {
@@ -94,6 +94,14 @@ export async function POST(req: NextRequest) {
   if (!name) return NextResponse.json({ error: "Dish name is required" }, { status: 400 });
   const ingredients = body.ingredients?.trim().slice(0, 1500) || "not specified";
   const preparation = body.preparation?.trim().slice(0, 1500) || "not specified";
+
+  const known = (v: string | undefined, list: readonly string[]) => (v && list.includes(v) ? v : null);
+  const chosen = {
+    cuisine: known(body.cuisine, CUISINE_KEYS),
+    diet: known(body.diet, ["vegan", "veg", "egg", "nonveg"]),
+    dish_type: known(body.category, DISH_TYPE_KEYS),
+    serving_unit: known(body.serving_unit, ["serving", "plate", "bowl", "katori", "piece", "cup", "glass", "tbsp", "tsp", "g"]),
+  };
 
   const client = new Anthropic({ apiKey });
 
@@ -107,7 +115,7 @@ export async function POST(req: NextRequest) {
       system: SYSTEM,
       messages: [{
         role: "user",
-        content: `Dish: ${name}\nIngredients: ${ingredients}\nPreparation: ${preparation}`,
+        content: `Dish: ${name}\nIngredients: ${ingredients}\nPreparation: ${preparation}\nChosen by the family — cuisine: ${chosen.cuisine ?? "not chosen"}; diet: ${chosen.diet ?? "not chosen"}; dish type: ${chosen.dish_type ?? "not chosen"}; one serving is a: ${chosen.serving_unit === "g" ? "100 g" : (chosen.serving_unit ?? "not chosen")}`,
       }],
     });
     await recordSpend(supabase, {

@@ -146,12 +146,15 @@ export default function FamilyDishesEditor({
       const res = await fetch("/api/estimate-dish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: draft.name, ingredients: draft.ingredients, preparation: draft.preparation }),
+        body: JSON.stringify({
+          name: draft.name, ingredients: draft.ingredients, preparation: draft.preparation,
+          cuisine: draft.cuisine, diet: draft.diet, category: draft.category, serving_unit: draft.serving_unit,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { alert(data.error ?? "Couldn't estimate this dish."); return; }
       const e = data as Estimate;
-      const w = weightOf(e.serving_unit, e.serving_weight_g);
+      const w = weightOf(draft.serving_unit, e.serving_weight_g);
       const p = e.per_100g;
       const fromAi: Record<NutrientCol, number> = {
         calories: p.kcal, protein_g: p.protein_g, carbs_g: p.carbs_g, fat_g: p.fat_g, fiber_g: p.fiber_g,
@@ -160,10 +163,8 @@ export default function FamilyDishesEditor({
       };
       setDraft(prev => prev && ({
         ...prev,
-        category: e.category,
-        cuisine: e.cuisine,
-        diet: e.diet,
-        serving_unit: e.serving_unit,
+        // Cuisine, diet, dish type and the serving unit stay as chosen; the
+        // estimate works out the weight of that serving and the values
         serving_weight_g: String(w),
         nutrients: Object.fromEntries(ALL_NUTRIENTS.map(n => [n.col, perServing(fromAi[n.col], w)])) as Record<NutrientCol, string>,
         rasa: e.rasa, guna: e.guna, vipaka: e.vipaka, virya: e.virya,
@@ -308,20 +309,6 @@ export default function FamilyDishesEditor({
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle} />
                 </div>
 
-                {/* AI estimate from the ingredients + method above */}
-                <div className="rounded-xl px-3 py-2.5" style={{ background: "#F3F0FB", border: "1px solid #DDD5F3" }}>
-                  <button onClick={fillWithAI} disabled={estimating || !draft.name.trim()}
-                    className="w-full py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
-                    style={{ background: "#FAF7FE", color: "#4B3B8C", border: "1px solid #C9BDEB" }}>
-                    {estimating ? "Estimating…" : "✨ Fill with AI"}
-                  </button>
-                  <p className="text-[11px] mt-1.5" style={{ color: "#6E6390" }}>
-                    {aiNote
-                      ? <>AI estimate filled in below — review before saving. <i>{aiNote}</i></>
-                      : "Uses the ingredients and method above to suggest nutrition and Ayurvedic qualities. You review before saving."}
-                  </p>
-                </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label htmlFor={`cuisine-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Cuisine</label>
@@ -363,6 +350,20 @@ export default function FamilyDishesEditor({
                         className="w-full mt-1 rounded-xl px-3 py-2 text-sm" style={inputStyle} />
                     </div>
                   )}
+                </div>
+
+                {/* AI estimate from everything chosen above: ingredients, method, cuisine, diet, dish type and the serving unit */}
+                <div className="rounded-xl px-3 py-2.5" style={{ background: "#F3F0FB", border: "1px solid #DDD5F3" }}>
+                  <button onClick={fillWithAI} disabled={estimating || !draft.name.trim()}
+                    className="w-full py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                    style={{ background: "#FAF7FE", color: "#4B3B8C", border: "1px solid #C9BDEB" }}>
+                    {estimating ? "Estimating…" : "✨ Fill with AI"}
+                  </button>
+                  <p className="text-[11px] mt-1.5" style={{ color: "#6E6390" }}>
+                    {aiNote
+                      ? <>AI estimate filled in below — review before saving. <i>{aiNote}</i></>
+                      : "Works out what the dish is from the ingredients and method, with the cuisine, diet, dish type and serving chosen above. It estimates the weight of one serving, its nutrition and its Ayurvedic qualities. You review before saving."}
+                  </p>
                 </div>
 
                 <div>

@@ -10,6 +10,7 @@ import CouldNotRead from "@/components/CouldNotRead";
 import Face from "@/components/Face";
 import { signedFaces } from "@/lib/faces";
 import Link from "next/link";
+import { BUILT_IN_FESTIVALS, festivalDishNames, shortFestivalName } from "@/lib/festivals";
 import { FOOD_NUTRIENT_COLS, perServing, type FoodNutrientRow, type Nutr } from "@/lib/serving-nutrition";
 
 type MealLog = {
@@ -129,6 +130,37 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const tomorrow = daysAheadLocal(1, timeZone);
 
+  // Is this a festival day? The app's list first, then the family's own
+  const builtIn = BUILT_IN_FESTIVALS.find((f) => f.date === day)?.name ?? null;
+  let festivalName: string | null = builtIn;
+  if (!festivalName && kutumbhId) {
+    const { data: own } = await supabase.from("family_festivals").select("name").eq("kutumbh_id", kutumbhId).eq("festival_date", day).limit(1);
+    festivalName = own?.[0]?.name ?? null;
+  }
+  // The dishes offered for it, with their values
+  let festivalDishes: { food_item_id: string; food_name: string; serving_unit: string | null; kcal_per_serving: number | null; recipe_id: number | null; n: Nutr | null }[] = [];
+  if (festivalName && isPrime) {
+    const { data: fd } = await supabase
+      .from("food_items")
+      .select(`id, name, recipe_id, ${FOOD_NUTRIENT_COLS}`)
+      .in("name", festivalDishNames(builtIn))
+      .is("kutumbh_id", null);
+    const order = festivalDishNames(builtIn);
+    festivalDishes = ((fd ?? []) as unknown as (FoodNutrientRow & { id: string; name: string; recipe_id: number | null })[])
+      .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name))
+      .map((f) => {
+        const w = f.serving_unit === "g" ? 100 : (f.serving_weight_g ?? 100);
+        return {
+          food_item_id: f.id, food_name: f.name, serving_unit: f.serving_unit,
+          kcal_per_serving: f.calories != null ? Math.round((f.calories * w) / 100) : null,
+          recipe_id: f.recipe_id, n: perServing(f),
+        };
+      });
+  }
+  const festivalTab = festivalName
+    ? `${shortFestivalName(festivalName)} · ${new Date(`${day}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
+    : null;
+
   return (
     <>
       <div className="flex flex-col min-h-screen" style={{ background: "#F3EEFA" }}>
@@ -197,6 +229,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           today={today}
           tomorrow={tomorrow}
           isPrime={isPrime}
+          festivalTab={festivalTab}
+          festivalDishes={festivalDishes}
           plans={plans}
           poolNames={poolNames}
           memberNames={memberNames}

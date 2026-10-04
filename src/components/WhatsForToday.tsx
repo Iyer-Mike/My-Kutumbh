@@ -37,6 +37,11 @@ type Log = {
   n: Nutr | null;
 };
 
+export type FestivalDish = {
+  food_item_id: string; food_name: string; serving_unit: string | null;
+  kcal_per_serving: number | null; recipe_id: number | null; n: Nutr | null;
+};
+
 type Plan = PlanItem & { meal_slot: string; food_item_id: string | null; n: Nutr | null };
 
 type Props = {
@@ -47,6 +52,8 @@ type Props = {
   today: string;
   tomorrow: string;
   isPrime: boolean;
+  festivalTab: string | null;
+  festivalDishes: FestivalDish[];
   plans: Plan[];
   poolNames: Record<string, string>;
   memberNames: Record<string, string>;
@@ -71,7 +78,7 @@ const PLUM = "#3B1F5C";
 const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, day, today, tomorrow, isPrime, plans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, dailyKcalGoal, day, today, tomorrow, isPrime, festivalTab, festivalDishes, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -80,6 +87,11 @@ export default function WhatsForToday({
   // A tap shows at once; the server catches up in the background
   const [logs, setLogs] = useState<Log[]>(serverLogs);
   useEffect(() => setLogs(serverLogs), [serverLogs]);
+
+  // The menu shows a tick at once; the page catches up in the background
+  const [plans, setPlans] = useState<Plan[]>(serverPlans);
+  useEffect(() => setPlans(serverPlans), [serverPlans]);
+  const [fest, setFest] = useState<Record<string, boolean>>({});
 
   const [open, setOpen]         = useState<Record<string, boolean>>({});
   const [editing, setEditing]   = useState<Record<string, boolean>>({});
@@ -159,6 +171,30 @@ export default function WhatsForToday({
     }
   }
 
+  async function toggleFestivalDish(slot: string, d: FestivalDish) {
+    if (busy) return;
+    setBusy(true); setError(null);
+    const have = plans.find((p) => p.meal_slot === slot && p.food_item_id === d.food_item_id);
+    if (have) {
+      const { error: err } = await supabase.from("meal_plans").delete().eq("id", have.id);
+      if (err) setError("Could not take this off the menu. Please try again.");
+      else setPlans((cur) => cur.filter((p) => p.id !== have.id));
+    } else {
+      const { data, error: err } = await supabase.from("meal_plans").insert({
+        user_id: userId, kutumbh_id: kutumbhId ?? null, planned_date: day, meal_slot: slot, food_name: d.food_name,
+        quantity_g: 1, quantity_unit: d.serving_unit ?? "serving", food_item_id: d.food_item_id,
+      }).select("id").single();
+      if (err || !data) setError("Could not add this to the menu. Please try again.");
+      else setPlans((cur) => [...cur, {
+        id: data.id as string, user_id: userId, food_name: d.food_name, meal_slot: slot, food_item_id: d.food_item_id,
+        recipe_id: d.recipe_id, needs_review: false, category: null, serving_unit: d.serving_unit,
+        kcal_per_serving: d.kcal_per_serving, n: d.n,
+      }]);
+    }
+    setBusy(false);
+    router.refresh();
+  }
+
   async function undoLog() {
     if (!undo) return;
     const { error: err } = await supabase.from("meal_logs").delete().in("id", undo.ids);
@@ -186,25 +222,34 @@ export default function WhatsForToday({
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E4DBF0" }}>
       {/* Title bar */}
-      <div className="flex items-stretch gap-0.5 px-1.5 overflow-x-auto" style={{ background: PLUM, height: 48 }}>
+      <div className="flex items-stretch gap-0.5 px-1.5" style={{ background: PLUM, height: 48 }}>
         <Link href="/dashboard" aria-current={isToday ? "page" : undefined} className={tabBase}
           style={{ display: "flex", alignItems: "center", borderColor: isToday ? "#F5B82E" : "transparent",
                    color: isToday ? "#fff" : "#C9B8E4", fontWeight: isToday ? 700 : 500 }}>
-          What&apos;s for Today
+          {isToday || isTomorrow ? "What\u2019s for Today" : "Today"}
         </Link>
         <Link href={`/dashboard?date=${tomorrow}`} aria-current={isTomorrow ? "page" : undefined} className={tabBase}
           style={{ display: "flex", alignItems: "center", borderColor: isTomorrow ? "#F5B82E" : "transparent",
                    color: isTomorrow ? "#fff" : "#C9B8E4", fontWeight: isTomorrow ? 700 : 500 }}>
           Tomorrow
         </Link>
-        <Link href="/festivals" className={tabBase}
-          style={{ display: "flex", alignItems: "center", gap: 4, borderColor: "transparent", color: "#F5B82E", fontWeight: 600 }}>
-          <span aria-hidden>🪔</span> Festivals
-        </Link>
-        {!isToday && !isTomorrow && (
-          <span className={tabBase} style={{ display: "flex", alignItems: "center", borderColor: "#F5B82E", color: "#fff", fontWeight: 700 }}>
-            {dayLabel(day, tz)}
-          </span>
+        {festivalTab && !isToday && !isTomorrow ? (
+          <Link href="/festivals" aria-current="page" className={`${tabBase} min-w-0`}
+            style={{ display: "flex", alignItems: "center", gap: 4, borderColor: "#F5B82E", color: "#fff", fontWeight: 700 }}>
+            <span aria-hidden>🪔</span> <span className="truncate">{festivalTab}</span>
+          </Link>
+        ) : (
+          <>
+            <Link href="/festivals" className={tabBase}
+              style={{ display: "flex", alignItems: "center", gap: 4, borderColor: "transparent", color: "#F5B82E", fontWeight: 600 }}>
+              <span aria-hidden>🪔</span> Festivals
+            </Link>
+            {!isToday && !isTomorrow && (
+              <span className={`${tabBase} min-w-0`} style={{ display: "flex", alignItems: "center", borderColor: "#F5B82E", color: "#fff", fontWeight: 700 }}>
+                <span className="truncate">{dayLabel(day, tz)}</span>
+              </span>
+            )}
+          </>
         )}
       </div>
       <p className="px-3 py-2 text-xs leading-4" style={{ background: "#F7F3FC", color: MUTED, borderBottom: "1px solid #E4DBF0" }}>
@@ -336,6 +381,37 @@ export default function WhatsForToday({
                     <button onClick={() => logSuggestion(key, sug)} disabled={busy}
                       className="flex-shrink-0 px-4 rounded-full text-sm font-semibold text-white disabled:opacity-50"
                       style={{ background: INK, minHeight: 44 }}>Log</button>
+                  </div>
+                )}
+
+                {isPrime && festivalDishes.length > 0 && (
+                  <div className="rounded-xl" style={{ background: "#FFF6DD", border: "1px solid #F0D9A0" }}>
+                    <button onClick={() => setFest((f) => ({ ...f, [key]: !f[key] }))} aria-expanded={!!fest[key]}
+                      className="w-full flex items-center justify-between gap-2 px-3 text-left text-sm font-bold"
+                      style={{ minHeight: 48, color: "#5A3E00" }}>
+                      <span>🪔 Festival dishes{ps.filter((p) => festivalDishes.some((d) => d.food_item_id === p.food_item_id)).length
+                        ? ` · ${ps.filter((p) => festivalDishes.some((d) => d.food_item_id === p.food_item_id)).length} chosen` : ""}</span>
+                      <span aria-hidden style={{ transform: fest[key] ? "rotate(180deg)" : undefined }}>⌄</span>
+                    </button>
+                    {fest[key] && (
+                      <div className="px-2 pb-2 flex flex-col">
+                        <p className="m-0 px-1 pb-1 text-[11px]" style={{ color: "#7A5A06" }}>Tick as many as the family will have for {label.toLowerCase()}.</p>
+                        {festivalDishes.map((d) => {
+                          const on = ps.some((p) => p.food_item_id === d.food_item_id);
+                          return (
+                            <button key={d.food_item_id} onClick={() => toggleFestivalDish(key, d)} aria-pressed={on} disabled={busy}
+                              className="flex items-center gap-3 w-full px-2 text-left" style={{ minHeight: 48, borderTop: "1px solid #F0D9A0" }}>
+                              <span className="w-[24px] h-[24px] rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm"
+                                style={{ background: on ? PLUM : "#fff", border: `2px solid ${on ? PLUM : "#8D7FA6"}` }}>{on ? "✓" : ""}</span>
+                              <span className="flex flex-col min-w-0">
+                                <span className="text-sm" style={{ color: INK }}>{d.food_name}</span>
+                                <span className="text-xs" style={{ color: MUTED }}>{d.kcal_per_serving != null ? `${d.kcal_per_serving} kcal / ${d.serving_unit === "g" ? "100 g" : (d.serving_unit ?? "serving")}` : "No values yet"}</span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -36,8 +36,8 @@ export function Card({ children, tone = "plain", style }: {
   const skin =
     tone === "warn" ? { background: C.warnBg, border: `1px solid ${C.warnRule}` }
     : tone === "gold" ? { background: C.goldBg, border: `1px solid ${C.goldRule}` }
-    : tone === "sky" ? { background: "#E6F0FA", border: "1px solid #B9D2EC" }
-    : tone === "mint" ? { background: "#E5F4E4", border: "1px solid #B5DBB2" }
+    : tone === "sky" ? { background: "#DCEBFA", border: "1px solid #8DB9E3" }
+    : tone === "mint" ? { background: "#FCE8D0", border: "1px solid #EDB982" }
     : { background: C.card, border: `1px solid ${C.rule}` };
 
   return <section className="rounded-2xl px-4 py-4" style={{ ...skin, ...style }}>{children}</section>;

@@ -14,11 +14,38 @@ import { Card, Label, Chip, Says, C, T, qty } from "./bits";
  * is how this page became a second sermon the first time round.
  */
 
-/** The member's shortfalls, as the food log shows them. */
-function shortfalls(gaps: Gap[]): { label: string; line: string }[] {
-  const out: { label: string; line: string }[] = [];
-  for (const [key, label] of [["Vitamin B12", "B12"], ["Calcium", "calcium"], ["Iron", "iron"]] as const)
-    if (gaps.some((g) => g.label === key)) out.push({ label: key, line: `Low intake of ${label}. Needs fixing.` });
+/** The member's shortfalls in what was eaten, set beside what the lab report says about the same nutrient. */
+function shortfalls(gaps: Gap[], flags: LabFlag[]): { label: string; head: string; eat: string }[] {
+  const out: { label: string; head: string; eat: string }[] = [];
+  const lab = (key: string) => flags.find((f) => f.key === key)?.readings[0];
+  const reading = (r: { label: string; value: number; unit: string; status: string }) =>
+    `${r.label} ${qty(r.value)}${r.unit ? ` ${r.unit}` : ""} (${r.status})`;
+  const has = (label: string) => gaps.some((g) => g.label === label);
+
+  if (has("Vitamin B12")) {
+    const r = lab("vitamin_b12");
+    out.push({
+      label: "Vitamin B12",
+      head: `Low B12 intake · Lab report: ${r ? reading(r) : "not flagged"}`,
+      eat: "Eat: curd, buttermilk, paneer, milk.",
+    });
+  }
+  if (has("Calcium")) {
+    const r = lab("vitamin_d");
+    out.push({
+      label: "Calcium",
+      head: `Low calcium intake · Lab report: ${r ? `${reading(r)}, so less is absorbed` : "not flagged"}`,
+      eat: "Eat: curd, milk, paneer, ragi, sesame.",
+    });
+  }
+  if (has("Iron")) {
+    const r = lab("iron");
+    out.push({
+      label: "Iron",
+      head: `Low iron intake · Lab report: ${r ? reading(r) : "not flagged"}`,
+      eat: "Eat: greens, ragi, dals, with lemon or amla.",
+    });
+  }
   return out;
 }
 
@@ -36,7 +63,7 @@ export default function PageReport({
 }) {
   const known = flags.filter((f) => f.known);
   const other = flags.filter((f) => !f.known);
-  const together = shortfalls(gaps);
+  const together = shortfalls(gaps, flags);
   const forDoctor = new Set(["inflammation", "vitamin_d", "kidney", "liver"]);
 
   if (!hasReport) {
@@ -102,9 +129,10 @@ export default function PageReport({
           <Label n={2}>What {viewingOther ? "the" : "your"} food adds to this</Label>
           <div className="mt-2 grid gap-2.5">
             {together.map((t) => (
-              <p key={t.label} className="m-0" style={{ fontSize: T.body, color: C.ink2, lineHeight: 1.55 }}>
-                {t.line}
-              </p>
+              <div key={t.label}>
+                <p className="m-0 font-bold" style={{ fontSize: T.body, color: C.ink, lineHeight: 1.5 }}>{t.head}</p>
+                <p className="m-0" style={{ fontSize: T.body, color: C.ink2, lineHeight: 1.5 }}>{t.eat}</p>
+              </div>
             ))}
           </div>
           <button onClick={onOpenIntake} className="mt-3 font-semibold" style={{ fontSize: T.note, color: C.purple }}>

@@ -293,12 +293,12 @@ export default function WhatsForToday({
             {isOpen && (
               <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
                 {ps.length === 0 && ls.length === 0 && (
-                  <p className="text-sm italic py-1" style={{ color: MUTED }}>
+                  <p className="text-sm italic py-1" style={{ color: MUTED }} hidden={isPrime && !!editing[key]}>
                     {isPrime ? "Nothing here yet. Add the dishes for this meal." : "The Prime Member has not planned this meal yet."}
                   </p>
                 )}
 
-                {canLog && ps.length > 1 && ps.some((p) => !logFor(key, p)) && (
+                {!(isPrime && editing[key]) && canLog && ps.length > 1 && ps.some((p) => !logFor(key, p)) && (
                   <button onClick={() => logAll(key)} disabled={busy}
                     className="self-start px-4 rounded-full text-sm font-semibold text-white disabled:opacity-50"
                     style={{ background: INK, minHeight: 44 }}>
@@ -306,7 +306,7 @@ export default function WhatsForToday({
                   </button>
                 )}
 
-                {ps.map((p) => {
+                {!(isPrime && editing[key]) && ps.map((p) => {
                   const on = !!logFor(key, p);
                   const body = (
                     <>
@@ -376,7 +376,7 @@ export default function WhatsForToday({
                 {isPrime && editing[key] && (
                   <PlanSlotCard key={`${key}-${version}`} slotKey={key} name={label} icon={icon} time={time}
                     userId={userId} kutumbhId={kutumbhId} plannedDate={day}
-                    quickPicks={quickPicks[key]} quickLabel={quickLabel} initialItems={ps} initialPoolName={poolNames[key] ?? null} memberNames={memberNames} />
+                    embedded quickPicks={quickPicks[key]} quickLabel={quickLabel} initialItems={ps} initialPoolName={poolNames[key] ?? null} memberNames={memberNames} />
                 )}
 
               </div>

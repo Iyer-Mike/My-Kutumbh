@@ -50,6 +50,8 @@ type Props = {
   /** Dishes to offer first for this meal (festival dishes, or the family's usual); the search still reaches everything */
   quickPicks?: QuickPick[];
   quickLabel?: string;
+  /** Sits inside the meal that is already open: no second header, the picker is open straight away */
+  embedded?: boolean;
 };
 
 function perServingKcal(f: { calories: number | null; serving_weight_g: number | null; serving_unit: string | null }) {
@@ -66,11 +68,11 @@ export function servingHint(item: Pick<PlanItem, "needs_review" | "category" | "
 }
 
 export default function PlanSlotCard({
-  slotKey, plannedDate, name, icon, time, userId, kutumbhId, initialItems, initialPoolName, memberNames, quickPicks, quickLabel,
+  slotKey, plannedDate, name, icon, time, userId, kutumbhId, initialItems, initialPoolName, memberNames, quickPicks, quickLabel, embedded,
 }: Props) {
   const supabase = createClient();
   const [items, setItems]               = useState<PlanItem[]>(initialItems);
-  const [adding, setAdding]             = useState(false);
+  const [adding, setAdding]             = useState(!!embedded);
   const [query, setQuery]               = useState("");
   const [suggestions, setSuggestions]   = useState<FoodSuggestion[]>([]);
   const [searched, setSearched]         = useState("");
@@ -129,6 +131,8 @@ export default function PlanSlotCard({
     resetPicker();
     setFilter(f => ({ ...f, type: "", mealOnly: true }));
   }
+
+  useEffect(() => { if (embedded) setFilter(f => ({ ...f, type: "", mealOnly: true })); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function cancelAdd() {
     setAdding(false);
@@ -271,7 +275,8 @@ export default function PlanSlotCard({
       className="rounded-2xl overflow-visible mb-3"
       style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
     >
-      {/* Slot header */}
+      {/* Slot header (not when the card sits inside an open meal) */}
+      {!embedded && (
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div
@@ -296,6 +301,7 @@ export default function PlanSlotCard({
           {adding ? "✓" : "+"}
         </button>
       </div>
+      )}
 
       {/* Menu name + who planned it */}
       {hasItems && kutumbhId && (

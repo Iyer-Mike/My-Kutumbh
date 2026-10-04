@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { LabFlag, IntakeSummary, Needs } from "@/lib/insights/types";
 import type { Plan, Action } from "@/lib/insights/actions";
 import { Card, Label, Chip, Says, C, T, num, qty } from "./bits";
@@ -48,7 +49,7 @@ function Change({ a }: { a: Action }) {
 }
 
 export default function PageNeeds({
-  plan, flags, intake, needs, hasReport, viewingOther, firstName, onOpenReport,
+  plan, flags, intake, needs, hasReport, viewingOther, firstName, onOpenReport, dishesToComplete,
 }: {
   plan: Plan;
   flags: LabFlag[];
@@ -58,6 +59,7 @@ export default function PageNeeds({
   viewingOther: boolean;
   firstName: string;
   onOpenReport: () => void;
+  dishesToComplete: number;
 }) {
   const kcalShare = needs.kcal.value ? intake.perDay.kcal / needs.kcal.value : 0;
   // Each from its own grams. They need not sum to one: some logged food
@@ -139,6 +141,12 @@ export default function PageNeeds({
               <p className="m-0 mt-1.5" style={{ fontSize: T.note, color: C.ink3 }}>
                 Energy estimate incomplete: some dishes lack food values. Please complete the dish details.
               </p>
+            )}
+            {unaccounted > 0.02 && dishesToComplete > 0 && !viewingOther && (
+              <Link href="/family/dishes" className="inline-block mt-2 font-semibold rounded-full px-4 py-2"
+                style={{ fontSize: T.note, background: "#E7DCF7", color: C.purple }}>
+                Complete the dishes
+              </Link>
             )}
           </>
         )}

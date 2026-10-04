@@ -31,8 +31,7 @@ export default function PageAyurveda({
       <Card>
         <Label n={1}>The six tastes</Label>
         <Says>
-          The foods logged so far do not carry Ayurvedic details yet. As the family&apos;s own dishes are completed,
-          this page fills in.
+          No Ayurvedic data yet · fills in as dishes are completed.
         </Says>
       </Card>
     );
@@ -75,8 +74,7 @@ export default function PageAyurveda({
         </div>
 
         <Says>
-          {RASA[leading.r]} leads at {Math.round(leading.share * 100)}%.
-          {missing.length > 0 && ` ${missing.length === 1 ? "The" : "Both"} ${missing.join(" and ")} ${missing.length === 1 ? "taste is" : "tastes are"} nearly absent — karela, methi, drumstick and moong would bring ${missing.length === 1 ? "it" : "them"} back.`}
+          {missing.length > 0 ? `Low: ${missing.join(", ")} → karela, methi, drumstick, moong.` : `${RASA[leading.r]} leads at ${Math.round(leading.share * 100)}%.`}
         </Says>
       </Card>
 
@@ -127,7 +125,7 @@ export default function PageAyurveda({
         )}
 
         <p className="m-0 mt-3" style={{ fontSize: T.note, color: C.ink3, lineHeight: 1.5 }}>
-          Ayurveda here sits alongside modern nutrition. It never replaces {viewingOther ? `${firstName}'s` : "your"} doctor&apos;s advice.
+          Complements nutrition · not a substitute for {viewingOther ? `${firstName}'s` : "your"} doctor.
         </p>
       </Card>
     </div>

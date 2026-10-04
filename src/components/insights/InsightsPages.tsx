@@ -224,7 +224,7 @@ export default function InsightsPages({
         <PageNeeds
           plan={p.plan} flags={p.flags} intake={p.intake} needs={needs}
           hasReport={hasReport} viewingOther={viewingOther} firstName={firstName}
-          onOpenReport={() => pick("report")}
+          onOpenReport={() => pick("report")} dishesToComplete={dishesToComplete}
         />
       )}
 

@@ -19,28 +19,28 @@ function reasonFor(label: string, p: Profile, vitDLow: boolean, age: number | nu
   switch (label) {
     case "Fibre":
       return has(/diabet/i)
-        ? "Set higher because of the diabetes. Fibre slows sugar into the blood — the biggest single lever you have on HbA1c."
-        : "Fibre steadies digestion and blood sugar, and most Indian diets fall short of it.";
+        ? "Raised for diabetes: fibre slows sugar entering the blood (lowers HbA1c)."
+        : "Steadies digestion and blood sugar; most diets fall short.";
     case "Protein":
       return age && age >= 65
-        ? "About 0.8 g for every kilo you weigh. Past sixty-five, muscle is lost faster than it is built, and protein is what slows that."
-        : "About 0.8 g for every kilo you weigh, to keep muscle and repair.";
+        ? "0.8 g per kg body weight. After 65, muscle loss speeds up; protein slows it."
+        : "0.8 g per kg body weight; keeps muscle, repairs tissue.";
     case "Calcium":
       return vitDLow
-        ? "With vitamin D low, calcium is absorbed poorly — which is why the two matter together rather than separately."
-        : "Bone keeps being rebuilt at every age, and needs this daily.";
+        ? "Low vitamin D reduces calcium absorption; fix both."
+        : "Bones are rebuilt at every age and need it daily.";
     case "Vitamin B12":
       return p.diet_type && /veg/i.test(p.diet_type)
-        ? "Scarce in vegetarian food and absorbed less well with age. Milk and curd daily, or a supplement your doctor approves."
-        : "Needed for nerves and blood, and absorbed less well as the years pass.";
+        ? "Scarce in vegetarian food, absorbed less with age. Milk and curd daily, or a doctor-approved supplement."
+        : "Needed for nerves and blood; absorbed less with age.";
     case "Iron":
-      return "Needed to carry oxygen. Vegetarian iron is absorbed poorly unless something sour is eaten alongside it.";
+      return "Carries oxygen. Vegetarian iron absorbs poorly unless eaten with something sour.";
     case "Potassium":
-      return "Balances the salt in the diet and eases blood pressure. Fruit and vegetables are where it comes from.";
+      return "Balances salt, eases blood pressure. Comes from fruit and vegetables.";
     case "Salt":
       return has(/hypertens|pressure/i)
-        ? "Capped lower than usual because of the blood pressure. Most of it hides in pickles, papad and packet snacks."
-        : "The cap most Indian households pass without noticing — pickles, papad and packet food.";
+        ? "Capped lower for blood pressure. Most hides in pickles, papad, packet snacks."
+        : "Most households exceed the cap via pickles, papad, packet food.";
     default:
       return null;
   }
@@ -77,7 +77,7 @@ export default function PageIntake({
       {/* 1 · Your profile targets */}
       <Card>
         <Label n={1}>Your profile targets</Label>
-        <p className="m-0 mt-2" style={{ fontSize: T.body, color: C.ink, lineHeight: 1.5 }}>{facts || "Profile not filled in yet"}</p>
+        <p className="m-0 mt-2" style={{ fontSize: T.body, color: C.ink, lineHeight: 1.5 }}>{facts || "Profile incomplete"}</p>
 
         {((profile.conditions ?? []).length > 0 || (profile.allergies ?? []).length > 0) && (
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -110,7 +110,7 @@ export default function PageIntake({
         <Label n={2} aside={gaps.length ? `${gaps.length} short` : "all met"}>Food intake analysis</Label>
 
         {gaps.length === 0 ? (
-          <Says>Everything is within range for this period. Nothing needs changing.</Says>
+          <Says>All targets met ✓</Says>
         ) : (
           <div className="mt-2">
             {gaps.map((g) => (
@@ -131,10 +131,7 @@ export default function PageIntake({
       {/* 3 · Know your requirements */}
       {reasoned.length > 0 && (
         <Card>
-          <Label n={3}>Know your requirements</Label>
-          <p className="m-0 mt-1" style={{ fontSize: T.note, color: C.ink3 }}>
-            Why these numbers are {viewingOther ? `${firstName}'s` : "yours"}, and not general advice.
-          </p>
+          <Label n={3}>Why these targets</Label>
           <div className="mt-2 grid gap-2.5">
             {reasoned.map(({ g, why }) => (
               <p key={g.label} className="m-0" style={{ fontSize: T.body, color: C.ink2, lineHeight: 1.55 }}>
@@ -172,15 +169,13 @@ export default function PageIntake({
 
         {intake.loggedDays < intake.days && (
           <p className="m-0 mt-3" style={{ fontSize: T.body, color: C.ink, lineHeight: 1.55 }}>
-            {intake.days - intake.loggedDays} {intake.days - intake.loggedDays === 1 ? "day was" : "days were"} not logged,
-            so the averages read lighter than the eating really was.
+            {intake.days - intake.loggedDays} {intake.days - intake.loggedDays === 1 ? "day" : "days"} not logged · averages read low
           </p>
         )}
 
-        {intake.estimatedShare > 0.05 && (
+        {intake.estimatedShare > 0.05 && dishesToComplete > 0 && (
           <p className="m-0 mt-2" style={{ fontSize: T.note, color: C.ink3, lineHeight: 1.5 }}>
-            {Math.round(intake.estimatedShare * 100)}% of the energy is an estimate
-            {dishesToComplete > 0 && `, because ${dishesToComplete} family ${dishesToComplete === 1 ? "dish has" : "dishes have"} no ingredients entered yet`}.
+            {dishesToComplete} {dishesToComplete === 1 ? "dish needs" : "dishes need"} ingredients
           </p>
         )}
 

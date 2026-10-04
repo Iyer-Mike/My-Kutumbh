@@ -10,7 +10,7 @@ import CouldNotRead from "@/components/CouldNotRead";
 import Face from "@/components/Face";
 import { signedFaces } from "@/lib/faces";
 import Link from "next/link";
-import { BUILT_IN_FESTIVALS, festivalDishNames, shortFestivalName } from "@/lib/festivals";
+import { builtInOn, festivalDishNames, shortFestivalName } from "@/lib/festivals";
 import { FOOD_NUTRIENT_COLS, perServing, type FoodNutrientRow, type Nutr } from "@/lib/serving-nutrition";
 
 type MealLog = {
@@ -131,8 +131,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const tomorrow = daysAheadLocal(1, timeZone);
 
   // Is this a festival day? The app's list first, then the family's own
-  const builtIn = BUILT_IN_FESTIVALS.find((f) => f.date === day)?.name ?? null;
-  let festivalName: string | null = builtIn;
+  const builtIn = builtInOn(day);
+  let festivalName: string | null = builtIn[0] ?? null;
   if (!festivalName && kutumbhId) {
     const { data: own } = await supabase.from("family_festivals").select("name").eq("kutumbh_id", kutumbhId).eq("festival_date", day).limit(1);
     festivalName = own?.[0]?.name ?? null;
@@ -144,6 +144,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .from("food_items")
       .select(`id, name, recipe_id, ${FOOD_NUTRIENT_COLS}`)
       .in("name", festivalDishNames(builtIn))
+      .in("diet", ["veg", "vegan"])
       .is("kutumbh_id", null);
     const order = festivalDishNames(builtIn);
     festivalDishes = ((fd ?? []) as unknown as (FoodNutrientRow & { id: string; name: string; recipe_id: number | null })[])

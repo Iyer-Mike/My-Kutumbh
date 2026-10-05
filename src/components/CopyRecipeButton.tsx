@@ -33,7 +33,6 @@ export default function CopyRecipeButton({ recipeId }: { recipeId: number }) {
         style={{ background: B.card, color: B.violet, border: `1.5px solid ${B.cardEdge}` }}>
         {busy ? "One moment…" : "✎ Make my family's version"}
       </button>
-      <p className="text-[11px] text-center m-0" style={{ color: B.muted2 }}>Edits go to your family&apos;s copy; the original stays</p>
       {error && <p className="text-xs text-center m-0" style={{ color: "#B0453A" }}>{error}</p>}
     </div>
   );

@@ -25,7 +25,7 @@ const ACTIVITY_OPTIONS = [
   { value: "light",       label: "Light — walking, light housework" },
   { value: "moderate",    label: "Moderate — exercise 3–4× per week" },
   { value: "active",      label: "Active — exercise most days" },
-  { value: "very_active", label: "Very Active — physical job or intense daily training" },
+  { value: "very_active", label: "Very active — physical job or hard daily training" },
 ];
 
 const DIET_OPTIONS = [
@@ -299,7 +299,7 @@ export default function ProfileEditCard(props: Props) {
               style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}
             />
             <p className="text-[11px] mt-1" style={{ color: "#A79BC0" }}>
-              Used to spot food–medicine interactions in your insights. Shared only within your Kutumbh.
+              Used for food–medicine checks · Kutumbh only.
             </p>
           </div>
 
@@ -307,7 +307,7 @@ export default function ProfileEditCard(props: Props) {
           <div>
             <label className="text-xs" style={{ color: "#6A6180" }}>
               Daily calorie goal{" "}
-              <span style={{ color: "#A79BC0" }}>(kcal — optional, enables dashboard progress bar)</span>
+              <span style={{ color: "#A79BC0" }}>(kcal, optional · drives the Home progress bar)</span>
             </label>
             <input
               type="number"

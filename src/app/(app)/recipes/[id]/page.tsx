@@ -12,6 +12,10 @@ import { familyOf } from "@/lib/family";
 
 const DIET_MARK: Record<string, string> = { vegan: "#2F7D32", veg: "#2F7D32", egg: "#C98A0B", nonveg: "#A23A1E" };
 
+// What one serve is, said the way the dish is eaten: a bowl of sambar, a piece of chapati
+const UNIT_PLURAL: Record<string, string> = { bowl: "bowls", plate: "plates", piece: "pieces", glass: "glasses", cup: "cups", katori: "katoris", tbsp: "tbsp" };
+const unitWord = (u: string | null) => (u && u !== "serving" ? u : "portion");
+
 const EFFECT_WORD: Record<string, string> = {
   balances: "settles", aggravates: "raises", neutral: "leaves steady",
 };
@@ -65,6 +69,10 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
   const mark = DIET_MARK[recipe.diet] ?? DIET_MARK.veg;
   const macro = (v: number | null, unit: string) => (v == null ? "—" : `${Math.round(v * 10) / 10} ${unit}`);
+  const unit = unitWord(recipe.serving_unit);
+  const makes = recipe.serves
+    ? `${recipe.serves} ${Number(recipe.serves) === 1 ? unit : (UNIT_PLURAL[unit] ?? `${unit}s`)}`
+    : "—";
   const meals = (recipe.meal_hint ?? []).map((m: string) => slotLabel(m));
 
   return (
@@ -97,7 +105,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         {/* At a glance */}
         <section className="rounded-2xl px-4 py-4 grid grid-cols-3 gap-3"
           style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
-          <Fact label="Serves" value={recipe.serves ?? "—"} />
+          <Fact label="Makes" value={makes} />
           <Fact label="Prep" value={recipe.prep_time ?? "—"} />
           <Fact label="Cooking" value={recipe.cook_time ?? "—"} />
         </section>
@@ -148,15 +156,14 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
           <div>
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
-              One serving
+              Per {unit}
             </h2>
             <p className="text-[11px]" style={{ color: B.muted2 }}>
-              {recipe.serving_weight_g ? `About ${Math.round(recipe.serving_weight_g)} g per ${recipe.serving_unit ?? "serving"}` : "Per serving"}
-              {recipe.nutrition_estimated ? " · estimated" : ""}
+              {[recipe.serving_weight_g ? `About ${Math.round(recipe.serving_weight_g)} g` : null, recipe.nutrition_estimated ? "estimated" : null].filter(Boolean).join(" · ")}
             </p>
             {recipe.nutrition_estimated && (
               <p className="text-[11px] mt-0.5" style={{ color: B.muted2 }}>
-                Values are an AI estimate guided by the Indian Food Composition Tables (IFCT), checked by your Key Member. Approximate.
+                AI estimated as per IFCT tables and reviewed by Key Member.
               </p>
             )}
           </div>
@@ -208,14 +215,14 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         )}
         {recipe.in_bucket && (
           <p data-print-hide className="text-[11px] text-center" style={{ color: B.muted2 }}>
-            In the nutrition bucket, waiting for an estimate.
+            In the nutrition bucket · estimate pending.
           </p>
         )}
 
         <PrintRecipe name={recipe.name} />
 
         <p className="text-[11px] text-center pb-2" style={{ color: B.muted2 }}>
-          Nutrition is for one serving as written. Your own portion is what the Log counts.
+          Values are per {unit} · The Log counts your portion.
         </p>
       </main>
     </div>

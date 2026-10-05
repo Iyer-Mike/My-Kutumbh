@@ -94,7 +94,7 @@ export default async function PantryPage() {
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>{kutumbhName}</p>
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Pantry Shelf</h1>
         <p className="text-xs mt-1" style={{ color: B.gold }}>
-          {isPrime ? "You keep the shelf · anyone can flag what's running low" : "Flag anything running low for the Key Member"}
+          {isPrime ? "You keep the shelf · all can flag low items" : "Flag low items for the Key Member"}
         </p>
       </header>
 
@@ -115,7 +115,7 @@ export default async function PantryPage() {
           </>
         ) : (
           <p className="text-sm text-center py-10" style={{ color: B.muted }}>
-            Join or start a Kutumbh first — the shelf belongs to the family.
+            Join or start a Kutumbh first.
           </p>
         )}
       </main>

@@ -30,7 +30,7 @@ export default async function BucketPage() {
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>Key Member</p>
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Nutrition bucket</h1>
         <p className="text-xs mt-1" style={{ color: B.gold }}>
-          Family recipes and dishes waiting for their values
+          Awaiting nutrition values
         </p>
       </header>
       <main className="flex-1 px-4 py-5 grid gap-4 content-start">

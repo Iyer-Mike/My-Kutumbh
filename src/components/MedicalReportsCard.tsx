@@ -427,8 +427,8 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
       {records.length === 0 && !showForm && (
         <div className="px-5 pb-5">
           <p className="text-sm text-center py-6" style={{ color: "#6A6180" }}>
-            No reports uploaded yet.<br />
-            <span style={{ fontSize: "11px" }}>Upload a lab report to track your health values over time.</span>
+            No reports yet.<br />
+            <span style={{ fontSize: "11px" }}>Upload a lab report to track values.</span>
           </p>
         </div>
       )}

@@ -235,9 +235,9 @@ export default function PantryView({
   async function copyList() {
     try {
       await navigator.clipboard.writeText(`Shopping list\n${listText}`);
-      alert("List copied — paste it into WhatsApp or a note.");
+      alert("Copied · Paste into WhatsApp or a note.");
     } catch {
-      alert("Couldn't copy on this phone. Long-press the list to copy it by hand.");
+      alert("Copy failed · Long-press the list to copy.");
     }
   }
 
@@ -251,7 +251,7 @@ export default function PantryView({
     // it through the photo squeezer only broke it.
     const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
     if (isPdf && file.size > 3_500_000) {
-      setBillNote("That PDF is too large to send. Photograph the bill instead, or save a smaller copy.");
+      setBillNote("PDF too large · Photograph the bill or use a smaller file.");
       return;
     }
 
@@ -277,7 +277,7 @@ export default function PantryView({
         return { ...i, take: true, matchId: match?.id ?? null };
       });
       if (lines.length === 0) {
-        setBillNote("No kitchen items found on that photo. Try a straighter, brighter shot.");
+        setBillNote("No kitchen items found · Retake it straighter and brighter.");
         return;
       }
       setBill({ shop: data.shop ?? null, lines });
@@ -492,7 +492,7 @@ export default function PantryView({
         </div>
 
         {open.length === 0 ? (
-          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy. Flag anything running low and it lands here.</p>
+          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Flagged items appear here.</p>
         ) : (
           <div className="grid">
             {open.map((s) => (
@@ -540,7 +540,7 @@ export default function PantryView({
                 The menu needs
               </h2>
               <p className="text-[11px]" style={{ color: B.muted2 }}>
-                Planned for the next three days, not on the shelf
+                Next 3 days' menu · not on the shelf
               </p>
             </div>
             {fromMenu.some((m) => !addedFromMenu.includes(m.name)) && (
@@ -592,7 +592,7 @@ export default function PantryView({
               <div>
                 <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Back from the shop?</h2>
                 <p className="text-[11px]" style={{ color: B.muted2 }}>
-                  A photo or a PDF of the bill — everything on it goes onto the shelf.
+                  Photo or PDF of the bill → shelf.
                 </p>
               </div>
               {reading ? (
@@ -641,7 +641,7 @@ export default function PantryView({
                   On the bill{bill.shop ? ` · ${bill.shop}` : ""}
                 </h2>
                 <p className="text-[11px]" style={{ color: B.muted2 }}>
-                  Untick anything that shouldn&apos;t go on the shelf, then put the rest away.
+                  Untick what doesn&apos;t belong, then put away.
                 </p>
               </div>
 
@@ -700,7 +700,7 @@ export default function PantryView({
       {items.length === 0 ? (
         <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={card}>
           <p className="text-sm" style={{ color: B.muted }}>
-            The shelf is empty. {isPrime ? "Start with the usual kitchen list, then change what doesn't fit." : "The Key Member sets it up."}
+            Shelf empty · {isPrime ? "Start with the usual list, then edit." : "The Key Member sets it up."}
           </p>
           {isPrime && (
             <button onClick={fillStarter} disabled={busy}

@@ -139,13 +139,13 @@ export default function FamilyRecipeForm({
       {isPrime && (
         <label className="flex items-start gap-2 text-sm px-1" style={{ color: B.ink2, minHeight: 44 }}>
           <input type="checkbox" className="mt-1" checked={bucket} onChange={(e) => setBucket(e.target.checked)} />
-          <span>Add to the nutrition bucket, to have its values estimated later</span>
+          <span>Add to the nutrition bucket (estimate later)</span>
         </label>
       )}
 
       <p className="text-[11px] px-1" style={{ color: B.muted2 }}>
-        Nutrition for {dishName} comes from the dish itself and is marked as estimated.
-        {isPrime ? " As Key Member, your recipe is shown to the family at once." : " The Key Member approves it before the family sees it."}
+        Nutrition is taken from the dish (estimated).
+        {isPrime ? " Shown to the family at once." : " Shown after Key Member approval."}
       </p>
 
       {error && <p className="text-xs px-1" style={{ color: "#B42318" }}>{error}</p>}

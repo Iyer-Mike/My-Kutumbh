@@ -33,8 +33,8 @@ export default function RecipeApproval({ recipeId, canApprove }: { recipeId: num
     <section data-print-hide className="rounded-2xl px-4 py-4 grid gap-3" style={{ background: B.goldTint, border: "1px solid #EBCB85" }}>
       <p className="text-sm" style={{ color: "#7A5A06" }}>
         {canApprove
-          ? "Waiting for your approval. The family will see it once you approve."
-          : "Waiting for the Key Member to approve. The family will see it after that."}
+          ? "Awaiting your approval · then visible to the family."
+          : "Awaiting Key Member approval · then visible to the family."}
       </p>
       <div className="flex gap-2">
         {canApprove && (

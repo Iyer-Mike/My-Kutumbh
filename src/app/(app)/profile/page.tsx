@@ -105,7 +105,7 @@ export default async function ProfilePage() {
               label="Add your photo"
             />
             <p className="text-[11px] text-center mt-3 m-0" style={{ color: "#6A6180" }}>
-              Only your Kutumbh can see it.
+              Visible to your Kutumbh only.
             </p>
           </section>
         )}
@@ -168,10 +168,10 @@ export default async function ProfilePage() {
             <div className="rounded-xl px-4 py-4 text-center"
               style={{ background: "#F3EEFA", border: "1.5px dashed #CBBDE4" }}>
               <p className="text-sm font-medium mb-1" style={{ color: "#241C33" }}>
-                Discover your Ayurvedic constitution
+                Find your Prakriti (nature)
               </p>
               <p className="text-xs mb-3" style={{ color: "#6A6180" }}>
-                15 questions · takes about 3 minutes
+                15 questions · 3 min
               </p>
               <div className="flex gap-2 justify-center">
                 <Link

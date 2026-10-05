@@ -33,10 +33,10 @@ export default async function FestivalsPage() {
       <header className="px-5 pt-safe pb-5" style={{ background: B.headerGradient }}>
         <PageNav />
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Festival days</h1>
-        <p className="text-xs mt-1" style={{ color: B.gold }}>Tap a day to see or plan its menu</p>
+        <p className="text-xs mt-1" style={{ color: B.gold }}>Tap a day for its menu</p>
       </header>
       <main className="flex-1 px-4 py-5 pb-24 grid gap-3 content-start">
-        {rows.length === 0 && <p className="text-sm" style={{ color: B.muted }}>No festival days coming up.</p>}
+        {rows.length === 0 && <p className="text-sm" style={{ color: B.muted }}>No festivals ahead.</p>}
         {rows.map((r) => {
           const off = daysFromToday(r.date, timeZone);
           const href = off === 0 ? "/dashboard" : `/dashboard?date=${r.date}&fest=1`;
@@ -54,7 +54,7 @@ export default async function FestivalsPage() {
           );
         })}
         <p className="text-xs" style={{ color: B.muted2, lineHeight: 1.5 }}>
-          Dates of lunar festivals differ by region. Check them against your family&apos;s calendar{isPrime ? ", and add or correct any below." : "; the Key Member can add your family's own."}
+          Lunar dates vary by region · {isPrime ? "Check your family's calendar, then add or correct below." : "The Key Member can add your family's own."}
         </p>
         {isPrime && kutumbhId && <FestivalAdder kutumbhId={kutumbhId} userId={user.id} />}
       </main>

@@ -17,7 +17,7 @@ export default function FestivalAdder({ kutumbhId, userId }: { kutumbhId: string
     const { error: err } = await createClient().from("family_festivals")
       .insert({ kutumbh_id: kutumbhId, name: name.trim(), festival_date: date, created_by: userId });
     setBusy(false);
-    if (err) { setError("Could not add this. Please try again."); return; }
+    if (err) { setError("Not added · Try again."); return; }
     setName(""); setDate("");
     router.refresh();
   }

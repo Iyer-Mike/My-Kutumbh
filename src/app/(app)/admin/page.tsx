@@ -107,7 +107,7 @@ export default async function AdminPage() {
               Faults · last 30 days
             </p>
             <p className="text-[11px] mt-0 mb-3" style={{ color: "#6A6180" }}>
-              Grouped — twenty of the same fault is one problem, not twenty.
+              Grouped by fault
             </p>
             <div className="space-y-2.5">
               {desk.faults.map((f, n) => (
@@ -134,7 +134,7 @@ export default async function AdminPage() {
               Signed up, no family · {desk.stranded.length}
             </p>
             <p className="text-[11px] mt-1 mb-3" style={{ color: "#6A6180" }}>
-Admitted to the app but belonging to no family — they should be sent back to name one.
+In the app, no family · Ask them to name one.
             </p>
             {desk.stranded.map((s, n) => (
               <div key={n} className="flex items-baseline justify-between text-sm py-1">
@@ -250,8 +250,7 @@ Admitted to the app but belonging to no family — they should be sent back to n
         )}
 
         <p className="text-[11px] text-center pt-2 pb-4 m-0" style={{ color: "#8A80A0" }}>
-          Counts and timings only. No family&apos;s food, labs, photographs or questions are visible here, to you or to
-          anyone.
+          Counts and timings only · No family&apos;s food, labs, photos or questions are visible.
         </p>
       </main>
     </div>

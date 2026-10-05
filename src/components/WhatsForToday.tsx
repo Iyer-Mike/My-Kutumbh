@@ -67,6 +67,17 @@ function whyText(s: MealSuggestion): string {
   return "Same as last time";
 }
 
+// Quantity: grams for dishes counted per 100 g, otherwise servings (or pieces, bowls…)
+const defQty = (unit: string | null) => (unit === "g" ? 100 : 1);
+const stepOf = (unit: string | null) => (unit === "g" ? 25 : unit === "tbsp" ? 1 : 0.5);
+const timesOf = (l: { quantity_g: number; quantity_unit: string | null }) =>
+  (Number(l.quantity_g) || 1) / (l.quantity_unit === "g" ? 100 : 1);
+const qtyText = (q: number, unit: string | null) => {
+  const n = q === 0.5 ? "½" : q === 1.5 ? "1½" : String(Math.round(q * 10) / 10);
+  const u = unit ?? "serving";
+  return u === "g" || u === "tbsp" || q <= 1 ? `${n} ${u}` : `${n} ${u}s`;
+};
+
 const same = (p: Plan, l: Log) =>
   p.food_item_id && l.food_item_id ? p.food_item_id === l.food_item_id : p.food_name.toLowerCase() === l.food_name.toLowerCase();
 
@@ -102,12 +113,12 @@ export default function WhatsForToday({
   const slotPlans = (slot: string) => plans.filter((p) => p.meal_slot === slot);
   const slotLogs  = (slot: string) => logs.filter((l) => l.meal_slot === slot);
   const logFor    = (slot: string, p: Plan) => slotLogs(slot).find((l) => same(p, l));
-  const nOf       = (l: Log) => (l.n ? scaled(l.n, Number(l.quantity_g) || 1) : null);
+  const nOf       = (l: Log) => (l.n ? scaled(l.n, timesOf(l)) : null);
 
   function toLog(p: Plan, slot: string) {
     return {
       user_id: userId, food_item_id: p.food_item_id, food_name: p.food_name, meal_slot: slot,
-      quantity_g: 1, quantity_unit: p.serving_unit ?? "serving", calories: p.kcal_per_serving, logged_date: day,
+      quantity_g: defQty(p.serving_unit), quantity_unit: p.serving_unit ?? "serving", calories: p.kcal_per_serving, logged_date: day,
     };
   }
 
@@ -136,6 +147,40 @@ export default function WhatsForToday({
     }
     setBusy(false);
     router.refresh();
+  }
+
+  // How much was eaten: change the quantity and the values follow
+  async function setQty(l: Log, dir: 1 | -1) {
+    if (busy) return;
+    const step = stepOf(l.quantity_unit);
+    const old = Number(l.quantity_g) || defQty(l.quantity_unit);
+    const next = Math.max(step, Math.round((old + dir * step) * 10) / 10);
+    if (next === old) return;
+    const kcal = l.calories != null && old > 0 ? Math.round((Number(l.calories) * next) / old) : null;
+    setLogs((cur) => cur.map((x) => (x.id === l.id ? { ...x, quantity_g: next, calories: kcal } : x)));
+    const { error: err } = await supabase.from("meal_logs").update({ quantity_g: next, calories: kcal }).eq("id", l.id);
+    if (err) {
+      setLogs((cur) => cur.map((x) => (x.id === l.id ? l : x)));
+      setError("Could not change the quantity. Please try again.");
+    } else router.refresh();
+  }
+
+  function Qty({ l }: { l: Log }) {
+    const q = Number(l.quantity_g) || defQty(l.quantity_unit);
+    const btn = "w-11 h-11 rounded-full text-lg font-bold flex items-center justify-center";
+    return (
+      <div className="flex items-center justify-between gap-2 px-1 pt-1" role="group" aria-label={`Quantity of ${l.food_name}`}>
+        <span className="text-xs" style={{ color: MUTED }}>How much?</span>
+        <span className="flex items-center gap-2">
+          <button onClick={() => setQty(l, -1)} className={btn} style={{ background: "#fff", border: `1.5px solid ${PLUM}`, color: PLUM }} aria-label="Less">−</button>
+          <span className="text-sm font-bold min-w-[84px] text-center tabular-nums" style={{ color: INK }}>
+            {qtyText(q, l.quantity_unit)}
+            {l.calories != null && <span className="block text-[11px] font-normal" style={{ color: MUTED }}>{Math.round(Number(l.calories))} kcal</span>}
+          </span>
+          <button onClick={() => setQty(l, 1)} className={btn} style={{ background: "#fff", border: `1.5px solid ${PLUM}`, color: PLUM }} aria-label="More">+</button>
+        </span>
+      </div>
+    );
   }
 
   async function logAll(slot: string) {
@@ -320,26 +365,32 @@ export default function WhatsForToday({
                       )}
                     </>
                   );
+                  const lg = logFor(key, p);
                   return canLog ? (
-                    <button key={p.id} onClick={() => tapDish(key, p)} aria-pressed={on} disabled={busy}
-                      className="flex items-center gap-3 w-full px-2.5 rounded-xl"
-                      style={{ minHeight: 52, border: `1.5px solid ${on ? PLUM : "#D9CBF0"}`, background: on ? "#EDE4F8" : "#fff" }}>
-                      <span className="w-[26px] h-[26px] rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm"
-                        style={{ background: on ? PLUM : "#fff", border: `2px solid ${on ? PLUM : "#8D7FA6"}` }}>{on ? "✓" : ""}</span>
-                      {body}
-                    </button>
+                    <div key={p.id} className="rounded-xl" style={{ border: `1.5px solid ${on ? PLUM : "#D9CBF0"}`, background: on ? "#EDE4F8" : "#fff" }}>
+                      <button onClick={() => tapDish(key, p)} aria-pressed={on} disabled={busy}
+                        className="flex items-center gap-3 w-full px-2.5" style={{ minHeight: 52 }}>
+                        <span className="w-[26px] h-[26px] rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm"
+                          style={{ background: on ? PLUM : "#fff", border: `2px solid ${on ? PLUM : "#8D7FA6"}` }}>{on ? "✓" : ""}</span>
+                        {body}
+                      </button>
+                      {lg && <div className="px-2.5 pb-2"><Qty l={lg} /></div>}
+                    </div>
                   ) : (
                     <div key={p.id} className="flex items-center gap-3 px-1" style={{ minHeight: 40 }}>{body}</div>
                   );
                 })}
 
                 {extra.map((l) => (
-                  <div key={l.id} className="flex items-center justify-between gap-2 px-2.5 rounded-xl" style={{ minHeight: 44, background: "#F7F3FC" }}>
-                    <span className="text-sm" style={{ color: INK }}>{l.food_name} <span className="text-xs" style={{ color: MUTED }}>· logged by you</span></span>
-                    <button onClick={async () => {
-                      const { error: err } = await supabase.from("meal_logs").delete().eq("id", l.id);
-                      if (err) setError("Could not take this off."); else { setLogs((c) => c.filter((x) => x.id !== l.id)); router.refresh(); }
-                    }} className="text-xs font-semibold underline px-2" style={{ color: PLUM, minHeight: 44 }}>Remove</button>
+                  <div key={l.id} className="rounded-xl pb-2" style={{ background: "#F7F3FC" }}>
+                    <div className="flex items-center justify-between gap-2 px-2.5" style={{ minHeight: 44 }}>
+                      <span className="text-sm" style={{ color: INK }}>{l.food_name} <span className="text-xs" style={{ color: MUTED }}>· logged by you</span></span>
+                      <button onClick={async () => {
+                        const { error: err } = await supabase.from("meal_logs").delete().eq("id", l.id);
+                        if (err) setError("Could not take this off."); else { setLogs((c) => c.filter((x) => x.id !== l.id)); router.refresh(); }
+                      }} className="text-xs font-semibold underline px-2" style={{ color: PLUM, minHeight: 44 }}>Remove</button>
+                    </div>
+                    <div className="px-2.5"><Qty l={l} /></div>
                   </div>
                 ))}
 

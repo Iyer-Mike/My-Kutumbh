@@ -66,7 +66,7 @@ export default function WriteToKutumbh({
   return (
     <div className="mt-3 rounded-xl p-3" style={{ background: "#F3EEFA", border: "1px solid #E0D4F2" }}>
       <p className="text-[11px] m-0 mb-2" style={{ color: "#6A6180" }}>
-        To the Prime Member of {kutumbhName}
+        To the Key Member of {kutumbhName}
       </p>
 
       <input

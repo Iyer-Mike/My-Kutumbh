@@ -68,7 +68,7 @@ export default function FamilyRecipeForm({
     const { data, error: err } = await supabase.rpc("submit_family_recipe", { p_food_item_id: dishId, p: body });
     setSaving(false);
     if (err) { setError(err.message); return; }
-    // The Prime Member's bucket choice goes in after the recipe exists
+    // The Key Member's bucket choice goes in after the recipe exists
     if (isPrime && bucket && typeof data === "number") {
       await supabase.rpc("update_family_recipe", { p_recipe_id: data, p: body });
     }
@@ -145,7 +145,7 @@ export default function FamilyRecipeForm({
 
       <p className="text-[11px] px-1" style={{ color: B.muted2 }}>
         Nutrition for {dishName} comes from the dish itself and is marked as estimated.
-        {isPrime ? " As Prime Member, your recipe is shown to the family at once." : " The Prime Member approves it before the family sees it."}
+        {isPrime ? " As Key Member, your recipe is shown to the family at once." : " The Key Member approves it before the family sees it."}
       </p>
 
       {error && <p className="text-xs px-1" style={{ color: "#B42318" }}>{error}</p>}

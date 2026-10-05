@@ -8,7 +8,7 @@ import { offerCode } from "@/app/waiting/actions";
  * One box for whichever code a person happens to be holding.
  *
  * There are two: a passcode from the Admin's letter, and a six-digit
- * number from a Prime Member. A newcomer has no idea these are
+ * number from a Key Member. A newcomer has no idea these are
  * different things, and should not have to. The box tries both.
  */
 export default function EnterAnyCode() {

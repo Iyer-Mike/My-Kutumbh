@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * back by the one who was away.
  */
 
-/** How long a Prime Member may be silent before the role can be taken. */
+/** How long a Key Member may be silent before the role can be taken. */
 export const QUIET_DAYS = 7;
 
 /** How long afterwards they may take it back. */
@@ -26,9 +26,9 @@ export async function touchLastSeen(supabase: SupabaseClient<any, any, any>, use
 }
 
 export type PrimeState = {
-  /** Days since the Prime Member last opened the app, null if never recorded. */
+  /** Days since the Key Member last opened the app, null if never recorded. */
   primeQuietDays: number | null;
-  /** May this member take the role, because the Prime Member has gone quiet? */
+  /** May this member take the role, because the Key Member has gone quiet? */
   canClaim: boolean;
   /** Was this person's role taken while they were away, recently enough to take back? */
   canReclaim: boolean;

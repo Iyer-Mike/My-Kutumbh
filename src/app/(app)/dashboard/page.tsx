@@ -212,7 +212,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   ? { background: "#F2B531", color: "#2A1646" }
                   : { background: "rgba(255,255,255,0.15)", color: "#DDD3EF" }}
               >
-                {isPrime ? "★ Prime Member" : "Member"}
+                {isPrime ? "★ Key Member" : "Member"}
               </span>
             )}
           </div>

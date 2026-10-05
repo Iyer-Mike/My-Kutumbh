@@ -86,7 +86,7 @@ export function longDateLocal(tz: string = DEFAULT_TIME_ZONE, now: Date = new Da
   return longDateFor(todayLocal(tz, now));
 }
 
-/** The zones a family is likely to live in, for the Prime Member to pick from. */
+/** The zones a family is likely to live in, for the Key Member to pick from. */
 export const TIME_ZONES: { value: string; label: string }[] = [
   { value: "Asia/Kolkata",        label: "India (IST)" },
   { value: "Asia/Dubai",          label: "UAE · Gulf" },

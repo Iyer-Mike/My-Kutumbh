@@ -15,7 +15,7 @@ export type Notice = {
 
 /**
  * What the family has been told. Mostly the app itself; sometimes the
- * person who looks after it. The Prime Member may write back.
+ * person who looks after it. The Key Member may write back.
  */
 export default function NoticesCard({ notices, isPrime }: { notices: Notice[]; isPrime: boolean }) {
   const [replyTo, setReplyTo] = useState<string | null>(null);

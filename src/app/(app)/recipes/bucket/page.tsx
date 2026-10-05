@@ -27,7 +27,7 @@ export default async function BucketPage() {
     <div className="flex flex-col min-h-screen" style={{ background: B.page }}>
       <header className="px-5 pt-safe pb-5" style={{ background: B.headerGradient }}>
         <PageNav />
-        <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>Prime Member</p>
+        <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>Key Member</p>
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Nutrition bucket</h1>
         <p className="text-xs mt-1" style={{ color: B.gold }}>
           Family recipes and dishes waiting for their values

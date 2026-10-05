@@ -11,7 +11,7 @@ import { evaluateIntelligence } from "@/lib/insights/intelligence";
 import { planActions } from "@/lib/insights/actions";
 import { familyOf } from "@/lib/family";
 
-// Insights are individual. A member sees their own; the Prime Member can
+// Insights are individual. A member sees their own; the Key Member can
 // open any member of their Kutumbh with ?member=<user id>.
 export default async function InsightsPage({ searchParams }: { searchParams: Promise<{ member?: string }> }) {
   const { member } = await searchParams;
@@ -64,7 +64,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
       >
         <PageNav />
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
-          {d.viewingOther ? "Prime Member view" : "Your nutrition & health"}
+          {d.viewingOther ? "Key Member view" : "Your nutrition & health"}
         </p>
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
           {d.viewingOther ? `${d.name}'s Insights` : "Insights"}

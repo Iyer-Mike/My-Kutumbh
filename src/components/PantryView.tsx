@@ -577,7 +577,7 @@ export default function PantryView({
         </section>
       )}
 
-      {/* Shopped? Photograph the bill — Prime Member only */}
+      {/* Shopped? Photograph the bill — Key Member only */}
       {isPrime && (
         <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
           {/* The camera and the file chooser are two different doors, so a
@@ -700,7 +700,7 @@ export default function PantryView({
       {items.length === 0 ? (
         <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={card}>
           <p className="text-sm" style={{ color: B.muted }}>
-            The shelf is empty. {isPrime ? "Start with the usual kitchen list, then change what doesn't fit." : "The Prime Member sets it up."}
+            The shelf is empty. {isPrime ? "Start with the usual kitchen list, then change what doesn't fit." : "The Key Member sets it up."}
           </p>
           {isPrime && (
             <button onClick={fillStarter} disabled={busy}
@@ -737,7 +737,7 @@ export default function PantryView({
         })
       )}
 
-      {/* Add to the shelf — Prime Member only */}
+      {/* Add to the shelf — Key Member only */}
       {isPrime && (
         <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
           {!adding ? (

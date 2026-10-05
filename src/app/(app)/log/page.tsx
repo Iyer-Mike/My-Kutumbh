@@ -49,7 +49,7 @@ function toGrams(qty: number, food: FoodItem) {
 }
 
 // Real values when the dish has them; otherwise its category's average
-// per serving, flagged as an estimate until the Prime Member completes it.
+// per serving, flagged as an estimate until the Key Member completes it.
 function nutrition(food: FoodItem, qty: number) {
   if (food.calories != null) {
     const g = toGrams(qty, food);
@@ -367,7 +367,7 @@ export default function LogPage() {
     }));
   }
 
-  // Unknown dish → a Family Dish awaiting the Prime Member's details. Its
+  // Unknown dish → a Family Dish awaiting the Key Member's details. Its
   // category sets the natural unit and the estimate used until then.
   async function addFamilyDish(category: DishType) {
     const name = query.trim();
@@ -806,7 +806,7 @@ export default function LogPage() {
                           <button onClick={() => setDishPicker(true)} className="w-full text-left text-sm">
                             ＋ Add <b>“{typed}”</b> as a Family Dish
                             <span className="block text-xs mt-0.5" style={{ color: "#8A5A06" }}>
-                              The Prime Member will add its exact nutrition, ingredients and preparation
+                              The Key Member will add its exact nutrition, ingredients and preparation
                             </span>
                           </button>
                         ) : (

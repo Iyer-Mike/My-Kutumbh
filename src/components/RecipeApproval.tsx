@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B } from "@/lib/brand";
 
-/** Shown on a family recipe that is still waiting for the Prime Member. */
+/** Shown on a family recipe that is still waiting for the Key Member. */
 export default function RecipeApproval({ recipeId, canApprove }: { recipeId: number; canApprove: boolean }) {
   const router = useRouter();
   const supabase = createClient();
@@ -34,7 +34,7 @@ export default function RecipeApproval({ recipeId, canApprove }: { recipeId: num
       <p className="text-sm" style={{ color: "#7A5A06" }}>
         {canApprove
           ? "Waiting for your approval. The family will see it once you approve."
-          : "Waiting for the Prime Member to approve. The family will see it after that."}
+          : "Waiting for the Key Member to approve. The family will see it after that."}
       </p>
       <div className="flex gap-2">
         {canApprove && (

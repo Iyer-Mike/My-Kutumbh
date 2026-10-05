@@ -21,7 +21,7 @@ export type InsightsData = {
 
 /**
  * Everything Insights and the coach need about one member. A member sees
- * their own data; the Prime Member may ask for any member of their Kutumbh.
+ * their own data; the Key Member may ask for any member of their Kutumbh.
  */
 export async function loadInsightsData(
   supabase: SupabaseClient, viewerId: string, requestedMember?: string | null,

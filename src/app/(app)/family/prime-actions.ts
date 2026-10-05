@@ -13,10 +13,10 @@ type Result = { ok: boolean; error?: string };
 
 function plainly(message: string, fallback: string): string {
   // The database raises in plain English already; pass it on where it helps
-  if (/Only the Prime Member/i.test(message)) return "Only the Prime Member can hand the role on.";
+  if (/Only the Key Member/i.test(message)) return "Only the Key Member can hand the role on.";
   if (/not in your Kutumbh/i.test(message)) return "That person isn't in your Kutumbh.";
   if (/already have it/i.test(message)) return "You already have it.";
-  if (/within the week/i.test(message)) return "The Prime Member has opened the app this week, so the role stays with them.";
+  if (/within the week/i.test(message)) return "The Key Member has opened the app this week, so the role stays with them.";
   if (/nothing to take back/i.test(message)) return "There's nothing to take back.";
   if (/moved on since/i.test(message)) return "The role has moved on since, so it can't be taken back now.";
   return fallback;

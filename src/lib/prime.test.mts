@@ -7,7 +7,7 @@ const hoursAgo = (n: number) => new Date(Date.now() - n * 3_600_000).toISOString
 
 /**
  * A stand-in for the database. It answers two questions: was my role
- * taken while I was away, and when was the Prime Member last here.
+ * taken while I was away, and when was the Key Member last here.
  */
 function db({ change = null, primeSeen = null }: { change?: unknown; primeSeen?: string | null }) {
   const chain = {
@@ -32,7 +32,7 @@ function db({ change = null, primeSeen = null }: { change?: unknown; primeSeen?:
 }
 
 describe("when a member may take the role on", () => {
-  test("not while the Prime Member is using the app", async () => {
+  test("not while the Key Member is using the app", async () => {
     const { client } = db({ primeSeen: daysAgo(1) });
     const s = await primeState(client, "me", "k1", "prime", false);
     assert.equal(s.canClaim, false);
@@ -52,7 +52,7 @@ describe("when a member may take the role on", () => {
     assert.equal(s.primeQuietDays, QUIET_DAYS);
   });
 
-  test("the Prime Member is never offered their own role", async () => {
+  test("the Key Member is never offered their own role", async () => {
     const { client } = db({ primeSeen: daysAgo(30) });
     const s = await primeState(client, "me", "k1", "me", true);
     assert.equal(s.canClaim, false);

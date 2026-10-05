@@ -27,7 +27,7 @@ function dayLabel(iso: string, tz: string) {
   });
 }
 
-// Prime Member only: what a family member has eaten over the last 7 days.
+// Key Member only: what a family member has eaten over the last 7 days.
 export default async function MemberConsumptionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: memberId } = await params;
   const supabase = await createClient();

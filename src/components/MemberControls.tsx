@@ -85,7 +85,7 @@ export function LeaveKutumbh({ kutumbhName, isPrime }: { kutumbhName: string | n
       <p className="text-xs m-0" style={{ color: C.ink, lineHeight: 1.5 }}>
         Leave {kutumbhName ?? "this Kutumbh"}? Everything of yours stays yours — your meals, your reports, your
         account. You would no longer see the family&apos;s menu, dishes or pantry.
-        {isPrime && " As the Prime Member, hand the role to someone else first."}
+        {isPrime && " As the Key Member, hand the role to someone else first."}
       </p>
       {error && <p className="text-xs mt-2 mb-0" style={{ color: C.warn }}>{error}</p>}
       <div className="flex gap-2 mt-2.5">

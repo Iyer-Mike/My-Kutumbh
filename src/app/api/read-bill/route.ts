@@ -52,11 +52,11 @@ export async function POST(req: NextRequest) {
   const budget = await checkBudget(supabase, user.id, kutumbhId);
   if (!budget.ok) return NextResponse.json({ error: budget.message }, { status: budget.status });
 
-  // The shelf is the Prime Member's to keep, so only they may fill it from a bill
+  // The shelf is the Key Member's to keep, so only they may fill it from a bill
   const { data: membership } = await supabase
     .from("kutumbh_members").select("role").eq("user_id", user.id).limit(1).maybeSingle();
   if (membership?.role !== "owner") {
-    return NextResponse.json({ error: "Only the Prime Member can add a bill to the shelf." }, { status: 403 });
+    return NextResponse.json({ error: "Only the Key Member can add a bill to the shelf." }, { status: 403 });
   }
 
   let body: { imageBase64?: string; mediaType?: string };

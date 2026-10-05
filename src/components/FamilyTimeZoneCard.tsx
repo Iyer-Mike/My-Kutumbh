@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BRAND as B } from "@/lib/brand";
 import { TIME_ZONES, deviceTimeZone, longDateLocal, timeZoneLabel } from "@/lib/dates";
 
-/** The Prime Member sets where the family's day starts and ends. */
+/** The Key Member sets where the family's day starts and ends. */
 export default function FamilyTimeZoneCard({ kutumbhId, timeZone }: { kutumbhId: string; timeZone: string }) {
   const supabase = createClient();
   const [tz, setTz] = useState(timeZone);
@@ -41,14 +41,14 @@ export default function FamilyTimeZoneCard({ kutumbhId, timeZone }: { kutumbhId:
 
       {mismatch && !open && (
         <p className="text-[11px] mt-2 rounded-lg px-2.5 py-1.5" style={{ background: B.goldTint, color: B.goldInk }}>
-          This phone is set to {timeZoneLabel(device)}. Tap to change the family&apos;s day if you&apos;ve moved.
+          Phone is on {timeZoneLabel(device)} · tap to change the family&apos;s time zone
         </p>
       )}
 
       {open && (
         <div className="mt-3 grid gap-2">
           <p className="text-xs" style={{ color: B.muted }}>
-            Meals, menus and insights are counted from midnight to midnight here. Days already logged keep their date.
+            Days run midnight to midnight here · logged days keep their date
           </p>
           <label htmlFor="tz" className="sr-only">Time zone</label>
           <select id="tz" value={tz} onChange={(e) => choose(e.target.value)} disabled={saving}

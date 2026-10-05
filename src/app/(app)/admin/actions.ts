@@ -34,7 +34,7 @@ export async function writeToKutumbh(
   return { ok: true };
 }
 
-/** The Prime Member writes back. */
+/** The Key Member writes back. */
 export async function replyToAdmin(body: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
 
@@ -43,8 +43,8 @@ export async function replyToAdmin(body: string): Promise<{ ok: boolean; error?:
     return {
       ok: false,
       error:
-        error.message.includes("Prime Member")
-          ? "Only the Prime Member can reply for the family."
+        error.message.includes("Key Member")
+          ? "Only the Key Member can reply for the family."
           : "Your reply didn't go. Please try again.",
     };
   }

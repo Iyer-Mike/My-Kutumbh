@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 type Result = { ok: boolean; error?: string };
 
 function plainly(message: string): string {
-  if (/not_the_prime_member/.test(message)) return "Only the Prime Member can remove someone.";
+  if (/not_the_prime_member/.test(message)) return "Only the Key Member can remove someone.";
   if (/cannot_remove_yourself/.test(message)) return "You can't remove yourself. Hand the role on first, then leave.";
   if (/not_in_your_kutumbh/.test(message)) return "That person isn't in your Kutumbh.";
   if (/hand_the_role_on_first/.test(message))
@@ -22,7 +22,7 @@ function plainly(message: string): string {
   return "That didn't work just now. Please try again.";
 }
 
-/** The Prime Member removes a member. */
+/** The Key Member removes a member. */
 export async function removeMember(userId: string): Promise<Result> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_member", { p_user: userId });

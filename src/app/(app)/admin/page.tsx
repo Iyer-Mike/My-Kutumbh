@@ -179,7 +179,7 @@ Admitted to the app but belonging to no family — they should be sent back to n
                   </div>
 
                   <p className="text-xs mt-1 mb-2" style={{ color: "#6A6180" }}>
-                    {h.prime_name ?? "no Prime Member"} · {h.members} {h.members === 1 ? "member" : "members"} · joined{" "}
+                    {h.prime_name ?? "no Key Member"} · {h.members} {h.members === 1 ? "member" : "members"} · joined{" "}
                     {since(h.created_at).label}
                   </p>
 

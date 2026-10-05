@@ -150,7 +150,7 @@ export default function PlanSlotCard({
   const newDishReady  = isNewDish && (!kutumbhId || !!newCategory);
   const addCount      = chosen.length + (newDishReady ? 1 : 0);
 
-  // New dish → a Family Dish (family-only), awaiting the Prime Member's details
+  // New dish → a Family Dish (family-only), awaiting the Key Member's details
   async function createFamilyDish(dishName: string, category: DishType) {
     const d = dishTypeOf(category);
     const { data, error } = await supabase
@@ -349,7 +349,7 @@ export default function PlanSlotCard({
                     <p className="text-sm truncate" style={{ color: "#241C33" }}>{item.food_name}</p>
                     {item.needs_review ? (
                       <p className="text-[10px] font-medium" style={{ color: "#8A5A06" }}>
-                        Family dish · awaiting Prime Member&apos;s details{hint ? ` · ${hint}` : ""}
+                        Family dish · awaiting Key Member&apos;s details{hint ? ` · ${hint}` : ""}
                       </p>
                     ) : hint ? (
                       <p className="text-[10px]" style={{ color: "#6A6180" }}>{hint}</p>
@@ -464,7 +464,7 @@ export default function PlanSlotCard({
                 ))}
               </div>
               <p className="text-[11px] mt-1.5" style={{ color: "#8A5A06" }}>
-                Saved as a Family Dish. The Prime Member will add its exact nutrition, ingredients and preparation.
+                Saved as a Family Dish. The Key Member will add its exact nutrition, ingredients and preparation.
               </p>
             </div>
           )}

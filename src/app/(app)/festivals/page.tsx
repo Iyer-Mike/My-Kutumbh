@@ -54,7 +54,7 @@ export default async function FestivalsPage() {
           );
         })}
         <p className="text-xs" style={{ color: B.muted2, lineHeight: 1.5 }}>
-          Dates of lunar festivals differ by region. Check them against your family&apos;s calendar{isPrime ? ", and add or correct any below." : "; the Prime Member can add your family's own."}
+          Dates of lunar festivals differ by region. Check them against your family&apos;s calendar{isPrime ? ", and add or correct any below." : "; the Key Member can add your family's own."}
         </p>
         {isPrime && kutumbhId && <FestivalAdder kutumbhId={kutumbhId} userId={user.id} />}
       </main>

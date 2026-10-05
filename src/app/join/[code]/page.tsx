@@ -94,7 +94,7 @@ export default async function JoinPage({ params }: Props) {
           <div className="flex gap-3 items-start">
             <Tick />
             <p className="m-0 text-[13px] leading-relaxed" style={{ color: B.ink2 }}>
-              Your medical reports stay yours. Only you and the Prime Member can open them.
+              Your medical reports stay yours. Only you and the Key Member can open them.
             </p>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default async function JoinPage({ params }: Props) {
   // Already in this same kutumbh → go straight to family page
   if (existingMember && invite && existingMember.kutumbh_id === invite.kutumbh_id) {
     // An invitation addressed to somebody else, opened by a person already in
-    // this family (the Prime Member trying their own link, most often): say so
+    // this family (the Key Member trying their own link, most often): say so
     // rather than silently landing on the Kutumbh page, which looks like the
     // link does not work.
     const forOther = invite.invited_email && user.email
@@ -201,7 +201,7 @@ export default async function JoinPage({ params }: Props) {
             : "This invite link is no longer active."}
         </p>
         <p className="m-0 text-xs text-center" style={{ color: B.muted2 }}>
-          Ask the Prime Member to send you a fresh link.
+          Ask the Key Member to send you a fresh link.
         </p>
         <Link href="/dashboard" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
           style={{ background: B.button }}>
@@ -221,7 +221,7 @@ export default async function JoinPage({ params }: Props) {
           as <span className="font-semibold">{user.email}</span>.
         </p>
         <p className="m-0 text-xs text-center" style={{ color: B.muted2 }}>
-          Sign in with that address, or ask the Prime Member for an invitation in your own name.
+          Sign in with that address, or ask the Key Member for an invitation in your own name.
         </p>
         <Link href="/dashboard" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
           style={{ background: B.button }}>
@@ -235,7 +235,7 @@ export default async function JoinPage({ params }: Props) {
     return (
       <Shell eyebrow="An invitation" title="You already belong to a Kutumbh">
         <p className="m-0 text-sm text-center" style={{ color: B.muted }}>
-          A person can be part of one family at a time. Ask its Prime Member to remove you first.
+          A person can be part of one family at a time. Ask its Key Member to remove you first.
         </p>
         <Link href="/family" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
           style={{ background: B.button }}>
@@ -270,7 +270,7 @@ export default async function JoinPage({ params }: Props) {
         <div className="flex gap-3 items-start">
           <Tick />
           <p className="m-0 text-[13px] leading-relaxed" style={{ color: B.ink2 }}>
-            Your medical reports stay yours. Only you and the Prime Member can open them.
+            Your medical reports stay yours. Only you and the Key Member can open them.
           </p>
         </div>
       </div>
@@ -282,7 +282,7 @@ export default async function JoinPage({ params }: Props) {
           <circle cx="12" cy="12" r="9" /><path d="M12 8h.01" /><path d="M11 12h1v4h1" />
         </svg>
         <p className="m-0 text-[12.5px] leading-relaxed" style={{ color: "#7A5A06" }}>
-          The <b>Prime Member</b> of this Kutumbh completes new family dishes and can see everyone&apos;s insights.
+          The <b>Key Member</b> of this Kutumbh completes new family dishes and can see everyone&apos;s insights.
         </p>
       </div>
 

@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
   const p = d.profile;
   const context = [
-    `MEMBER: ${d.name.split(" ")[0]}${d.viewingOther ? " (the Prime Member is asking on their behalf)" : ""}`,
+    `MEMBER: ${d.name.split(" ")[0]}${d.viewingOther ? " (the Key Member is asking on their behalf)" : ""}`,
     `Age ${ageOn(p.date_of_birth, d.today) ?? "unknown"}, ${p.gender ?? "sex not given"}, ${p.height_cm ?? "?"} cm, ${p.weight_kg ?? "?"} kg, activity ${p.activity_level ?? "unknown"}`,
     `Diet: ${p.diet_type ?? "not given"} · Prakriti: ${p.primary_dosha ?? "not assessed"}`,
     `Conditions: ${(p.conditions ?? []).join(", ") || "none listed"}`,

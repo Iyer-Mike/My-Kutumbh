@@ -100,7 +100,7 @@ export default async function FamilyPage() {
       };
     });
 
-    // Prime Member first, then alphabetical
+    // Key Member first, then alphabetical
     members.sort((a, b) => {
       if (a.role === "owner" && b.role !== "owner") return -1;
       if (b.role === "owner" && a.role !== "owner") return 1;
@@ -196,7 +196,7 @@ export default async function FamilyPage() {
         </h1>
         {kutumbhName && (
           <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
-            {isOwner ? "You're the Prime Member of the Kutumbh" : "You're a member of the Kutumbh"}
+            {isOwner ? "Your role: Key Member" : "Your role: Member"}
           </p>
         )}
       </header>
@@ -214,7 +214,7 @@ export default async function FamilyPage() {
           quietDays={role.primeQuietDays}
         />
 
-        {/* The family together. The Prime Member keeps it; everyone sees it. */}
+        {/* The family together. The Key Member keeps it; everyone sees it. */}
         {kutumbhId && (familyPhoto || isOwner) && (
           <section className="rounded-2xl px-4 py-5 grid gap-1 justify-items-center"
             style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
@@ -232,7 +232,7 @@ export default async function FamilyPage() {
               <Face url={familyPhoto ? faceUrls[familyPhoto] : null} name={kutumbhName} size={96} />
             )}
             <p className="text-[11px] mt-1 text-center m-0" style={{ color: "#6A6180" }}>
-              {familyPhoto ? kutumbhName : "A picture of everyone, for the top of this page"}
+              {familyPhoto ? kutumbhName : "Add a family photo"}
             </p>
           </section>
         )}
@@ -262,13 +262,13 @@ export default async function FamilyPage() {
                   Invite a Family Member
                 </p>
                 <p className="text-xs" style={{ color: "#625A75" }}>
-                  Share the link — anyone who opens it can join your family.
+                  Enter their email · you get a link and a 6-digit number.
                 </p>
-                <InviteButton />
+                <InviteButton inviterName={primeName?.split(" ")[0] ?? null} kutumbhName={kutumbhName} />
               </div>
             )}
 
-            {/* ── Family Dishes (Prime Member only) ── */}
+            {/* ── Family Dishes (Key Member only) ── */}
             {isOwner && (
               <Link
                 href="/family/dishes"
@@ -284,7 +284,7 @@ export default async function FamilyPage() {
                       ? `${dishPending} dish${dishPending > 1 ? "es" : ""} need your details`
                       : dishTotal
                         ? `${dishTotal} dish${dishTotal > 1 ? "es" : ""} · all complete`
-                        : "Dishes your family adds will appear here"}
+                        : "No dishes yet"}
                   </p>
                 </div>
                 <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
@@ -305,14 +305,14 @@ export default async function FamilyPage() {
                   {toBuy
                     ? `${toBuy} thing${toBuy > 1 ? "s" : ""} to buy`
                     : shelfCount
-                      ? `${shelfCount} item${shelfCount > 1 ? "s" : ""} on the shelf · nothing to buy`
-                      : "What the kitchen holds, and what needs buying"}
+                      ? `${shelfCount} item${shelfCount > 1 ? "s" : ""} · nothing to buy`
+                      : "Stock and shopping list"}
                 </p>
               </div>
               <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
             </Link>
 
-            {/* ── The family's day (Prime Member) ── */}
+            {/* ── The family's day (Key Member) ── */}
             {isOwner && kutumbhId && (
               <FamilyTimeZoneCard kutumbhId={kutumbhId} timeZone={timeZone} />
             )}
@@ -328,7 +328,7 @@ export default async function FamilyPage() {
                   Recipes
                 </p>
                 <p className="text-xs mt-1" style={{ color: "#625A75" }}>
-                  How every dish on the menu is cooked
+                  Every dish, step by step
                 </p>
               </div>
               <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
@@ -373,7 +373,7 @@ export default async function FamilyPage() {
                               className="text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0"
                               style={{ background: "#FBEBCB", color: "#8A5A06" }}
                             >
-                              ★ Prime Member
+                              ★ Key Member
                             </span>
                           )}
                         </div>
@@ -389,7 +389,7 @@ export default async function FamilyPage() {
                           <span className="text-xs" style={{ color: "#6A6180" }}>
                             {m.item_count > 0
                               ? `${m.item_count} item${m.item_count > 1 ? "s" : ""} today`
-                              : "Nothing logged today"}
+                              : "Nothing logged"}
                           </span>
                         </div>
                       </div>
@@ -408,7 +408,7 @@ export default async function FamilyPage() {
                     </>
                   );
 
-                  // The Prime Member can open any member's 7-day consumption.
+                  // The Key Member can open any member's 7-day consumption.
                   // Removing sits below the card rather than inside it: a
                   // button within a link is a trap for a thumb.
                   return (
@@ -434,11 +434,11 @@ export default async function FamilyPage() {
               </div>
             </div>
 
-            {/* ── Non-Prime Member: invite note, and the way out ── */}
+            {/* ── Non-Key Member: invite note, and the way out ── */}
             {!isOwner && (
               <div className="grid gap-3">
                 <p className="text-xs text-center m-0" style={{ color: "#6A6180" }}>
-                  Ask the Prime Member to invite more members.
+                  Only the Key Member can invite
                 </p>
                 <div className="text-center">
                   <LeaveKutumbh kutumbhName={kutumbhName} isPrime={false} />

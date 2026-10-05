@@ -1,5 +1,5 @@
 // Festival days that come with the app. Dates for lunar festivals differ by
-// region and by panchang, so the Prime Member can add a family's own, and
+// region and by panchang, so the Key Member can add a family's own, and
 // the page says to check these against the family's calendar.
 export type Festival = { name: string; date: string };
 

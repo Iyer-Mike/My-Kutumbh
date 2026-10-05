@@ -46,7 +46,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     .limit(1)
     .maybeSingle();
 
-  // A family recipe waits for the Prime Member before the family sees it
+  // A family recipe waits for the Key Member before the family sees it
   const waiting = recipe.status === "draft";
   let canApprove = false;
   let canEdit = false;
@@ -149,7 +149,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
             </p>
             {recipe.nutrition_estimated && (
               <p className="text-[11px] mt-0.5" style={{ color: B.muted2 }}>
-                Values are an AI estimate guided by the Indian Food Composition Tables (IFCT), checked by your Prime Member. Approximate.
+                Values are an AI estimate guided by the Indian Food Composition Tables (IFCT), checked by your Key Member. Approximate.
               </p>
             )}
           </div>

@@ -6,13 +6,13 @@ import { useState } from "react";
  * Inviting someone by name.
  *
  * The link used to be the permission: whoever held it joined. Now the
- * Prime Member says who is being invited, and the link admits that
+ * Key Member says who is being invited, and the link admits that
  * person alone — a copy forwarded to a family group opens nothing.
  *
  * The address travels into the sign-up form as well, so joining is one
  * continuous motion rather than three disconnected steps.
  */
-export default function InviteButton() {
+export default function InviteButton({ inviterName, kutumbhName }: { inviterName?: string | null; kutumbhName?: string | null }) {
   const [email,   setEmail]   = useState("");
   const [minor,   setMinor]   = useState(false);
   const [code,    setCode]    = useState<string | null>(null);
@@ -49,6 +49,22 @@ export default function InviteButton() {
     }
   }
 
+  // A ready-made email. The number is left out on purpose: it goes by a second route (phone or message).
+  const mailSubject = `Join ${kutumbhName ? `our family, ${kutumbhName},` : "our family"} on My-Kutumbh`;
+  const mailBody = () =>
+    `Hi,\n\nI've invited you to join ${kutumbhName ?? "our family"} on My-Kutumbh, our family's food and health app.\n\n` +
+    `1. Open this link: ${baseUrl}/join/${code}\n` +
+    `2. When asked, enter the 6-digit number I will tell you separately (by phone or message).\n\n` +
+    `The number works once and expires in 24 hours.\n\n${inviterName ? `– ${inviterName}` : "Thanks"}`;
+  const [copiedMail, setCopiedMail] = useState(false);
+  async function copyMail() {
+    try {
+      await navigator.clipboard.writeText(`Subject: ${mailSubject}\n\n${mailBody()}`);
+      setCopiedMail(true);
+      setTimeout(() => setCopiedMail(false), 2500);
+    } catch { /* clipboard blocked */ }
+  }
+
   async function copy() {
     if (!code) return;
     try {
@@ -78,8 +94,7 @@ export default function InviteButton() {
           style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241C33" }}
         />
         <p className="text-[11px] mt-0 mb-3" style={{ color: "#6A6180", lineHeight: 1.5 }}>
-          You&apos;ll get a link to send and a six-digit number to tell them yourself. The link alone
-          lets nobody in, so it is safe to forward; the number is what admits them.
+          You get a link and a 6-digit number. Send the link; tell them the number.
         </p>
 
         {/* A child cannot agree to anything; whoever can, does it here */}
@@ -138,13 +153,13 @@ export default function InviteButton() {
           {number}
         </p>
         <p className="text-[11px] m-0 mt-2" style={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
-          Say it on the phone or in a message to {sentTo ?? "them"}. It works once, for 24 hours.
+          Works once · valid 24 hours
         </p>
       </div>
 
       <div className="rounded-xl px-4 py-3" style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}>
         <p className="text-xs font-semibold mb-1" style={{ color: "#6B46B8" }}>
-          And send this link — it opens the right page and admits nobody on its own
+          Send this link (the number is needed to join)
         </p>
         <p className="text-xs break-all font-mono" style={{ color: "#241238" }} aria-label="Invite link">
           {link}
@@ -169,9 +184,27 @@ export default function InviteButton() {
         </button>
       </div>
 
+      <div className="flex gap-2">
+        <button
+          onClick={copyMail}
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+          style={{ background: copiedMail ? "#6B46B8" : "#E7DCF7", color: copiedMail ? "#fff" : "#6B46B8", border: "1px solid #CBB4EE" }}
+        >
+          {copiedMail ? "Copied ✓" : "Copy email message"}
+        </button>
+        {sentTo && (
+          <a
+            href={`mailto:${encodeURIComponent(sentTo)}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody())}`}
+            className="px-4 py-2.5 rounded-xl text-sm font-semibold text-center"
+            style={{ background: "#E7DCF7", color: "#6B46B8", border: "1px solid #CBB4EE" }}
+          >
+            Open in email
+          </a>
+        )}
+      </div>
+
       <p className="text-[11px] m-0" style={{ color: "#6A6180", lineHeight: 1.5 }}>
-        You&apos;ll be told the moment they join, and you can remove anyone from the family at any time.
-        Five wrong numbers and this invitation closes itself.
+        You&apos;re notified upon joining. 5 wrong attempts cancels the invite.
       </p>
     </div>
   );

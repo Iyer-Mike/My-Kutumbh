@@ -272,8 +272,8 @@ export default function WhatsForToday({
       </div>
       <p className="px-3 py-2 text-xs leading-4" style={{ background: "#F7F3FC", color: MUTED, borderBottom: "1px solid #E4DBF0" }}>
         {isPrime
-          ? "You create the menu here. The family sees the same menu on their Home."
-          : "The menu set by your Prime Member. Tap a meal, mark what you ate."}
+          ? "You set the menu · the family sees it"
+          : "Menu set by your Key Member · tap a dish to log it"}
       </p>
 
       {/* Food values: first thing under the title bar, right after every log */}
@@ -301,9 +301,9 @@ export default function WhatsForToday({
           <Values title="" color="#C9B8E4" dark cells={nutrientCells(dayTotal)} />
         </div>
         <Values title="" color="#C9B8E4" dark cells={microCells(dayTotal)} />
-        {!anything && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{canLog ? "Mark what was eaten and the values appear here." : "Plan the menu and the values appear here."}</p>}
-        {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{noValues} {noValues === 1 ? "dish has" : "dishes have"} no food values yet and {noValues === 1 ? "is" : "are"} left out.</p>}
-        <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>Estimates, guided by the Indian Food Composition Tables (IFCT). Approximate.</p>
+        {!anything && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{canLog ? "Log a dish to see values" : "Add dishes to see values"}</p>}
+        {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{noValues} {noValues === 1 ? "dish" : "dishes"} without values · excluded</p>}
+        <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>Estimates · IFCT-based</p>
       </div>
 
       {SLOTS.map(({ key, label, icon, time }) => {
@@ -338,7 +338,7 @@ export default function WhatsForToday({
             {isOpen && (
               <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
                 {!isPrime && ps.length === 0 && ls.length === 0 && (
-                  <p className="text-sm italic py-1" style={{ color: MUTED }}>The Prime Member has not planned this meal yet.</p>
+                  <p className="text-sm italic py-1" style={{ color: MUTED }}>The Key Member has not planned this meal yet.</p>
                 )}
 
                 {!(isPrime && editing[key]) && canLog && ps.length > 1 && ps.some((p) => !logFor(key, p)) && (

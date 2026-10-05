@@ -18,7 +18,7 @@ function SignupForm() {
   // family later uses a different number entirely.
   const [passcode, setPasscode] = useState("");
   // Someone arriving on a family's invitation does not need a passcode
-  // from the Admin: their Prime Member is vouching for them, and the
+  // from the Admin: their Key Member is vouching for them, and the
   // six-digit number on the next page does the same work.
   const invitedToFamily = !!inviteFromPath(redirectTo);
   const [password, setPassword] = useState("");

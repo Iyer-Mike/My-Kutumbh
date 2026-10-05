@@ -30,13 +30,13 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!membership || membership.role !== "owner") {
-    return NextResponse.json({ error: "Only the Prime Member can create invites" }, { status: 403 });
+    return NextResponse.json({ error: "Only the Key Member can create invites" }, { status: 403 });
   }
 
   // An invitation is addressed to somebody. The link then admits that
   // person and nobody the message is forwarded to.
   let invitedEmail: string | null = null;
-  // Inviting a child: the Prime Member accepts the two documents on
+  // Inviting a child: the Key Member accepts the two documents on
   // that child's behalf, because a child cannot meaningfully accept
   // them. See supabase/phase27_guardian_consent.sql.
   let forMinor = false;

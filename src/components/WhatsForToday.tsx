@@ -222,16 +222,21 @@ export default function WhatsForToday({
     router.refresh();
   }
 
-  // ── Food values: worked out afresh from what has been logged, so they
-  // are right after every tap. A day still ahead shows what the menu holds.
+  // ── Food values: preloaded from the menu, like the dishes themselves. A
+  // meal counts what you logged once you have logged anything in it; until
+  // then it counts what the menu holds (marked ~). Worked out afresh after
+  // every tap or menu edit.
   const eatenOf = (slot: string) => sum(slotLogs(slot).flatMap((l) => { const n = nOf(l); return n ? [n] : []; }));
   const plannedOf = (slot: string) => sum(slotPlans(slot).flatMap((p) => (p.n ? [p.n] : [])));
-  const valueOf = (slot: string) => (canLog ? eatenOf(slot) : plannedOf(slot));
+  const fromMenu = (slot: string) => !canLog || slotLogs(slot).length === 0;
+  const valueOf = (slot: string) => (fromMenu(slot) ? plannedOf(slot) : eatenOf(slot));
+  const projected = (slot: string) => canLog && slotLogs(slot).length === 0 && slotPlans(slot).length > 0;
+  const anyProjected = SLOTS.some((s) => projected(s.key));
   const dayTotal = sum(SLOTS.map((s) => valueOf(s.key)));
-  const noValues = canLog
-    ? logs.filter((l) => !l.n).length
-    : plans.filter((p) => !p.n).length;
-  const anything = canLog ? logs.length > 0 : plans.length > 0;
+  const noValues = SLOTS.reduce((t, s) => t + (fromMenu(s.key)
+    ? slotPlans(s.key).filter((p) => !p.n).length
+    : slotLogs(s.key).filter((l) => !l.n).length), 0);
+  const anything = logs.length > 0 || plans.length > 0;
 
   const tabBase = "px-3 text-sm min-h-[44px] self-end border-b-[3px] whitespace-nowrap";
   const isToday = day === today;
@@ -279,7 +284,7 @@ export default function WhatsForToday({
       {/* Food values: first thing under the title bar, right after every log */}
       <div className="px-3 py-3 flex flex-col gap-2.5" style={{ background: INK }} aria-live="polite">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="m-0 text-sm font-bold text-white">{canLog ? "Food values so far" : "Food values of the menu"}</p>
+          <p className="m-0 text-sm font-bold text-white">{canLog ? "Food values today" : "Food values of the menu"}</p>
           <p className="m-0 text-xs" style={{ color: "#C9B8E4" }}>
             {Math.round(dayTotal.kcal)} kcal{canLog && dailyKcalGoal ? ` of ${dailyKcalGoal}` : ""}
           </p>
@@ -292,7 +297,7 @@ export default function WhatsForToday({
         <div className="grid grid-cols-5 gap-1">
           {SLOTS.map((s) => (
             <div key={s.key} className="flex flex-col min-w-0">
-              <span className="text-sm font-bold leading-[18px] text-white">{Math.round(valueOf(s.key).kcal) || "–"}</span>
+              <span className="text-sm font-bold leading-[18px] text-white" style={projected(s.key) ? { opacity: 0.65 } : undefined}>{Math.round(valueOf(s.key).kcal) ? `${projected(s.key) ? "~" : ""}${Math.round(valueOf(s.key).kcal)}` : "–"}</span>
               <span className="text-[10px] leading-3 truncate" style={{ color: "#C9B8E4" }}>{s.label.replace(" Snack", " snack")}</span>
             </div>
           ))}
@@ -301,7 +306,8 @@ export default function WhatsForToday({
           <Values title="" color="#C9B8E4" dark cells={nutrientCells(dayTotal)} />
         </div>
         <Values title="" color="#C9B8E4" dark cells={microCells(dayTotal)} />
-        {!anything && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{canLog ? "Log a dish to see values" : "Add dishes to see values"}</p>}
+        {!anything && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{canLog ? "Plan or log a dish to see values" : "Add dishes to see values"}</p>}
+        {anyProjected && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>~ From the menu · your log replaces it</p>}
         {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{noValues} {noValues === 1 ? "dish" : "dishes"} without values · excluded</p>}
         <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>Estimates · IFCT-based</p>
       </div>
@@ -315,7 +321,7 @@ export default function WhatsForToday({
         const sug = suggestions.find((x) => x.meal_slot === key);
         const eatenCount = ps.filter((p) => logFor(key, p)).length;
         const summary = ps.length
-          ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten${kcalHere ? ` · ${kcalHere} kcal` : ""}` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}`)
+          ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten${kcalHere ? ` · ${kcalHere} kcal` : ""}` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}${kcalHere ? ` · ~${kcalHere} kcal` : ""}`)
           : (ls.length ? `${ls.length} logged` : "Not planned yet");
 
         return (

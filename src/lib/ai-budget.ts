@@ -12,7 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 // ── The ceiling, as the family set it ──
 export const MONTH_FAMILY_RUPEES = 500; // a month, the whole Kutumbh
-export const DAY_PERSON_RUPEES   =  50; // a day, one person
+export const DAY_PERSON_RUPEES   = 100; // a day, one person
 
 /**
  * The ceiling above the ceilings. One card pays for every Kutumbh, so

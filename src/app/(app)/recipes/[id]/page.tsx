@@ -7,6 +7,7 @@ import { CUISINES, dietLabel, dishTypeOf } from "@/lib/food-taxonomy";
 import { slotLabel } from "@/lib/meal-slots";
 import PrintRecipe from "@/components/PrintRecipe";
 import RecipeApproval from "@/components/RecipeApproval";
+import CopyRecipeButton from "@/components/CopyRecipeButton";
 import { familyOf } from "@/lib/family";
 
 const DIET_MARK: Record<string, string> = { vegan: "#2F7D32", veg: "#2F7D32", egg: "#C98A0B", nonveg: "#A23A1E" };
@@ -50,6 +51,12 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   const waiting = recipe.status === "draft";
   let canApprove = false;
   let canEdit = false;
+  let canCopy = false;
+  if (!recipe.kutumbh_id) {
+    // A shared recipe is fixed; the Key Member can make the family's own version of it
+    const { data: { user } } = await supabase.auth.getUser();
+    canCopy = user ? (await familyOf(supabase, user.id)).isPrime : false;
+  }
   if (recipe.kutumbh_id) {
     const { data: { user } } = await supabase.auth.getUser();
     canApprove = user ? (await familyOf(supabase, user.id)).isPrime : false;
@@ -191,6 +198,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
+        {canCopy && <CopyRecipeButton recipeId={recipe.id} />}
         {canEdit && (
           <Link href={`/recipes/${recipe.id}/edit`} data-print-hide
             className="w-full py-3 rounded-2xl text-sm font-semibold text-center"

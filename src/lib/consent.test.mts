@@ -105,7 +105,7 @@ describe("the fingerprint itself", () => {
 
   test("the promises a member is most likely to check are actually in there", () => {
     const words = PRIVACY.sections.flatMap((s) => s.body).join(" ");
-    assert.match(words, /Prime Member/);      // who reads your blood report
+    assert.match(words, /Key Member/);      // who reads your blood report
     assert.match(words, /Anthropic/);          // what leaves the app
     assert.match(words, /Singapore/);          // where it lives
     assert.match(words, /Forget me/);          // how to end it

@@ -82,7 +82,7 @@ export default function WriteToKutumbh({
           they should feel noticed, not asked to explain themselves. The
           question goes in the letter, where there is room for it. */}
       <p className="text-[11px] mt-1 mb-2 m-0" style={{ color: "#8A80A0" }}>
-        One warm line — the question goes in the letter below.
+        One warm line · Questions go in the letter below.
       </p>
       <textarea
         value={body}

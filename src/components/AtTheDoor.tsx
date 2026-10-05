@@ -77,8 +77,7 @@ function NewPasscode({ signature, appUrl }: { signature: string | null; appUrl: 
           {made}
         </p>
         <p className="m-0 mt-2 text-xs" style={{ color: "rgba(255,255,255,0.72)", lineHeight: 1.55 }}>
-          Send this from iyer.mike@gmail.com. The letter below is written already — copy it,
-          paste it into Gmail, and address it to {email || "them"}.
+          Send from iyer.mike@gmail.com · Copy the letter, paste into Gmail, address to {email || "them"}.
         </p>
 
         <pre
@@ -264,8 +263,7 @@ export default function AtTheDoor({
 
       {waiting.length === 0 ? (
         <p className="m-0 mt-2 text-xs" style={{ color: C.ink3, lineHeight: 1.55 }}>
-          Nobody is waiting. Write a passcode, put it in a letter with the registration link, and whoever
-          registers will appear here for you to welcome.
+          Nobody waiting · Make a passcode and send it with the registration link; new registrants appear here.
         </p>
       ) : (
         <div className="mt-1">
@@ -280,8 +278,8 @@ export default function AtTheDoor({
       {/* Whether you will be told, or must remember to look */}
       <p className="m-0 mt-3 text-[11px]" style={{ color: alertsOn ? C.leaf : C.warn, lineHeight: 1.5 }}>
         {alertsOn
-          ? "You are emailed once when somebody registers, so this page is not the only way to know."
-          : "Email alerts are off — nobody is told when somebody registers. Add RESEND_API_KEY to switch them on."}
+          ? "You're emailed when someone registers."
+          : "Email alerts off · Add RESEND_API_KEY to enable."}
       </p>
     </section>
   );

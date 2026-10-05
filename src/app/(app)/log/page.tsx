@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import PageNav from "@/components/PageNav";
 import { SLOTS, isSlot, slotLabel, defaultPoolName, type Slot } from "@/lib/meal-slots";
 import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
-import FoodFilterBar, { applyFoodFilter, sortForSlot, useMyFoodFilter, DietMark } from "@/components/FoodFilterBar";
+import { applyFoodFilter, sortForSlot, useMyFoodFilter, DietMark } from "@/components/FoodFilterBar";
 import { clampDay, dayLabel, todayLocal } from "@/lib/dates";
 import { useFamilyTimeZone } from "@/lib/family-time";
 import DayNav from "@/components/DayNav";
@@ -230,7 +230,7 @@ export default function LogPage() {
     });
     const { error } = await supabase.from("meal_logs").insert(rows);
     setSaving(false);
-    if (error) { alert(`Couldn't save your log: ${error.message}`); return; }
+    if (error) { alert(`Not saved:  ${error.message}`); return; }
     closePanel();
     loadLogs();
   }
@@ -389,7 +389,7 @@ export default function LogPage() {
         })
         .select(FOOD_COLS)
         .single();
-      if (error) { setAddingDish(false); alert(`Couldn't add the dish: ${error.message}`); return; }
+      if (error) { setAddingDish(false); alert(`Dish not added:  ${error.message}`); return; }
       dish = data as FoodItem;
     }
     setAddingDish(false);
@@ -438,14 +438,14 @@ export default function LogPage() {
     });
     const { error } = await supabase.from("meal_logs").insert(rows);
     setSaving(false);
-    if (error) { alert(`Couldn't save your log: ${error.message}`); return; }
+    if (error) { alert(`Not saved:  ${error.message}`); return; }
     closePanel();
     loadLogs();
   }
 
   async function deleteLog(id: string) {
     const { error } = await supabase.from("meal_logs").delete().eq("id", id);
-    if (error) { alert(`Couldn't delete: ${error.message}`); return; }
+    if (error) { alert(`Not deleted:  ${error.message}`); return; }
     loadLogs();
   }
 
@@ -469,7 +469,7 @@ export default function LogPage() {
       })
       .eq("id", editingId);
     setSaving(false);
-    if (error) { alert(`Save failed: ${error.message}`); return; }
+    if (error) { alert(`Not saved:  ${error.message}`); return; }
     setEditingId(null);
     loadLogs();
   }
@@ -596,7 +596,7 @@ export default function LogPage() {
           <DayNav date={today} back={30} ahead={0} path="/log" onDark />
           {totalCal > 0 && (
             <p className="text-sm mt-2 text-center" style={{ color: "#C9B8E4" }}>
-              {totalCal} kcal logged {isToday ? "today" : dayLabel(today, tz).toLowerCase()}
+              {totalCal} kcal {isToday ? "today" : dayLabel(today, tz).toLowerCase()}
             </p>
           )}
         </div>
@@ -667,7 +667,7 @@ export default function LogPage() {
                             <select value={editUnit} onChange={e => setEditUnit(e.target.value)}
                               className="flex-1 rounded-lg px-2 py-1.5 text-xs"
                               style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}>
-                              <option value="serving">serving</option>
+                              <option value="serving">portion</option>
                               <option value="piece">piece(s)</option>
                               <option value="bowl">bowl</option>
                               <option value="cup">cup</option>
@@ -694,7 +694,7 @@ export default function LogPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm truncate" style={{ color: "#241C33" }}>{log.food_name}</p>
                             <p className="text-xs" style={{ color: "#6A6180" }}>
-                              {log.quantity_g} {log.quantity_unit ?? "serving"}
+                              {log.quantity_g} {log.quantity_unit && log.quantity_unit !== "serving" ? log.quantity_unit : "portion"}
                               {log.calories  != null ? (log.nutrition_estimated ? ` · ~${log.calories} kcal est.` : ` · ${log.calories} kcal`) : ""}
                               {log.protein_g != null ? ` · ${log.protein_g}g protein` : ""}
                             </p>
@@ -733,9 +733,7 @@ export default function LogPage() {
             <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0"
               style={{ borderBottom: "1px solid #E0D4F2" }}>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#6A6180" }}>
-                  What did you eat?
-                </p>
+                
                 <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-dm-serif)", color: "#241C33" }}>
                   {slotLabel(activeSlot)}
                 </h2>
@@ -755,7 +753,7 @@ export default function LogPage() {
                     {poolName}
                   </p>
                   <p className="text-xs mb-2" style={{ color: "#6A6180" }}>
-                    {planners.length ? `Planned by ${planners.join(", ")} · ` : ""}tap what you ate and set your portion
+                    {planners.length ? `Planned by ${planners.join(", ")} · ` : ""}tick what you ate
                   </p>
                   <div className="space-y-1.5">
                     {poolRows.map(r => foodRow(r.key, r.food))}
@@ -789,9 +787,7 @@ export default function LogPage() {
                   placeholder="Search food…"
                   className="w-full rounded-xl px-4 py-2.5 text-sm mb-2"
                   style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }} />
-                {query.trim().length < 2 && (
-                  <div className="mb-2"><FoodFilterBar value={filter} onChange={setFilter} idPrefix="log" slot={activeSlot} /></div>
-                )}
+                
 
                 <div className="space-y-1.5">
                   {searching && <p className="text-xs text-center py-3" style={{ color: "#6A6180" }}>Loading…</p>}
@@ -804,9 +800,9 @@ export default function LogPage() {
                         style={{ background: "#FBEBCB", border: "1.5px dashed #F2B531", color: "#7A5A06" }}>
                         {!dishPicker ? (
                           <button onClick={() => setDishPicker(true)} className="w-full text-left text-sm">
-                            ＋ Add <b>“{typed}”</b> as a Family Dish
+                            ＋ Add <b>“{typed}”</b> as a family dish
                             <span className="block text-xs mt-0.5" style={{ color: "#8A5A06" }}>
-                              The Key Member will add its exact nutrition, ingredients and preparation
+                              Key Member adds the details
                             </span>
                           </button>
                         ) : (
@@ -825,7 +821,7 @@ export default function LogPage() {
                         )}
                       </div>
                     ) : results.length === 0 ? (
-                      <p className="text-xs text-center py-3" style={{ color: "#6A6180" }}>No items found</p>
+                      <p className="text-xs text-center py-3" style={{ color: "#6A6180" }}>No match</p>
                     ) : null
                   )}
                 </div>
@@ -838,7 +834,7 @@ export default function LogPage() {
 
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex-1 h-px" style={{ background: "#E0D4F2" }} />
-                  <span className="text-xs" style={{ color: "#6A6180" }}>ate outside?</span>
+                  <span className="text-xs" style={{ color: "#6A6180" }}>Ate out?</span>
                   <div className="flex-1 h-px" style={{ background: "#E0D4F2" }} />
                 </div>
 
@@ -861,7 +857,7 @@ export default function LogPage() {
                     className="w-full flex flex-col items-center gap-2 py-4 rounded-2xl"
                     style={{ background: "#FAF7FE", border: "1.5px dashed #CBB4EE" }}>
                     <span className="text-2xl">📷</span>
-                    <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>Add a photo of the plate</span>
+                    <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>Photo of the plate</span>
                     <span className="text-[11px]" style={{ color: "#6A6180" }}>camera or gallery</span>
                   </button>
                 )}
@@ -878,9 +874,9 @@ export default function LogPage() {
                   <div className="rounded-2xl overflow-hidden" style={{ border: "1.5px solid #CBB4EE", background: "#F5F0FD" }}>
                     <div className="px-4 pt-3 pb-2 flex items-center justify-between">
                       <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#6B46B8" }}>
-                        ✨ {aiSuggestions.length} item{aiSuggestions.length > 1 ? "s" : ""} identified
+                        ✨ {aiSuggestions.length} identified
                       </p>
-                      <p className="text-xs" style={{ color: "#6A6180" }}>uncheck to remove</p>
+                      <p className="text-xs" style={{ color: "#6A6180" }}>untick to remove</p>
                     </div>
                     {aiSuggestions.map((item, i) => {
                       const isOn = aiChecked.has(item);
@@ -912,7 +908,7 @@ export default function LogPage() {
                               onChange={e => setAiUnits(p => ({ ...p, [item]: e.target.value }))}
                               className="rounded-lg px-2 py-1.5 text-xs"
                               style={{ border: "1.5px solid #CBB4EE", background: "#FAF7FE", color: "#241238", outline: "none", width: "5.5rem" }}>
-                              {["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"].map(u => <option key={u} value={u}>{u}</option>)}
+                              {["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"].map(u => <option key={u} value={u}>{u === "serving" ? "portion" : u}</option>)}
                             </select>
                             <div className="flex items-center gap-1 ml-auto">
                               <input type="number" min="0" value={aiCals[item] ?? ""}
@@ -930,7 +926,7 @@ export default function LogPage() {
                       <button onClick={saveAiItems} disabled={saving || aiChecked.size === 0}
                         className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
                         style={{ background: "#241238" }}>
-                        {saving ? "Saving…" : aiChecked.size === 0 ? "Select at least one item"
+                        {saving ? "Saving…" : aiChecked.size === 0 ? "Tick at least one"
                           : `Log ${aiChecked.size} outside item${aiChecked.size > 1 ? "s" : ""} ✓`}
                       </button>
                     </div>

@@ -37,7 +37,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   const supabase = await createClient();
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("id, name, cuisine, source_cuisine, diet, is_jain, dish_type, serves, prep_time, cook_time, blurb, tip, badge, tags, ingredients, method, meal_hint, serving_unit, serving_weight_g, kcal, protein_g, carbs_g, fat_g, fibre_g, iron_mg, calcium_mg, vit_b12_mcg, sodium_mg, nutrition_estimated, status, kutumbh_id, created_by, in_bucket")
+    .select("id, name, cuisine, source_cuisine, diet, is_jain, dish_type, serves, prep_time, cook_time, blurb, tip, badge, tags, ingredients, method, meal_hint, serving_unit, serving_weight_g, kcal, protein_g, carbs_g, fat_g, fibre_g, iron_mg, calcium_mg, vit_b12_mcg, sodium_mg, nutrition_estimated, status, kutumbh_id, created_by, in_bucket, copied_from")
     .eq("id", recipeId)
     .maybeSingle();
 
@@ -67,6 +67,17 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     canEdit = canApprove || (waiting && !!user && recipe.created_by === user.id);
   }
 
+  // A family version points back to the recipe it came from; the original lists the family's versions
+  let original: { id: number; name: string } | null = null;
+  let variants: { id: number; name: string }[] = [];
+  if (recipe.copied_from) {
+    const { data: o } = await supabase.from("recipes").select("id, name").eq("id", recipe.copied_from).maybeSingle();
+    original = o;
+  } else if (!recipe.kutumbh_id) {
+    const { data: v } = await supabase.from("recipes").select("id, name").eq("copied_from", recipeId).eq("status", "published").order("name");
+    variants = v ?? [];
+  }
+
   const mark = DIET_MARK[recipe.diet] ?? DIET_MARK.veg;
   const macro = (v: number | null, unit: string) => (v == null ? "—" : `${Math.round(v * 10) / 10} ${unit}`);
   const unit = unitWord(recipe.serving_unit);
@@ -94,6 +105,11 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)", lineHeight: 1.2 }}>
           {recipe.name}
         </h1>
+        {original && (
+          <p className="text-xs mt-1.5" style={{ color: B.gold }}>
+            Variant of <Link href={`/recipes/${original.id}`} className="underline">{original.name}</Link>
+          </p>
+        )}
         {recipe.blurb && (
           <p className="text-sm mt-2" style={{ color: B.onDark }}>{recipe.blurb}</p>
         )}
@@ -109,6 +125,15 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           <Fact label="Prep" value={recipe.prep_time ?? "—"} />
           <Fact label="Cooking" value={recipe.cook_time ?? "—"} />
         </section>
+
+        {variants.length > 0 && (
+          <section className="rounded-2xl px-4 py-3 grid gap-1.5" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+            <p className="m-0 text-[10px] font-semibold uppercase tracking-wide" style={{ color: B.muted2 }}>Your family&apos;s versions</p>
+            {variants.map((v) => (
+              <Link key={v.id} href={`/recipes/${v.id}`} className="text-sm font-semibold" style={{ color: B.violet }}>{v.name} →</Link>
+            ))}
+          </section>
+        )}
 
         {meals.length > 0 && (
           <p className="text-xs -mt-2 px-1" style={{ color: B.muted }}>
@@ -205,7 +230,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {canCopy && <CopyRecipeButton recipeId={recipe.id} />}
+        {canCopy && <CopyRecipeButton recipeId={recipe.id} recipeName={recipe.name} />}
         {canEdit && (
           <Link href={`/recipes/${recipe.id}/edit`} data-print-hide
             className="w-full py-3 rounded-2xl text-sm font-semibold text-center"

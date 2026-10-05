@@ -29,6 +29,7 @@ export default function FamilyRecipeForm({
   const router = useRouter();
   const supabase = createClient();
 
+  const [name, setName]         = useState(dishName);
   const [cuisineKey, setCuisine] = useState(cuisine ?? "south_indian");
   const [dietKey, setDiet]       = useState(diet ?? "veg");
   const [jain, setJain]          = useState(initial?.is_jain ?? false);
@@ -51,6 +52,7 @@ export default function FamilyRecipeForm({
     setSaving(true);
     setError(null);
     const body = {
+      ...(recipeId != null && isPrime && name.trim().length >= 2 ? { name: name.trim() } : {}),
       cuisine: cuisineKey, diet: dietKey, is_jain: jain,
       serves: serves.trim(), prep_time: prep.trim(), cook_time: cook.trim(),
       blurb: blurb.trim(), tip: tip.trim(),
@@ -82,6 +84,12 @@ export default function FamilyRecipeForm({
   return (
     <div className="grid gap-4">
       <section className="rounded-2xl px-4 py-4 grid gap-3" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+        {recipeId != null && isPrime && (
+          <label className="grid gap-1">
+            <span className={label} style={{ color: B.muted2 }}>Name · English (local name)</span>
+            <input className={field} style={fieldStyle} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+          </label>
+        )}
         <div className="grid grid-cols-3 gap-2">
           <label className="grid gap-1">
             <span className={label} style={{ color: B.muted2 }}>Serves</span>

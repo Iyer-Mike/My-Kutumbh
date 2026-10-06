@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SLOTS } from "@/lib/meal-slots";
+import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
 import { microCells, nutrientCells, sum, type Nutr } from "@/lib/serving-nutrition";
 import type { StarterItem } from "@/lib/festival-starter";
 import PlanSlotCard, { type PlanItem, type QuickPick } from "./PlanSlotCard";
@@ -60,6 +61,8 @@ export default function FestivalMenu(p: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
+  // a member's own dish: the Key Member says what kind it is when approving
+  const [kindFor, setKindFor] = useState<string | null>(null);
 
   const published = !ready || state === "published";
   const draft = ready && !published;
@@ -111,21 +114,37 @@ export default function FestivalMenu(p: Props) {
     if (err) setError("Could not change this. Please try again."); else router.refresh();
   }
 
-  async function approve(s: Suggestion) {
+  async function approve(s: Suggestion, kind?: DishType) {
     if (!kutumbhId || busy) return;
+    // a dish the member made up: say what kind it is first
+    if (!s.food_item_id && !kind) { setKindFor(s.id); return; }
     setBusy(true); setError(null);
     let unit: string | null = null;
-    if (s.food_item_id) {
-      const { data } = await supabase.from("food_items").select("serving_unit").eq("id", s.food_item_id).maybeSingle();
+    let foodId = s.food_item_id;
+    if (foodId) {
+      const { data } = await supabase.from("food_items").select("serving_unit").eq("id", foodId).maybeSingle();
       unit = data?.serving_unit ?? null;
+    } else if (kind) {
+      // the same name may already be in the catalogue; otherwise it becomes a Family Dish
+      const { data: have } = await supabase.from("food_items").select("id, serving_unit").ilike("name", s.food_name).limit(1);
+      if (have?.[0]) { foodId = have[0].id; unit = have[0].serving_unit; }
+      else {
+        const d = dishTypeOf(kind);
+        const { data: made, error: e0 } = await supabase.from("food_items").insert({
+          name: s.food_name, kutumbh_id: kutumbhId, created_by: userId, needs_review: true,
+          category: kind, serving_unit: d.unit, serving_weight_g: d.servingG, is_south_indian: true, meal_hint: [s.meal_slot],
+        }).select("id, serving_unit").single();
+        if (e0 || !made) { setBusy(false); setError("Could not add this dish. Please try again."); return; }
+        foodId = made.id; unit = made.serving_unit;
+      }
     }
     const { error: e1 } = await supabase.from("meal_plans").insert({
       user_id: userId, kutumbh_id: kutumbhId, planned_date: day, meal_slot: s.meal_slot, food_name: s.food_name,
-      quantity_g: 1, quantity_unit: unit ?? "serving", food_item_id: s.food_item_id,
+      quantity_g: 1, quantity_unit: unit ?? "serving", food_item_id: foodId,
     });
     if (e1) { setBusy(false); setError("Could not add this dish. Please try again."); return; }
     await supabase.from("festival_suggestions").update({ status: "approved" }).eq("id", s.id);
-    setBusy(false);
+    setBusy(false); setKindFor(null);
     router.refresh();
   }
 
@@ -141,7 +160,7 @@ export default function FestivalMenu(p: Props) {
     if (!kutumbhId || !chosen || busy) return;
     setBusy(true); setError(null);
     const { error: err } = await supabase.from("festival_suggestions").insert({
-      kutumbh_id: kutumbhId, festival_date: day, meal_slot: slot, food_item_id: chosen.id, food_name: chosen.name,
+      kutumbh_id: kutumbhId, festival_date: day, meal_slot: slot, food_item_id: chosen.id || null, food_name: chosen.name,
       note: note.trim() || null,
     });
     setBusy(false);
@@ -302,14 +321,28 @@ export default function FestivalMenu(p: Props) {
                   {mine.map((s) => (
                     <div key={s.id} className="rounded-xl px-3 py-2" style={{ background: s.status === "declined" ? "#F4F4F6" : "#FFF6D6", border: `1.5px dashed ${s.status === "declined" ? "#B9B2C9" : "#C99A06"}` }}>
                       <p className="m-0 text-sm" style={{ color: INK }}>
-                        💡 {isPrime ? `${p.memberNames[s.suggested_by] ?? "A member"} suggests ` : "You suggested "}<b>{s.food_name}</b>
+                        💡 {isPrime ? `${p.memberNames[s.suggested_by] ?? "A member"} suggests ` : "You suggested "}<b>{s.food_name}</b>{!s.food_item_id && <span className="text-xs font-semibold" style={{ color: "#8A5A06" }}> · new dish</span>}
                       </p>
                       {s.note && <p className="m-0 text-xs italic" style={{ color: MUTED }}>&ldquo;{s.note}&rdquo;</p>}
                       {isPrime ? (
+                        kindFor === s.id ? (
+                          <div className="pt-1.5">
+                            <p className="m-0 text-xs mb-1.5" style={{ color: MUTED }}>New dish. What kind is <b>{s.food_name}</b>?</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {DISH_TYPES.map((c) => (
+                                <button key={c.key} onClick={() => approve(s, c.key)} disabled={busy}
+                                  className="px-2.5 rounded-full text-xs font-medium disabled:opacity-50"
+                                  style={{ minHeight: 44, background: "#fff", color: INK, border: "1px solid #CBBDE4" }}>{c.icon} {c.label}</button>
+                              ))}
+                            </div>
+                            <button onClick={() => setKindFor(null)} className="text-xs font-semibold underline pt-1" style={{ color: PLUM, minHeight: 44 }}>Cancel</button>
+                          </div>
+                        ) : (
                         <div className="flex gap-2 pt-1.5">
                           <button onClick={() => approve(s)} disabled={busy} className={`${pill} text-white disabled:opacity-50`} style={{ background: "#2E8B57", minHeight: 44 }}>✓ Approve</button>
                           <button onClick={() => decline(s)} disabled={busy} className={`${pill} disabled:opacity-50`} style={{ minHeight: 44, border: "1.5px solid #B42318", color: "#B42318", background: "#fff" }}>✕ Decline</button>
                         </div>
+                        )
                       ) : (
                         <p className="m-0 text-xs font-semibold" style={{ color: s.status === "declined" ? MUTED : "#8A5A06" }}>
                           {s.status === "declined" ? "Not added this time" : "Waiting for the Key Member"}
@@ -336,7 +369,7 @@ export default function FestivalMenu(p: Props) {
 
                   {!isPrime && suggesting === key && (
                     <div className="rounded-xl px-3 py-3 flex flex-col gap-2" style={{ background: "#fff", border: "1.5px solid #C9DDF3" }}>
-                      <input value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }} placeholder="Search a dish"
+                      <input value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }} placeholder="Search, or type your own dish"
                         aria-label="Search a dish" className="w-full rounded-xl px-3 py-2 text-sm"
                         style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: INK, outline: "none" }} />
                       {!chosen && (
@@ -348,12 +381,18 @@ export default function FestivalMenu(p: Props) {
                               <span className="text-xs flex-shrink-0" style={{ color: MUTED }}>{kcalOf(f) != null ? `${kcalOf(f)} kcal` : ""}</span>
                             </button>
                           ))}
-                          {query.trim() && found.length === 0 && <p className="m-0 text-xs text-center py-3" style={{ color: MUTED }}>No dish found</p>}
+                          {query.trim() && !found.some((f) => f.name.toLowerCase() === query.trim().toLowerCase()) && (
+                            <button type="button" onClick={() => setChosen({ id: "", name: query.trim(), category: null, calories: null, serving_weight_g: null, serving_unit: null, kutumbh_id: null, needs_review: true })}
+                              className="w-full text-left px-3 py-2 text-sm font-semibold" style={{ borderTop: found.length ? "1px solid #F0EAFA" : undefined, color: "#6B46B8", minHeight: 44 }}>
+                              ➕ Suggest &ldquo;{query.trim()}&rdquo; as your own dish
+                            </button>
+                          )}
                         </div>
                       )}
                       {chosen && (
                         <>
                           <p className="m-0 text-sm" style={{ color: INK }}>Suggest <b>{chosen.name}</b> for {label}</p>
+                          {!chosen.id && <p className="m-0 text-xs" style={{ color: "#8A5A06" }}>Your own dish. The Key Member will say what kind it is when approving.</p>}
                           <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Add a note (optional)"
                             aria-label="Note" className="w-full rounded-xl px-3 py-2 text-sm"
                             style={{ border: "1.5px solid #CBBDE4", background: "#FAF7FE", color: INK, outline: "none" }} />

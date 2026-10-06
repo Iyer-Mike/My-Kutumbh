@@ -51,6 +51,8 @@ type Props = {
   tomorrow: string;
   isPrime: boolean;
   festivalTab: string | null;
+  /** Set when a festival day is opened from the Festival days list */
+  festivalDayLabel: string | null;
   quickPicks: Record<string, QuickPick[]>;
   quickLabel: string;
   plans: Plan[];
@@ -100,7 +102,7 @@ const PLUM = "#3B1F5C";
 const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, festivalDayLabel, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -280,10 +282,17 @@ export default function WhatsForToday({
       </p>
      </div>
 
+      {festivalDayLabel && (
+        <Link href="/festivals" className="inline-flex items-center self-start px-4 rounded-xl text-sm font-semibold"
+          style={{ minHeight: 44, background: PLUM, color: "#fff" }}>
+          ‹ Festival days · {festivalDayLabel}
+        </Link>
+      )}
+
       {/* Food values: first thing under the title bar, right after every log */}
       <div className="rounded-2xl px-3 py-3 flex flex-col gap-2.5" style={{ background: WARM.bg, border: `2.5px solid ${WARM.edge}` }} aria-live="polite">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="m-0 text-sm font-bold" style={{ color: INK }}>{canLog ? "Food values today" : "Food values of the menu"}</p>
+          <p className="m-0 text-sm font-bold" style={{ color: INK }}>{canLog ? "Food values today" : festivalDayLabel ? "Food values of the Festival menu" : "Food values of the menu"}</p>
           <p className="m-0 text-xs" style={{ color: MUTED }}>
             {Math.round(dayTotal.kcal)} kcal{canLog && dailyKcalGoal ? ` of ${dailyKcalGoal}` : ""}
           </p>

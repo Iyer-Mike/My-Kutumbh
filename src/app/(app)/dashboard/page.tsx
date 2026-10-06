@@ -239,14 +239,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
 
-        {fest === "1" && day > daysAheadLocal(6, timeZone) ? (
-          <Link href="/festivals" className="inline-flex items-center px-3 rounded-xl text-sm font-semibold"
-            style={{ minHeight: 44, background: "rgba(255,255,255,0.14)", color: "#fff" }}>
-            ‹ Festival days · {longDateFor(day)}
-          </Link>
-        ) : (
-          <DayNav date={day} back={30} ahead={6} path="/dashboard" onDark />
-        )}
+        {fest !== "1" && <DayNav date={day} back={30} ahead={6} path="/dashboard" onDark />}
       </header>
 
       {/* ── Tabs + content ── */}
@@ -265,6 +258,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           tomorrow={tomorrow}
           isPrime={isPrime}
           festivalTab={festivalTab}
+          festivalDayLabel={fest === "1" ? longDateFor(day) : null}
           quickPicks={quickPicks}
           quickLabel={festivalName ? `Made for ${shortFestivalName(festivalName)}` : "Often on your menu"}
           plans={plans}

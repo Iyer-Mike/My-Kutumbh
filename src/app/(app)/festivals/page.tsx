@@ -42,10 +42,12 @@ export default async function FestivalsPage() {
           const href = off === 0 ? "/dashboard" : `/dashboard?date=${r.date}&fest=1`;
           return (
             <div key={r.key} className="rounded-2xl flex items-center justify-between gap-2 pl-4 pr-1"
-              style={{ background: "#fff", border: "1px solid #E0D4F2", minHeight: 64 }}>
+              style={r.own
+                ? { background: "#E6F6EA", border: "2.5px solid #2E8B57", minHeight: 64 }
+                : { background: "#E8F2FD", border: "2.5px solid #2E64A0", minHeight: 64 }}>
               <Link href={href} className="flex-1 min-w-0 py-3">
-                <span className="block text-sm font-semibold" style={{ color: "#241C33" }}>🪔 {r.name}</span>
-                <span className="block text-xs" style={{ color: B.muted }}>
+                <span className="block text-sm font-bold" style={{ color: "#241238" }}>🪔 {r.name}</span>
+                <span className="block text-xs" style={{ color: "#4A3F5E" }}>
                   {longDateFor(r.date)} · {off === 0 ? "today" : off === 1 ? "tomorrow" : `in ${off} days`}{r.own ? " · your family's" : ""}
                 </span>
               </Link>

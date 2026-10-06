@@ -44,6 +44,10 @@ export function ingredientName(line: string): string | null {
 
   if (s.length < 2) return null;
   if (/^salt$/i.test(s) || /^water\b/i.test(s)) return null;   // nobody shops for these
+  // Hot, warm, cold or boiling water comes from the tap; coconut or rose water is a different thing
+  if (/^(?:hot|warm|lukewarm|luke warm|cold|chilled|boiling|ice|iced|tap|drinking|filtered|plain)\s+water\b/i.test(s)) return null;
+  // A spoon of last batch's curd is the starter: it is not bought
+  if (/\b(?:starter|culture)(?:\s+culture)?$/i.test(s)) return null;
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -55,8 +59,18 @@ function splitAnd(name: string): string[] {
 
 /** Plural or not, chilli or chillies, it is the same trip. */
 // "es" before "s", so chillies → chilli (not chill) and tomatoes → tomato
-const sameThing = (s: string) =>
-  s.toLowerCase().replace(/[^a-z ]/g, "").replace(/\b(\w{2,}?)(?:es|s)\b/g, "$1").replace(/\s+/g, " ").trim();
+// Spellings that are the same thing in a kitchen come first, then the plural is dropped.
+export const sameThing = (s: string) =>
+  s.toLowerCase()
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^a-z ]/g, "")
+    .replace(/\bchill?(?:y|i|ie|ies|e|es)\b/g, "chilli")     // chili, chilly, chilli, chillies, chile
+    .replace(/\b(?:yoghurt|yogurt|dahi)\b/g, "curd")
+    .replace(/\bcilantro\b/g, "coriander")
+    .replace(/\bleaves\b/g, "leaf")
+    .replace(/\b(\w{2,}?)(?:es|s)\b/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /** Every buyable name in a recipe, in order, without repeats. */
 export function ingredientNames(lines: string[] | null | undefined): string[] {
@@ -79,7 +93,9 @@ export function ingredientNames(lines: string[] | null | undefined): string[] {
 export function haveIt(name: string, shelfNames: string[]): boolean {
   const a = sameThing(name);
   if (!a) return false;
-  return shelfNames.some((raw) => {
+  // "Turmeric (haldi)" is turmeric, and haldi
+  const forms = shelfNames.flatMap((raw) => [raw, ...[...raw.matchAll(/\(([^)]+)\)/g)].map((m) => m[1])]);
+  return forms.some((raw) => {
     const b = sameThing(raw);
     if (!b) return false;
     if (a === b) return true;

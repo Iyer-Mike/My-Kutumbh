@@ -5,7 +5,7 @@ import LiveFamily from "@/components/LiveFamily";
 import { BRAND as B } from "@/lib/brand";
 import { daysAheadLocal, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
-import { haveIt, ingredientNames } from "@/lib/ingredients";
+import { haveIt, ingredientNames, sameThing } from "@/lib/ingredients";
 
 export default async function PantryPage() {
   const supabase = await createClient();
@@ -67,19 +67,21 @@ export default async function PantryPage() {
 
       const onShelf = items.map((i) => i.name);
       const openNames = shopping.filter((s) => s.status === "open").map((s) => s.name);
-      const wanted = new Map<string, Set<string>>();
+      // keyed by the thing itself, so chili, chilly and chillies are one line
+      const wanted = new Map<string, { name: string; dishes: Set<string> }>();
 
       for (const r of recipes ?? []) {
         for (const ing of ingredientNames(r.ingredients)) {
           if (haveIt(ing, onShelf) || haveIt(ing, openNames)) continue;   // have it, or already listed
-          const key = ing.toLowerCase();
-          if (!wanted.has(key)) wanted.set(key, new Set());
-          wanted.get(key)!.add(r.name);
+          const key = sameThing(ing);
+          if (!key) continue;
+          if (!wanted.has(key)) wanted.set(key, { name: ing, dishes: new Set() });
+          wanted.get(key)!.dishes.add(r.name);
         }
       }
-      needed = [...wanted.entries()]
-        .map(([key, dishes]) => ({
-          name: key.charAt(0).toUpperCase() + key.slice(1),
+      needed = [...wanted.values()]
+        .map(({ name, dishes }) => ({
+          name: name.charAt(0).toUpperCase() + name.slice(1),
           dishes: [...dishes],
         }))
         .sort((a, b) => b.dishes.length - a.dishes.length || a.name.localeCompare(b.name))

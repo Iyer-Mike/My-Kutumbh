@@ -140,8 +140,8 @@ describe("ayurveda", () => {
     assert.equal(a.coverage, 1);
     assert.ok(Math.abs(a.virya.heating - 0.8) < 1e-9);                  // 800 of 1000
     assert.ok(Math.abs(a.aggravatingShare.pitta - 0.6) < 1e-9);          // rasam only
-    assert.ok(a.notes.some((n) => /aggravate Pitta/.test(n)));
-    assert.ok(a.notes.some((n) => /Heating foods made up 80%/.test(n)));
+    assert.ok(a.notes.some((n) => /aggravates Pitta/.test(n)));
+    assert.ok(a.notes.some((n) => /Pitta: add cooling foods/.test(n)));
     assert.ok(a.missingTastes.includes("bitter"));
     const sum = Object.values(a.tasteShare).reduce((s, x) => s + x, 0);
     assert.ok(Math.abs(sum - 1) < 1e-9);

@@ -1,5 +1,6 @@
 "use client";
 
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { useState } from "react";
 
 /**
@@ -91,7 +92,7 @@ export default function InviteButton({ inviterName, kutumbhName }: { inviterName
           onChange={(e) => setEmail(e.target.value)}
           placeholder="their email address"
           className="w-full text-sm rounded-xl px-3 py-2.5 mb-2"
-          style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241C33" }}
+          style={fieldLook(FAMILY.amber)}
         />
         <p className="text-[11px] mt-0 mb-3" style={{ color: "#6A6180", lineHeight: 1.5 }}>
           You get a link and a 6-digit number. Send the link; tell them the number.
@@ -100,7 +101,7 @@ export default function InviteButton({ inviterName, kutumbhName }: { inviterName
         {/* A child cannot agree to anything; whoever can, does it here */}
         <label
           className="flex gap-2.5 items-start mb-3 rounded-xl px-3 py-2.5 cursor-pointer"
-          style={{ background: minor ? "#FBEBCB" : "#F3EEFA", border: `1px solid ${minor ? "#EBD9B4" : "#E0D4F2"}` }}
+          style={{ background: "#fff", border: `2px solid ${minor ? FAMILY.gold.edge : FAMILY.amber.edge}` }}
         >
           <input
             type="checkbox"
@@ -157,7 +158,7 @@ export default function InviteButton({ inviterName, kutumbhName }: { inviterName
         </p>
       </div>
 
-      <div className="rounded-xl px-4 py-3" style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}>
+      <div className="rounded-xl px-4 py-3" style={look(FAMILY.green)}>
         <p className="text-xs font-semibold mb-1" style={{ color: "#6B46B8" }}>
           Send this link (the number is needed to join)
         </p>

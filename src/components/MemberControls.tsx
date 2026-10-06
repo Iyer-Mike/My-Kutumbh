@@ -1,5 +1,6 @@
 "use client";
 
+import { FAMILY, look } from "@/lib/brand";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { removeMember, leaveKutumbh } from "@/app/(app)/family/member-actions";
@@ -36,7 +37,7 @@ export function RemoveMember({ userId, name }: { userId: string; name: string | 
   }
 
   return (
-    <div className="mt-2 rounded-xl px-3 py-2.5" style={{ background: "#FDF3F2", border: "1px solid #E8C4BF" }}>
+    <div className="mt-2 rounded-xl px-3 py-2.5" style={look(FAMILY.red)}>
       <p className="text-xs m-0" style={{ color: C.ink, lineHeight: 1.5 }}>
         Remove <span className="font-semibold">{name ?? "this member"}</span> from the Kutumbh? Their own meals,
         reports and account stay theirs and go with them. What they added to the family — dishes, the pantry,
@@ -81,7 +82,7 @@ export function LeaveKutumbh({ kutumbhName, isPrime }: { kutumbhName: string | n
   }
 
   return (
-    <div className="rounded-xl px-3 py-3" style={{ background: "#FDF3F2", border: "1px solid #E8C4BF" }}>
+    <div className="rounded-xl px-3 py-3" style={look(FAMILY.red)}>
       <p className="text-xs m-0" style={{ color: C.ink, lineHeight: 1.5 }}>
         Leave {kutumbhName ?? "this Kutumbh"}? Everything of yours stays yours — your meals, your reports, your
         account. You would no longer see the family&apos;s menu, dishes or pantry.

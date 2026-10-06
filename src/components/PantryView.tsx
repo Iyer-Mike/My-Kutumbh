@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
 import { readBase64, toJpegPayload } from "@/lib/photo";
 import {
   CATEGORIES, KINDS, SHELF_LIFE, STARTER, UNITS,
@@ -481,12 +481,11 @@ export default function PantryView({
   }
 
   const byKind = (k: Kind) => items.filter((i) => i.kind === k);
-  const card = { background: B.card, border: `1px solid ${B.cardEdge}` } as const;
 
   return (
     <div className="grid gap-4">
       {/* Shopping list */}
-      <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
+      <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.blue)}>
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
             Shopping list
@@ -503,7 +502,7 @@ export default function PantryView({
         ) : (
           <div className="grid">
             {open.map((s) => (
-              <div key={s.id} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${B.cardEdge}` }}>
+              <div key={s.id} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${FAMILY.blue.line}` }}>
                 <button onClick={() => markBought(s)} disabled={busy}
                   className="w-6 h-6 shrink-0 rounded-md" style={{ border: `2px solid ${B.violet}` }}
                   aria-label={`Bought ${s.name}`} />
@@ -529,7 +528,7 @@ export default function PantryView({
             onKeyDown={(e) => { if (e.key === "Enter") addToList(); }}
             placeholder="Add something to buy…" maxLength={60}
             className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm"
-            style={{ border: `1.5px solid ${B.cardEdge}`, background: B.field, color: B.ink, outline: "none" }} />
+            style={fieldLook(FAMILY.blue)} />
           <button onClick={addToList} disabled={busy || !buyName.trim()}
             className="px-4 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
             style={{ background: B.button }}>
@@ -540,7 +539,7 @@ export default function PantryView({
 
       {/* What the next three days' menu needs */}
       {fromMenu.length > 0 && (
-        <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
+        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.gold)}>
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
@@ -568,7 +567,7 @@ export default function PantryView({
                   className="px-2.5 py-1.5 rounded-full text-xs font-medium disabled:opacity-60"
                   style={added
                     ? { background: B.goldTint, color: B.goldInk }
-                    : { background: B.field, color: B.ink, border: `1px solid ${B.cardEdge}` }}>
+                    : { background: "#fff", color: B.ink, border: `2px solid ${FAMILY.gold.edge}` }}>
                   {added ? "✓ " : "＋ "}{m.name}
                   {m.dishes.length > 1 && <span style={{ color: B.muted2 }}> ×{m.dishes.length}</span>}
                 </button>
@@ -586,7 +585,7 @@ export default function PantryView({
 
       {/* Shopped? Photograph the bill — Key Member only */}
       {isPrime && (
-        <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
+        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.violet)}>
           {/* The camera and the file chooser are two different doors, so a
               tap lands where the words promised */}
           <input ref={billCamRef} type="file" accept="image/*" capture="environment"
@@ -659,10 +658,10 @@ export default function PantryView({
                     setBill((b) => b && { ...b, lines: b.lines.map((l, i) => (i === idx ? { ...l, ...changes } : l)) });
                   return (
                     <div key={`${line.name}-${idx}`} className="flex items-center gap-2 py-2"
-                      style={{ borderTop: `1px solid ${B.cardEdge}` }}>
+                      style={{ borderTop: `1px solid ${FAMILY.violet.line}` }}>
                       <button onClick={() => set({ take: !line.take })} aria-pressed={line.take}
                         className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
-                        style={{ background: line.take ? B.violet : "transparent", border: `2px solid ${line.take ? B.violet : B.cardEdge}` }}
+                        style={{ background: line.take ? B.violet : "transparent", border: `2px solid ${line.take ? B.violet : FAMILY.violet.edge}` }}
                         aria-label={`${line.take ? "Skip" : "Keep"} ${line.name}`}>
                         {line.take && (
                           <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
@@ -705,7 +704,7 @@ export default function PantryView({
 
       {/* The shelf, one card per kind */}
       {items.length === 0 ? (
-        <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={card}>
+        <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={look(FAMILY.violet)}>
           <p className="text-sm" style={{ color: B.muted }}>
             Shelf empty · {isPrime ? "Start with the usual list, then edit." : "The Key Member sets it up."}
           </p>
@@ -747,7 +746,7 @@ export default function PantryView({
 
       {/* Add to the shelf — Key Member only */}
       {isPrime && (
-        <section className="rounded-2xl px-4 py-4 grid gap-3" style={card}>
+        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.amber)}>
           {!adding ? (
             <button onClick={() => setAdding(true)} className="text-sm font-semibold text-left" style={{ color: B.violetLink }}>
               ＋ Put something on the shelf
@@ -759,7 +758,7 @@ export default function PantryView({
                 <input id="p-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                   placeholder="Basmati rice, curry leaves, hing…" maxLength={60}
                   className="rounded-xl px-3 py-2 text-sm"
-                  style={{ border: `1.5px solid ${B.cardEdge}`, background: B.field, color: B.ink, outline: "none" }} />
+                  style={fieldLook(FAMILY.amber)} />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -767,7 +766,7 @@ export default function PantryView({
                   <label htmlFor="p-cat" className="text-xs font-medium" style={{ color: B.muted }}>Kind</label>
                   <select id="p-cat" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}
                     className="rounded-xl px-3 py-2 text-sm"
-                    style={{ border: `1.5px solid ${B.cardEdge}`, background: "#fff", color: B.ink, outline: "none" }}>
+                    style={fieldLook(FAMILY.amber)}>
                     {KINDS.map((k) => (
                       <optgroup key={k.key} label={k.label}>
                         {CATEGORIES.filter((c) => c.kind === k.key).map((c) => (
@@ -785,10 +784,10 @@ export default function PantryView({
                       <input id="p-qty" type="number" inputMode="decimal" min="0" step="0.25" value={draft.quantity}
                         onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
                         className="w-full min-w-0 rounded-xl px-3 py-2 text-sm"
-                        style={{ border: `1.5px solid ${B.cardEdge}`, background: B.field, color: B.ink, outline: "none" }} />
+                        style={fieldLook(FAMILY.amber)} />
                       <select value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value as Unit })}
                         aria-label="Unit" className="rounded-xl px-2 py-2 text-sm"
-                        style={{ border: `1.5px solid ${B.cardEdge}`, background: "#fff", color: B.ink, outline: "none" }}>
+                        style={fieldLook(FAMILY.amber)}>
                         {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
                       </select>
                     </div>
@@ -805,7 +804,7 @@ export default function PantryView({
                     onChange={(e) => setDraft({ ...draft, low_when: e.target.value })}
                     placeholder={`e.g. 1 ${draft.unit}`}
                     className="rounded-xl px-3 py-2 text-sm"
-                    style={{ border: `1.5px solid ${B.cardEdge}`, background: B.field, color: B.ink, outline: "none" }} />
+                    style={fieldLook(FAMILY.amber)} />
                 </div>
               )}
 

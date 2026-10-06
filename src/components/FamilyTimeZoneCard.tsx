@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
 import { TIME_ZONES, deviceTimeZone, longDateLocal, timeZoneLabel } from "@/lib/dates";
 
 /** The Key Member sets where the family's day starts and ends. */
@@ -29,7 +29,7 @@ export default function FamilyTimeZoneCard({ kutumbhId, timeZone }: { kutumbhId:
   }
 
   return (
-    <div className="rounded-2xl px-5 py-4" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+    <div className="rounded-2xl px-5 py-4" style={look(FAMILY.violet)}>
       <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="w-full text-left">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: B.muted2 }}>
           The family&apos;s day
@@ -53,7 +53,7 @@ export default function FamilyTimeZoneCard({ kutumbhId, timeZone }: { kutumbhId:
           <label htmlFor="tz" className="sr-only">Time zone</label>
           <select id="tz" value={tz} onChange={(e) => choose(e.target.value)} disabled={saving}
             className="w-full rounded-xl px-3 py-2 text-sm"
-            style={{ border: `1.5px solid ${B.cardEdge}`, background: "#fff", color: B.ink, outline: "none" }}>
+            style={fieldLook(FAMILY.violet)}>
             {TIME_ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
           </select>
           {device && device !== tz && (

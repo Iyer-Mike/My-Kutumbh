@@ -1,3 +1,4 @@
+import { FAMILY, look } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import Face from "@/components/Face";
@@ -217,7 +218,7 @@ export default async function FamilyPage() {
         {/* The family together. The Key Member keeps it; everyone sees it. */}
         {kutumbhId && (familyPhoto || isOwner) && (
           <section className="rounded-2xl px-4 py-5 grid gap-1 justify-items-center"
-            style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+            style={look(FAMILY.violet)}>
             {isOwner ? (
               <FacePicker
                 kutumbhId={kutumbhId}
@@ -256,7 +257,7 @@ export default async function FamilyPage() {
             {isOwner && (
               <div
                 className="rounded-2xl px-5 py-4 space-y-3"
-                style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}
+                style={look(FAMILY.amber)}
               >
                 <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
                   Invite a Family Member
@@ -273,7 +274,7 @@ export default async function FamilyPage() {
               <Link
                 href="/family/dishes"
                 className="flex items-center justify-between gap-3 rounded-2xl px-5 py-4"
-                style={{ background: "#FAF7FE", border: `1.5px solid ${dishPending ? "#F2B531" : "#E0D4F2"}` }}
+                style={look(dishPending ? FAMILY.gold : FAMILY.blue)}
               >
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
@@ -295,7 +296,7 @@ export default async function FamilyPage() {
             <Link
               href="/pantry"
               className="flex items-center justify-between gap-3 rounded-2xl px-5 py-4"
-              style={{ background: "#FAF7FE", border: `1.5px solid ${toBuy ? "#F2B531" : "#E0D4F2"}` }}
+              style={look(toBuy ? FAMILY.gold : FAMILY.green)}
             >
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
@@ -321,7 +322,7 @@ export default async function FamilyPage() {
             <Link
               href="/recipes"
               className="flex items-center justify-between gap-3 rounded-2xl px-5 py-4"
-              style={{ background: "#FAF7FE", border: "1.5px solid #E0D4F2" }}
+              style={look(FAMILY.amber)}
             >
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
@@ -345,10 +346,7 @@ export default async function FamilyPage() {
                   const dColor = m.primary_dosha ? DOSHA_COLORS[m.primary_dosha.toLowerCase()] ?? "#6A6180" : "#CBB4EE";
 
                   const cardClass = "rounded-2xl px-4 py-3.5 flex items-center gap-4";
-                  const cardStyle = {
-                    background: "#FAF7FE",
-                    border: m.isMe ? "1.5px solid #6B46B8" : "1px solid #E0D4F2",
-                  };
+                  const cardStyle = look(m.isMe ? FAMILY.violet : FAMILY.blue);
 
                   const inner = (
                     <>

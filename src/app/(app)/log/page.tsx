@@ -1,5 +1,6 @@
 "use client";
 
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -500,7 +501,7 @@ export default function LogPage() {
     const unitLabel = UNIT_LABEL[food.serving_unit] ?? food.serving_unit;
     return (
       <div key={rowKey} className="rounded-xl overflow-hidden"
-        style={{ background: isOn ? "#E7DCF7" : "#fff", border: `1.5px solid ${isOn ? "#6B46B8" : "#E0D4F2"}` }}>
+        style={{ background: isOn ? FAMILY.green.bg : "#fff", border: `1.5px solid ${isOn ? FAMILY.green.edge : FAMILY.blue.edge}` }}>
         <button onClick={() => toggle(rowKey, food)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
           <div className="shrink-0 w-5 h-5 rounded flex items-center justify-center"
             style={{ background: isOn ? "#6B46B8" : "#fff", border: `2px solid ${isOn ? "#6B46B8" : "#CBBDE4"}` }}>
@@ -610,7 +611,7 @@ export default function LogPage() {
           const isCollapsed = !openSlots.has(key);
           return (
             <div key={key} className="rounded-2xl overflow-hidden"
-              style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+              style={look(FAMILY.blue)}>
               <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#E7DCF7" }}>
@@ -650,7 +651,7 @@ export default function LogPage() {
                           <input
                             type="text" value={editName} onChange={e => setEditName(e.target.value)} autoFocus
                             className="w-full rounded-xl px-3 py-2 text-sm"
-                            style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: "#241C33", outline: "none" }}
+                            style={fieldLook(FAMILY.blue)}
                           />
                           <div className="flex items-center gap-2">
                             <button onClick={() => setEditQty(q => String(Math.max(0.5, parseFloat(q) - 0.5)))}
@@ -660,13 +661,13 @@ export default function LogPage() {
                               type="number" min="0.5" step="0.5" value={editQty}
                               onChange={e => setEditQty(e.target.value)}
                               className="w-16 text-center rounded-lg px-2 py-1.5 text-sm font-semibold"
-                              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }} />
+                              style={fieldLook(FAMILY.blue)} />
                             <button onClick={() => setEditQty(q => String(parseFloat(q) + 0.5))}
                               className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
                               style={{ background: "#E7DCF7", color: "#241238" }}>+</button>
                             <select value={editUnit} onChange={e => setEditUnit(e.target.value)}
                               className="flex-1 rounded-lg px-2 py-1.5 text-xs"
-                              style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}>
+                              style={fieldLook(FAMILY.blue)}>
                               <option value="serving">portion</option>
                               <option value="piece">piece(s)</option>
                               <option value="bowl">bowl</option>
@@ -786,7 +787,7 @@ export default function LogPage() {
                   aria-label="Search food"
                   placeholder="Search food…"
                   className="w-full rounded-xl px-4 py-2.5 text-sm mb-2"
-                  style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }} />
+                  style={fieldLook(FAMILY.violet)} />
                 
 
                 <div className="space-y-1.5">
@@ -855,7 +856,7 @@ export default function LogPage() {
                 {!photoPreview && !analyzing && !aiSuggestions && (
                   <button onClick={() => cameraRef.current?.click()}
                     className="w-full flex flex-col items-center gap-2 py-4 rounded-2xl"
-                    style={{ background: "#FAF7FE", border: "1.5px dashed #CBB4EE" }}>
+                    style={{ background: FAMILY.violet.bg, border: `2px dashed ${FAMILY.violet.edge}` }}>
                     <span className="text-2xl">📷</span>
                     <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>Photo of the plate</span>
                     <span className="text-[11px]" style={{ color: "#6A6180" }}>camera or gallery</span>

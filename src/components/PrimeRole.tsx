@@ -1,5 +1,6 @@
 "use client";
 
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { useState, useTransition } from "react";
 import { handOverPrime, claimPrime, reclaimPrime } from "@/app/(app)/family/prime-actions";
 import { QUIET_DAYS } from "@/lib/prime";
@@ -41,7 +42,7 @@ export default function PrimeRole({
   // ── The one who was away, on returning ──
   if (canReclaim) {
     return (
-      <section className="rounded-2xl px-4 py-4" style={{ background: "#FFFBF2", border: "1px solid #EBD9B4" }}>
+      <section className="rounded-2xl px-4 py-4" style={look(FAMILY.gold)}>
         <p className="text-sm font-semibold m-0" style={{ color: "#241C33" }}>
           Welcome back
         </p>
@@ -64,7 +65,7 @@ export default function PrimeRole({
   // ── A member, when the Key Member has gone quiet ──
   if (canClaim) {
     return (
-      <section className="rounded-2xl px-4 py-4" style={{ background: "#FFFBF2", border: "1px solid #EBD9B4" }}>
+      <section className="rounded-2xl px-4 py-4" style={look(FAMILY.gold)}>
         <p className="text-sm font-semibold m-0" style={{ color: "#241C33" }}>
           Nobody is looking after the Kutumbh
         </p>
@@ -90,7 +91,7 @@ export default function PrimeRole({
 
   if (confirm) {
     return (
-      <section className="rounded-2xl px-4 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+      <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
         <p className="text-sm m-0 mb-3" style={{ color: "#241C33" }}>
           Hand over to <span className="font-semibold">{confirm.full_name ?? "this member"}</span>?
           They&apos;ll manage dishes, invitations and the family photo. You stay as a member.
@@ -118,7 +119,7 @@ export default function PrimeRole({
   }
 
   return (
-    <section className="rounded-2xl px-4 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+    <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
       <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#6A6180" }}>
         Looking after the Kutumbh
       </p>
@@ -145,7 +146,7 @@ export default function PrimeRole({
                 key={m.user_id}
                 onClick={() => setConfirm(m)}
                 className="w-full text-left text-sm px-3 py-2 rounded-xl"
-                style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241C33" }}
+                style={fieldLook(FAMILY.violet)}
               >
                 {m.full_name ?? "Family member"}
               </button>

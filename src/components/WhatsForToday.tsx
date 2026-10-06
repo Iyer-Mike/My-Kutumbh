@@ -292,7 +292,7 @@ export default function WhatsForToday({
       {/* Food values: first thing under the title bar, right after every log */}
       <div className="rounded-2xl px-3 py-3 flex flex-col gap-2.5" style={{ background: WARM.bg, border: `2.5px solid ${WARM.edge}` }} aria-live="polite">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="m-0 text-sm font-bold" style={{ color: INK }}>{canLog ? "Food values today" : festivalDayLabel ? "Food values of the Festival menu" : "Food values of the menu"}</p>
+          <p className="m-0 text-sm font-bold" style={{ color: INK }}>{canLog ? "Food values today" : festivalDayLabel ? "Food Values of the Festival Menu" : "Food values of the menu"}</p>
           <p className="m-0 text-xs" style={{ color: MUTED }}>
             {Math.round(dayTotal.kcal)} kcal{canLog && dailyKcalGoal ? ` of ${dailyKcalGoal}` : ""}
           </p>

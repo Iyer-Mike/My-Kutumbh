@@ -440,7 +440,7 @@ export default function WhatsForToday({
             : (hasPlans ? "planned" : "not planned yet");
           return (
             <section key={t.id} className={`rounded-3xl px-3 pt-3 pb-3 ${isOpen ? "col-span-2" : ""}`}
-              style={{ background: "#fff", border: "1px solid #D9CBF0", boxShadow: "0 1px 3px rgba(36,18,56,0.08)" }}>
+              style={{ background: "#fff", border: "2.5px solid #6B46B8", boxShadow: "0 1px 3px rgba(36,18,56,0.08)" }}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="m-0 text-sm font-bold" style={{ color: INK }}>{t.title}</h3>

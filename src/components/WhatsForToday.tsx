@@ -433,9 +433,11 @@ export default function WhatsForToday({
           const isOpen = !!open[t.id];
           const tileKcal = Math.round(sum(t.slots.map((k) => valueOf(k))).kcal);
           const proj = t.slots.some((k) => projected(k));
-          const status = tileHas(t)
-            ? `${proj && !t.slots.some((k) => !fromMenu(k)) ? "~ from the menu" : canLog ? "logged" : "planned"}`
-            : "not planned yet";
+          const hasLogs = t.slots.some((k) => slotLogs(k).length > 0);
+          const hasPlans = t.slots.some((k) => slotPlans(k).length > 0);
+          const status = canLog
+            ? (hasLogs ? "logged" : hasPlans ? "intake not yet logged" : "not planned yet")
+            : (hasPlans ? "planned" : "not planned yet");
           return (
             <section key={t.id} className={`rounded-3xl px-3 pt-3 pb-3 ${isOpen ? "col-span-2" : ""}`}
               style={{ background: "#fff", border: "1px solid #D9CBF0", boxShadow: "0 1px 3px rgba(36,18,56,0.08)" }}>

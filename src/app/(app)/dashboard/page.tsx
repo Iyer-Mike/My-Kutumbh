@@ -12,7 +12,6 @@ import { signedFaces } from "@/lib/faces";
 import Link from "next/link";
 import type { QuickPick } from "@/components/PlanSlotCard";
 import { BUILT_IN_FESTIVALS, builtInOn, festivalMenu, shortFestivalName, EVERYDAY, MEAL_KEYS } from "@/lib/festivals";
-import { computeNeeds } from "@/lib/insights/needs";
 import { FOOD_NUTRIENT_COLS, perServing, type FoodNutrientRow, type Nutr } from "@/lib/serving-nutrition";
 
 type MealLog = {
@@ -55,7 +54,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     familyOf(supabase, user!.id),
     supabase
       .from("profiles")
-      .select("onboarding_complete, full_name, daily_kcal_goal, date_of_birth, gender, height_cm, weight_kg, activity_level")
+      .select("onboarding_complete, full_name, daily_kcal_goal")
       .eq("id", user!.id)
       .maybeSingle(),
   ]);
@@ -171,15 +170,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }
     for (const [m, list] of Object.entries(want)) quickPicks[m] = list.map((n) => byName.get(n)).filter(Boolean) as QuickPick[];
   }
-  // The day's needs (the same figures as the Needs tab) drive the rings
-  const needs = computeNeeds({
-    date_of_birth: profile?.date_of_birth ?? null, gender: profile?.gender ?? null,
-    height_cm: profile?.height_cm ?? null, weight_kg: profile?.weight_kg ?? null,
-    activity_level: profile?.activity_level ?? null, daily_kcal_goal: profile?.daily_kcal_goal ?? null,
-    primary_dosha: null, diet_type: null, allergies: null, conditions: null,
-  }, today);
-  const targets = { kcal: needs.kcal.value, p: needs.protein_g.value, c: needs.carbs_g.value, fi: needs.fiber_g.value };
-
   // The next festival ahead: the app's list and the family's own
   const nextBuiltIn = BUILT_IN_FESTIVALS.filter((f) => f.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
   let nextFest: { name: string; date: string } | null = nextBuiltIn;
@@ -258,7 +248,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             const fi = Array.isArray(food_items) ? food_items[0] : food_items;
             return { ...l, recipe_id: fi?.recipe_id ?? null, n: perServing(fi) as Nutr | null };
           })}
-          targets={targets}
+          dailyKcalGoal={profile?.daily_kcal_goal ?? null}
           day={day}
           today={today}
           tomorrow={tomorrow}

@@ -295,7 +295,7 @@ export default function WhatsForToday({
         ) : null}
         <div className="grid grid-cols-5 gap-1">
           {SLOTS.map((s) => (
-            <div key={s.key} className="flex flex-col min-w-0">
+            <div key={s.key} className="flex flex-col items-center text-center min-w-0">
               <span className="text-sm font-bold leading-[18px]" style={{ color: INK, ...(projected(s.key) ? { opacity: 0.65 } : {}) }}>{Math.round(valueOf(s.key).kcal) ? `${projected(s.key) ? "~" : ""}${Math.round(valueOf(s.key).kcal)}` : "–"}</span>
               <span className="text-[10px] leading-3 truncate" style={{ color: MUTED }}>{s.label.replace(" Snack", " snack")}</span>
             </div>
@@ -484,7 +484,7 @@ function Values({ title, color, cells, dark }: { title: string; color: string; c
       {title && <p className="text-[11px] font-bold mb-1" style={{ color }}>{title}</p>}
       <div className="grid grid-cols-5 gap-1">
         {cells.map((c) => (
-          <div key={c.label} className="flex flex-col min-w-0">
+          <div key={c.label} className="flex flex-col items-center text-center min-w-0">
             <span className="text-sm font-bold leading-[18px]" style={{ color: dark ? "#fff" : INK }}>{c.value}</span>
             <span className="text-[10px] leading-3" style={{ color: dark ? color : MUTED }}>{c.label}</span>
           </div>

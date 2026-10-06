@@ -28,6 +28,13 @@ const STATUS_STYLE: Record<Status, { label: string; bg: string; fg: string }> = 
   out: { label: "Out",   bg: "#FBE2DC", fg: "#9A2C1B" },
 };
 
+// Each kind of stock has its own coloured edge
+const KIND_LOOK: Record<Kind, { bg: string; edge: string; ink: string }> = {
+  staple: { bg: "#E8F2FD", edge: "#2E64A0", ink: "#1D4A7C" },   // blue
+  fresh:  { bg: "#E6F6EA", edge: "#2E8B57", ink: "#1F6B40" },   // green
+  sundry: { bg: "#FFE9C7", edge: "#C2551F", ink: "#9A3F10" },   // amber
+};
+
 const amount = (q: number | null, u: Unit | null) =>
   q == null ? "" : `${Number.isInteger(q) ? q : q.toFixed(2).replace(/0$/, "")} ${u ?? ""}`.trim();
 
@@ -715,9 +722,10 @@ export default function PantryView({
           const rows = byKind(k.key);
           if (rows.length === 0 && !isPrime) return null;
           return (
-            <section key={k.key} className="rounded-2xl px-4 py-4 grid gap-2" style={card}>
+            <section key={k.key} className="rounded-2xl px-4 py-4 grid gap-2"
+              style={{ background: KIND_LOOK[k.key].bg, border: `2.5px solid ${KIND_LOOK[k.key].edge}` }}>
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>{k.label}</h2>
+                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: KIND_LOOK[k.key].ink }}>{k.label}</h2>
                 <p className="text-[11px]" style={{ color: B.muted2 }}>{k.hint}</p>
               </div>
 

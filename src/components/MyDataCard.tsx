@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { forgetMe } from "@/app/(app)/profile/forget-actions";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 /**
  * What the app holds about you, and how to take it away.
@@ -23,7 +24,7 @@ export default function MyDataCard() {
   const ready = typed.trim().toLowerCase() === "forget me";
 
   return (
-    <section className="rounded-2xl px-4 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+    <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
       <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#6A6180" }}>
         Your data
       </p>
@@ -77,7 +78,7 @@ export default function MyDataCard() {
               onChange={(e) => setTyped(e.target.value)}
               placeholder="Type: forget me"
               className="w-full text-sm rounded-lg px-3 py-2 mb-2"
-              style={{ background: "#fff", border: "1px solid #E8C4BF", color: "#241C33" }}
+              style={fieldLook(FAMILY.red)}
             />
 
             {error && <p className="text-xs mb-2" style={{ color: "#B0453A" }}>{error}</p>}

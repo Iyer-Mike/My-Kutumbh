@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { writeLastUser } from "@/lib/last-user";
 
 export default function ResetPasswordPage() {
@@ -69,7 +70,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-sm">
         <AuthHeader subtitle="Family food & wellness, rooted in Ayurveda" />
         <div className="rounded-2xl px-5 py-6 text-center"
-          style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
+          style={look(FAMILY.red)}>
           <p className="text-2xl mb-2">🔗</p>
           <p className="font-semibold text-sm mb-1" style={{ color: "#B91C1C" }}>Reset link has expired</p>
           <p className="text-sm" style={{ color: "#625A75" }}>
@@ -105,7 +106,7 @@ export default function ResetPasswordPage() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
+            style={fieldLook(FAMILY.amber)}
             placeholder="Min. 8 characters"
           />
         </div>
@@ -121,13 +122,13 @@ export default function ResetPasswordPage() {
             value={confirm}
             onChange={e => setConfirm(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
+            style={fieldLook(FAMILY.amber)}
             placeholder="••••••••"
           />
         </div>
 
         {error && (
-          <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA" }}>
+          <div className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
             {error}
           </div>
         )}

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 // ── Lab value display metadata ───────────────────────────
 const LAB_META: Record<string, { label: string; unit: string }> = {
@@ -264,7 +265,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+    <div className="rounded-2xl overflow-hidden" style={look(FAMILY.violet)}>
 
       {/* Header */}
       <div className="px-5 py-4 flex items-center justify-between">
@@ -305,7 +306,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
           {/* Parsing indicator */}
           {parsing && (
             <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl mt-4"
-              style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}>
+              style={look(FAMILY.violet)}>
               <span className="text-base animate-spin" style={{ display: "inline-block" }}>🔄</span>
               <span className="text-sm font-medium" style={{ color: "#6B46B8" }}>Reading your report…</span>
             </div>
@@ -315,7 +316,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
             <>
               {parseMsg && (
                 <div className="rounded-xl px-4 py-3 mt-4 text-sm"
-                  style={{ background: "#FBEBCB", color: "#7A5A06", border: "1px solid #F2B531" }}>
+                  style={{ ...look(FAMILY.gold), color: "#7A5A06" }}>
                   {parseMsg}
                 </div>
               )}
@@ -337,7 +338,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                   <label className="text-xs" style={{ color: "#6A6180" }}>Report type</label>
                   <select value={draftType} onChange={e => setDraftType(e.target.value)}
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-                    style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }}>
+                    style={fieldLook(FAMILY.amber)}>
                     {Object.entries(REPORT_TYPE_LABEL).map(([v, l]) => (
                       <option key={v} value={v}>{l}</option>
                     ))}
@@ -347,7 +348,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                   <label className="text-xs" style={{ color: "#6A6180" }}>Report date</label>
                   <input type="date" value={draftDate} onChange={e => setDraftDate(e.target.value)}
                     className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-                    style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }} />
+                    style={fieldLook(FAMILY.amber)} />
                 </div>
               </div>
 
@@ -365,7 +366,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                         const refKey = `${k}_ref`;
                         return (
                           <div key={k} className="rounded-xl px-3 py-2.5"
-                            style={{ background: "#F5F0FD", border: "1px solid #DDCCF6" }}>
+                            style={look(FAMILY.blue)}>
                             <p className="text-xs font-medium mb-1" style={{ color: "#6B46B8" }}>
                               {meta?.label ?? k.replace(/_/g, " ")}
                             </p>
@@ -375,7 +376,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                                 value={draftValues[k] ?? ""}
                                 onChange={e => setDraftValues(p => ({ ...p, [k]: e.target.value }))}
                                 className="flex-1 min-w-0 text-sm font-semibold rounded-lg px-2 py-1"
-                                style={{ border: "1.5px solid #CBB4EE", background: "#FAF7FE", color: "#241C33", outline: "none" }}
+                                style={fieldLook(FAMILY.amber)}
                               />
                               {meta?.unit && (
                                 <span className="text-xs shrink-0" style={{ color: "#6A6180" }}>{meta.unit}</span>
@@ -399,7 +400,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                 <input type="text" value={draftNotes} onChange={e => setDraftNotes(e.target.value)}
                   placeholder="e.g. Fasting sample · Dr Sharma's lab"
                   className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
-                  style={{ border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" }} />
+                  style={fieldLook(FAMILY.amber)} />
               </div>
 
               {/* Save / Later */}
@@ -474,7 +475,7 @@ export default function MedicalReportsCard({ userId, initialRecords }: Props) {
                     const val    = rec.extracted_values![k];
                     return (
                       <div key={k} className="rounded-xl px-3 py-2"
-                        style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+                        style={look(FAMILY.violet)}>
                         <p className="text-xs" style={{ color: "#6A6180" }}>
                           {meta?.label ?? k.replace(/_/g, " ")}
                         </p>

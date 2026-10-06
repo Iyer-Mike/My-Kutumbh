@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look } from "@/lib/brand";
 import { CUISINES, dietLabel, dishTypeOf } from "@/lib/food-taxonomy";
 import { slotLabel } from "@/lib/meal-slots";
 import PrintRecipe from "@/components/PrintRecipe";
@@ -120,14 +120,14 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
         {/* At a glance */}
         <section className="rounded-2xl px-4 py-4 grid grid-cols-3 gap-3"
-          style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+          style={look(FAMILY.amber)}>
           <Fact label="Makes" value={makes} />
           <Fact label="Prep" value={recipe.prep_time ?? "—"} />
           <Fact label="Cooking" value={recipe.cook_time ?? "—"} />
         </section>
 
         {variants.length > 0 && (
-          <section className="rounded-2xl px-4 py-3 grid gap-1.5" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+          <section className="rounded-2xl px-4 py-3 grid gap-1.5" style={look(FAMILY.violet)}>
             <p className="m-0 text-[10px] font-semibold uppercase tracking-wide" style={{ color: B.muted2 }}>Your family&apos;s versions</p>
             {variants.map((v) => (
               <Link key={v.id} href={`/recipes/${v.id}`} className="text-sm font-semibold" style={{ color: B.violet }}>{v.name} →</Link>
@@ -144,7 +144,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
         {/* Ingredients */}
         <section className="rounded-2xl px-4 py-4 grid gap-2.5"
-          style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+          style={look(FAMILY.blue)}>
           <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>What goes in</h2>
           <ul className="grid gap-1.5 m-0 p-0" style={{ listStyle: "none" }}>
             {(recipe.ingredients ?? []).map((line: string, i: number) => (
@@ -158,7 +158,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
         {/* Method */}
         <section className="rounded-2xl px-4 py-4 grid gap-2.5"
-          style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+          style={look(FAMILY.blue)}>
           <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>How it&apos;s made</h2>
           <ol className="grid gap-2.5 m-0 p-0" style={{ listStyle: "none" }}>
             {(recipe.method ?? []).map((step: string, i: number) => (
@@ -178,7 +178,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
         {/* Nutrition */}
         <section className="rounded-2xl px-4 py-4 grid gap-3"
-          style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+          style={look(FAMILY.amber)}>
           <div>
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
               Per {unit}
@@ -208,7 +208,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         {/* Ayurveda */}
         {dish?.virya && (
           <section className="rounded-2xl px-4 py-4 grid gap-2"
-            style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+            style={look(FAMILY.violet)}>
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "#B07C12" }}>
               In Ayurveda
             </h2>

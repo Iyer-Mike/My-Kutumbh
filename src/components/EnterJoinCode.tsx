@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 /**
  * Where a newcomer types the number they were told.
@@ -58,8 +59,8 @@ export default function EnterJoinCode({ link, kutumbhHint }: { link?: string; ku
           aria-describedby="join-code-help"
           className="w-full text-center rounded-2xl py-4 font-bold tabular-nums"
           style={{
-            fontSize: "1.9rem", letterSpacing: "0.3em", color: "#241C33",
-            background: "#fff", border: "1.5px solid #CBB4EE",
+            fontSize: "1.9rem", letterSpacing: "0.3em",
+            ...fieldLook(FAMILY.amber),
           }}
         />
         <p id="join-code-help" className="text-xs mt-2 m-0 text-center" style={{ color: "#6A6180" }}>
@@ -71,7 +72,7 @@ export default function EnterJoinCode({ link, kutumbhHint }: { link?: string; ku
 
       {error && (
         <p className="text-sm text-center m-0 rounded-xl px-3 py-2.5"
-          style={{ background: "#FBE2DC", color: "#9A2C1B" }}>
+          style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
           {error}
         </p>
       )}

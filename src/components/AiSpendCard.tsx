@@ -1,3 +1,4 @@
+import { FAMILY, look } from "@/lib/brand";
 import { MONTH_FAMILY_RUPEES, DAY_PERSON_RUPEES } from "@/lib/ai-budget";
 
 /** Whole rupees, always. Anything under one rupee is said in words. */
@@ -13,7 +14,7 @@ export default function AiSpendCard({ familyRupees, myRupees }: { familyRupees: 
   const spent = familyRupees >= MONTH_FAMILY_RUPEES;
 
   return (
-    <section className="rounded-2xl px-4 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+    <section className="rounded-2xl px-4 py-4" style={look(FAMILY.amber)}>
       <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#6A6180" }}>
         AI this month
       </p>

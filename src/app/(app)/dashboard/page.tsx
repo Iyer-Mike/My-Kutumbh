@@ -1,3 +1,4 @@
+import { FAMILY } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
 import KutumbhLogo from "@/components/KutumbhLogo";
 import WhatsForToday, { type MealSuggestion } from "@/components/WhatsForToday";
@@ -328,7 +329,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <div className="mt-3">
             <Link href={festOff === 0 ? "/dashboard" : `/dashboard?date=${nextFest.date}&fest=1`}
               className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
-              style={{ background: "#fff", border: "1px solid #E0D4F2", borderLeft: "6px solid #F5B82E", minHeight: 60 }}>
+              style={{ background: "#fff", border: `2.5px solid ${FAMILY.gold.edge}`, borderLeft: "6px solid #F5B82E", minHeight: 60 }}>
               <span className="flex items-start gap-2 min-w-0">
                 <span aria-hidden className="text-base leading-5">🪔</span>
                 <span className="min-w-0">

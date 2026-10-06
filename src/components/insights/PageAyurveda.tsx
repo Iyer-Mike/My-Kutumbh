@@ -2,6 +2,7 @@
 
 import type { AyurvedaSummary, Rasa } from "@/lib/insights/ayurveda";
 import { Card, Label, Says, C, T } from "./bits";
+import { FAMILY, look } from "@/lib/brand";
 
 /**
  * 4 · Ayurvedic Analysis
@@ -102,10 +103,7 @@ export default function PageAyurveda({
               <div
                 key={d}
                 className="flex-1 rounded-xl px-2 py-2 text-center"
-                style={{
-                  background: mine ? "#FBEBCB" : "#F3EEFA",
-                  border: mine ? "1px solid #F2B531" : `1px solid ${C.rule}`,
-                }}
+                style={mine ? { background: "#FBEBCB", border: "2.5px solid #F2B531" } : look(FAMILY.violet)}
               >
                 <p className="m-0 font-bold capitalize" style={{ fontSize: T.body, color: C.ink }}>
                   {d}{mine ? " ★" : ""}

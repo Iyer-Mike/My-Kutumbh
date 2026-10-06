@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { FAMILY, look } from "@/lib/brand";
 
 /**
  * The parts the four Insights pages are built from.
@@ -34,11 +35,11 @@ export function Card({ children, tone = "plain", style }: {
   style?: CSSProperties;
 }) {
   const skin =
-    tone === "warn" ? { background: C.warnBg, border: `1px solid ${C.warnRule}` }
-    : tone === "gold" ? { background: C.goldBg, border: `1px solid ${C.goldRule}` }
+    tone === "warn" ? look(FAMILY.red)
+    : tone === "gold" ? look(FAMILY.gold)
     : tone === "sky" ? { background: "#CFE4FA", border: "1px solid #7FB0E0", borderLeft: "7px solid #2E64A0" }
     : tone === "mint" ? { background: "#FFE2B8", border: "1px solid #E8A857", borderLeft: "7px solid #C2551F" }
-    : { background: C.card, border: `1px solid ${C.rule}` };
+    : look(FAMILY.violet);
 
   return <section className="rounded-2xl px-4 py-4" style={{ ...skin, ...style }}>{children}</section>;
 }

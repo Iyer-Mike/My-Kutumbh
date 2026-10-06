@@ -1,6 +1,7 @@
 import Link from "next/link";
 import LegalDoc from "@/components/LegalDoc";
 import { TERMS } from "@/lib/legal";
+import { FAMILY, look } from "@/lib/brand";
 
 export const metadata = { title: "Using My Kutumbh" };
 
@@ -17,7 +18,7 @@ export default function TermsPage() {
       <div className="mx-auto" style={{ maxWidth: 560 }}>
         <div
           className="rounded-3xl px-6 py-7"
-          style={{ background: "#fff", border: "1px solid #E0D4F2", boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
+          style={{ ...look(FAMILY.violet), boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
         >
           <p className="m-0 mb-4 text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
             My Kutumbh

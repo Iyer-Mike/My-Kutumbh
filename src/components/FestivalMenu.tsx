@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { SLOTS } from "@/lib/meal-slots";
 import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
 import { microCells, nutrientCells, sum, type Nutr } from "@/lib/serving-nutrition";
@@ -196,7 +197,7 @@ export default function FestivalMenu(p: Props) {
   return (
     <div className="flex flex-col gap-3">
       {/* Festival strip */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E4DBF0" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: `2.5px solid ${FAMILY.violet.edge}` }}>
         <div className="flex items-center justify-between px-3" style={{ background: PLUM, height: 48 }}>
           <Link href="/festivals" className="text-sm font-semibold text-white flex items-center" style={{ minHeight: 44 }}>‹ Festival days</Link>
           <span className="text-sm font-bold" style={{ color: "#F5B82E" }}>{when}</span>
@@ -305,7 +306,7 @@ export default function FestivalMenu(p: Props) {
 
                 <div className="px-3 pb-3 pt-2 flex flex-col gap-1.5">
                   {ps.map((x) => (
-                    <div key={x.id} className="flex items-center gap-3 px-2.5 rounded-xl" style={{ minHeight: 48, background: "#fff", border: "1.5px solid #D9CBF0" }}>
+                    <div key={x.id} className="flex items-center gap-3 px-2.5 rounded-xl" style={{ minHeight: 48, background: "#fff", border: `2px solid ${FAMILY.blue.edge}` }}>
                       <span className="flex flex-col min-w-0 text-left">
                         <span className="text-sm" style={{ color: INK }}>{x.food_name}</span>
                         <span className="text-xs" style={{ color: MUTED }}>
@@ -332,7 +333,7 @@ export default function FestivalMenu(p: Props) {
                               {DISH_TYPES.map((c) => (
                                 <button key={c.key} onClick={() => approve(s, c.key)} disabled={busy}
                                   className="px-2.5 rounded-full text-xs font-medium disabled:opacity-50"
-                                  style={{ minHeight: 44, background: "#fff", color: INK, border: "1px solid #CBBDE4" }}>{c.icon} {c.label}</button>
+                                  style={{ minHeight: 44, background: "#fff", color: INK, border: `2px solid ${FAMILY.blue.edge}` }}>{c.icon} {c.label}</button>
                               ))}
                             </div>
                             <button onClick={() => setKindFor(null)} className="text-xs font-semibold underline pt-1" style={{ color: PLUM, minHeight: 44 }}>Cancel</button>
@@ -368,12 +369,12 @@ export default function FestivalMenu(p: Props) {
                   )}
 
                   {!isPrime && suggesting === key && (
-                    <div className="rounded-xl px-3 py-3 flex flex-col gap-2" style={{ background: "#fff", border: "1.5px solid #C9DDF3" }}>
+                    <div className="rounded-xl px-3 py-3 flex flex-col gap-2" style={look(FAMILY.amber)}>
                       <input value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); }} placeholder="Search, or type your own dish"
                         aria-label="Search a dish" className="w-full rounded-xl px-3 py-2 text-sm"
-                        style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: INK, outline: "none" }} />
+                        style={fieldLook(FAMILY.amber)} />
                       {!chosen && (
-                        <div className="rounded-xl overflow-y-auto" style={{ border: "1px solid #E0D4F2", maxHeight: 240 }}>
+                        <div className="rounded-xl overflow-y-auto" style={{ ...fieldLook(FAMILY.amber), maxHeight: 240 }}>
                           {(query.trim() ? found : (p.quickPicks[key] ?? [])).filter((f) => !ps.some((x) => x.food_name === f.name)).map((f, i) => (
                             <button key={f.id} type="button" onClick={() => setChosen(f)} className="w-full text-left px-3 py-2 text-sm flex justify-between gap-2"
                               style={{ borderTop: i ? "1px solid #F0EAFA" : undefined, color: INK, minHeight: 44 }}>
@@ -395,7 +396,7 @@ export default function FestivalMenu(p: Props) {
                           {!chosen.id && <p className="m-0 text-xs" style={{ color: "#8A5A06" }}>Your own dish. The Key Member will say what kind it is when approving.</p>}
                           <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Add a note (optional)"
                             aria-label="Note" className="w-full rounded-xl px-3 py-2 text-sm"
-                            style={{ border: "1.5px solid #CBBDE4", background: "#FAF7FE", color: INK, outline: "none" }} />
+                            style={fieldLook(FAMILY.amber)} />
                           <button onClick={() => sendSuggestion(key)} disabled={busy} className={`${pill} text-white disabled:opacity-50`} style={{ background: PLUM, minHeight: 44 }}>
                             Send to the Key Member
                           </button>

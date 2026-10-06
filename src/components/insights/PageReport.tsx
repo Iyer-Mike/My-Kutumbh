@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { LabFlag } from "@/lib/insights/types";
 import type { Gap } from "@/lib/insights/actions";
 import { Card, Label, Says, C, T, qty } from "./bits";
+import { FAMILY, look } from "@/lib/brand";
 
 /**
  * 3 · Your Lab Report
@@ -148,7 +149,7 @@ export default function PageReport({
 
       {/* Everything with no food bearing on it */}
       {other.length > 0 && (
-        <div className="rounded-2xl px-4 py-3" style={{ background: "#F3EEFA", border: `1px dashed #D6C9EA` }}>
+        <div className="rounded-2xl px-4 py-3" style={look(FAMILY.violet)}>
           <p className="m-0" style={{ fontSize: T.note, color: C.ink3, lineHeight: 1.5 }}>
             {other.reduce((n, f) => n + f.readings.length, 0)} more outside range, no food advice:{" "}
             {other.flatMap((f) => f.readings.map((r) => `${r.label} ${qty(r.value)}`)).slice(0, 3).join(", ")} → ask your doctor

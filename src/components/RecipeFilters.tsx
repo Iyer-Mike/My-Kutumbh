@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, fieldLook } from "@/lib/brand";
 import { CUISINES, DISH_TYPES } from "@/lib/food-taxonomy";
 
 /** Search and the same three layers as the menu, kept in the address bar. */
@@ -19,7 +19,7 @@ export default function RecipeFilters({ q, cuisine, diet, type }: {
     router.push(`/recipes?${params.toString()}`);
   }
 
-  const select = { border: `1.5px solid ${B.cardEdge}`, background: "#fff", color: B.ink, outline: "none" } as const;
+  const select = { ...fieldLook(FAMILY.amber), color: B.ink } as const;
 
   return (
     <div className="grid gap-2">
@@ -29,7 +29,7 @@ export default function RecipeFilters({ q, cuisine, diet, type }: {
           onKeyDown={(e) => { if (e.key === "Enter") go({}); }}
           placeholder="Search a dish…" maxLength={60}
           className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm"
-          style={{ border: `1.5px solid ${B.cardEdge}`, background: B.field, color: B.ink, outline: "none" }} />
+          style={{ ...fieldLook(FAMILY.amber), color: B.ink }} />
         <button onClick={() => go({})} className="px-4 rounded-xl text-sm font-semibold text-white"
           style={{ background: B.button }}>
           Search

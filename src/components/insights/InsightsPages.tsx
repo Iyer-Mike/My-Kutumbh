@@ -12,6 +12,7 @@ import PageReport from "./PageReport";
 import PageAyurveda from "./PageAyurveda";
 import Beginning from "./Beginning";
 import { C, T } from "./bits";
+import { FAMILY, fieldLook } from "@/lib/brand";
 
 /**
  * Insights, in four pages.
@@ -296,7 +297,7 @@ export default function InsightsPages({
                 Close
               </button>
             </div>
-            <div className="mt-3 rounded-xl p-3" style={{ background: "#fff" }}>
+            <div className="mt-3 rounded-xl p-3" style={fieldLook(FAMILY.gold)}>
               <CoachChat
                 memberId={memberId}
                 firstName={firstName}

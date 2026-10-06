@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { IntakeSummary, Needs, Profile } from "@/lib/insights/types";
 import type { Gap } from "@/lib/insights/actions";
 import { Card, Label, Bar, Says, C, T, num, qty } from "./bits";
+import { FAMILY, look } from "@/lib/brand";
 
 /**
  * 2 · Food Intake Analysis
@@ -97,7 +98,7 @@ export default function PageIntake({
             { v: `${Math.round(needs.fiber_g.value)} g`, k: "fibre" },
             { v: `${(needs.sodium_mg.value / 1000).toFixed(1)} g`, k: "salt max" },
           ].map((t) => (
-            <div key={t.k} className="flex-1 rounded-xl px-2 py-2 text-center" style={{ background: "#F3EEFA" }}>
+            <div key={t.k} className="flex-1 rounded-xl px-2 py-2 text-center" style={look(FAMILY.violet)}>
               <p className="m-0 font-bold tabular-nums" style={{ fontSize: T.say, color: C.ink }}>{t.v}</p>
               <p className="m-0 mt-0.5" style={{ fontSize: T.label, color: C.ink3 }}>{t.k}</p>
             </div>

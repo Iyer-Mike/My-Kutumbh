@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look } from "@/lib/brand";
 
 /** Shown on a family recipe that is still waiting for the Key Member. */
 export default function RecipeApproval({ recipeId, canApprove }: { recipeId: number; canApprove: boolean }) {
@@ -30,7 +30,7 @@ export default function RecipeApproval({ recipeId, canApprove }: { recipeId: num
   }
 
   return (
-    <section data-print-hide className="rounded-2xl px-4 py-4 grid gap-3" style={{ background: B.goldTint, border: "1px solid #EBCB85" }}>
+    <section data-print-hide className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.gold)}>
       <p className="text-sm" style={{ color: "#7A5A06" }}>
         {canApprove
           ? "Awaiting your approval · then visible to the family."

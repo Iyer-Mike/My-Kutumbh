@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { markNoticeRead, replyToAdmin } from "@/app/(app)/admin/actions";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 export type Notice = {
   id: string;
@@ -36,7 +37,7 @@ export default function NoticesCard({ notices, isPrime }: { notices: Notice[]; i
   };
 
   return (
-    <section className="rounded-2xl px-4 py-4" style={{ background: "#FFFBF2", border: "1px solid #EBD9B4" }}>
+    <section className="rounded-2xl px-4 py-4" style={look(FAMILY.gold)}>
       <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-3" style={{ color: "#8A5A06" }}>
         For your Kutumbh
       </p>
@@ -80,7 +81,7 @@ export default function NoticesCard({ notices, isPrime }: { notices: Notice[]; i
                   maxLength={1200}
                   placeholder="Say whatever is useful — it goes only to the person who looks after the app."
                   className="w-full text-sm rounded-lg px-3 py-2"
-                  style={{ background: "#fff", border: "1px solid #EBD9B4", color: "#241C33" }}
+                  style={fieldLook(FAMILY.gold)}
                 />
                 {error && <p className="text-xs mt-1 mb-0" style={{ color: "#B0453A" }}>{error}</p>}
                 <button

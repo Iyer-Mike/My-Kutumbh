@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { FAMILY, look } from "@/lib/brand";
 import { SLOTS } from "@/lib/meal-slots";
 import { dayLabel } from "@/lib/dates";
 import { useFamilyTimeZone } from "@/lib/family-time";
@@ -258,7 +259,7 @@ export default function WhatsForToday({
 
   return (
     <div className="flex flex-col gap-3">
-     <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E4DBF0" }}>
+     <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: `2.5px solid ${FAMILY.violet.edge}` }}>
       {/* Title bar */}
       <div className="flex items-stretch gap-0.5 px-1.5" style={{ background: PLUM, height: 48 }}>
         <Link href="/dashboard" aria-current={isToday ? "page" : undefined} className={tabBase}
@@ -272,7 +273,7 @@ export default function WhatsForToday({
           Tomorrow
         </Link>
       </div>
-      <p className="px-3 py-2 text-xs leading-4" style={{ background: "#F7F3FC", color: MUTED, borderBottom: "1px solid #E4DBF0" }}>
+      <p className="px-3 py-2 text-xs leading-4" style={{ background: "#F7F3FC", color: MUTED, borderBottom: `1px solid ${FAMILY.violet.line}` }}>
         {festivalTab ? `🪔 ${festivalTab} · ` : ""}
         {isPrime
           ? "You set the menu · the family sees it"
@@ -352,7 +353,7 @@ export default function WhatsForToday({
 
             {isOpen && (
               <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
-                <div className="rounded-xl px-3 py-2 grid gap-1.5" style={{ background: "#fff", border: "1px solid #C9DDF3" }}>
+                <div className="rounded-xl px-3 py-2 grid gap-1.5" style={{ background: "#fff", border: `2px solid ${COOL.edge}` }}>
                   <p className="m-0 text-[11px] font-semibold" style={{ color: MUTED }}>Against this meal&apos;s {Math.round(share * 100)}% of the day{projected(key) ? " · ~ from the menu" : ""}</p>
                   {BARS.map((g) => {
                     const need = (g.key === "kcal" ? targets.kcal : g.key === "p" ? targets.p : g.key === "c" ? targets.c : targets.fi) * share;
@@ -399,7 +400,7 @@ export default function WhatsForToday({
                   );
                   const lg = logFor(key, p);
                   return canLog ? (
-                    <div key={p.id} className="rounded-xl" style={{ border: `1.5px solid ${on ? PLUM : "#D9CBF0"}`, background: on ? "#EDE4F8" : "#fff" }}>
+                    <div key={p.id} className="rounded-xl" style={{ border: `2px solid ${on ? PLUM : FAMILY.blue.edge}`, background: on ? "#EDE4F8" : "#fff" }}>
                       <button onClick={() => tapDish(key, p)} aria-pressed={on} disabled={busy}
                         className="flex items-center gap-3 w-full px-2.5" style={{ minHeight: 52 }}>
                         <span className="w-[26px] h-[26px] rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm"
@@ -414,7 +415,7 @@ export default function WhatsForToday({
                 })}
 
                 {extra.map((l) => (
-                  <div key={l.id} className="rounded-xl pb-2" style={{ background: "#F7F3FC" }}>
+                  <div key={l.id} className="rounded-xl pb-2" style={look(FAMILY.green)}>
                     <div className="flex items-center justify-between gap-2 px-2.5" style={{ minHeight: 44 }}>
                       <span className="text-sm" style={{ color: INK }}>{l.food_name} <span className="text-xs" style={{ color: MUTED }}>· logged by you</span></span>
                       <button onClick={async () => {
@@ -427,7 +428,7 @@ export default function WhatsForToday({
                 ))}
 
                 {canLog && ps.length === 0 && ls.length === 0 && sug && sug.items.length > 0 && (
-                  <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: "#F3ECFC" }}>
+                  <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={look(FAMILY.violet)}>
                     <div className="min-w-0 flex-1">
                       <p className="text-[11px] font-semibold" style={{ color: "#6B46B8" }}>{whyText(sug)}</p>
                       <p className="text-sm truncate" style={{ color: INK }}>{sug.items.map((i) => i.food_name).join(", ")}</p>
@@ -468,7 +469,7 @@ export default function WhatsForToday({
 
       {error && <p className="px-3 py-2 text-xs" style={{ color: "#B42318" }}>{error}</p>}
       {undo && (
-        <div className="px-3 flex items-center justify-between text-sm" style={{ background: "#F3ECFC", color: PLUM }}>
+        <div className="px-3 flex items-center justify-between text-sm" style={{ ...look(FAMILY.violet), color: PLUM }}>
           <span>{undo.text}</span>
           <button onClick={undoLog} className="font-bold underline px-3" style={{ minHeight: 44 }}>Undo</button>
         </div>

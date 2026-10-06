@@ -5,9 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SLOTS } from "@/lib/meal-slots";
-import { dayLabel } from "@/lib/dates";
 import { useFamilyTimeZone } from "@/lib/family-time";
-import { microCells, nutrientCells, scaled, sum, type Nutr } from "@/lib/serving-nutrition";
+import { scaled, sum, type Nutr } from "@/lib/serving-nutrition";
 import PlanSlotCard, { type PlanItem, type QuickPick } from "./PlanSlotCard";
 
 export type MealSuggestion = {
@@ -43,7 +42,8 @@ type Plan = PlanItem & { meal_slot: string; food_item_id: string | null; n: Nutr
 type Props = {
   logs: Log[];
   suggestions: MealSuggestion[];
-  dailyKcalGoal: number | null;
+  /** Day needs from the profile (ICMR-NIN), for the rings */
+  targets: { kcal: number; p: number; c: number; fi: number };
   day: string;
   today: string;
   tomorrow: string;
@@ -86,7 +86,7 @@ const PLUM = "#3B1F5C";
 const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, targets, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -232,7 +232,6 @@ export default function WhatsForToday({
   const valueOf = (slot: string) => (fromMenu(slot) ? plannedOf(slot) : eatenOf(slot));
   const projected = (slot: string) => canLog && slotLogs(slot).length === 0 && slotPlans(slot).length > 0;
   const anyProjected = SLOTS.some((s) => projected(s.key));
-  const dayTotal = sum(SLOTS.map((s) => valueOf(s.key)));
   const noValues = SLOTS.reduce((t, s) => t + (fromMenu(s.key)
     ? slotPlans(s.key).filter((p) => !p.n).length
     : slotLogs(s.key).filter((l) => !l.n).length), 0);
@@ -242,107 +241,75 @@ export default function WhatsForToday({
   const isToday = day === today;
   const isTomorrow = day === tomorrow;
 
-  return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E4DBF0" }}>
-      {/* Title bar */}
-      <div className="flex items-stretch gap-0.5 px-1.5" style={{ background: PLUM, height: 48 }}>
-        <Link href="/dashboard" aria-current={isToday ? "page" : undefined} className={tabBase}
-          style={{ display: "flex", alignItems: "center", borderColor: isToday ? "#F5B82E" : "transparent",
-                   color: isToday ? "#fff" : "#C9B8E4", fontWeight: isToday ? 700 : 500 }}>
-          {isToday || isTomorrow ? "What\u2019s for Today" : "Today"}
-        </Link>
-        <Link href={`/dashboard?date=${tomorrow}`} aria-current={isTomorrow ? "page" : undefined} className={tabBase}
-          style={{ display: "flex", alignItems: "center", borderColor: isTomorrow ? "#F5B82E" : "transparent",
-                   color: isTomorrow ? "#fff" : "#C9B8E4", fontWeight: isTomorrow ? 700 : 500 }}>
-          Tomorrow
-        </Link>
-        {festivalTab && !isToday && !isTomorrow ? (
-          <Link href="/festivals" aria-current="page" className={`${tabBase} min-w-0`}
-            style={{ display: "flex", alignItems: "center", gap: 4, borderColor: "#F5B82E", color: "#fff", fontWeight: 700 }}>
-            <span aria-hidden>🪔</span> <span className="truncate">{festivalTab}</span>
-          </Link>
-        ) : (
-          <>
-            <Link href="/festivals" className={tabBase}
-              style={{ display: "flex", alignItems: "center", gap: 4, borderColor: "transparent", color: "#F5B82E", fontWeight: 600 }}>
-              <span aria-hidden>🪔</span> Festivals
-            </Link>
-            {!isToday && !isTomorrow && (
-              <span className={`${tabBase} min-w-0`} style={{ display: "flex", alignItems: "center", borderColor: "#F5B82E", color: "#fff", fontWeight: 700 }}>
-                <span className="truncate">{dayLabel(day, tz)}</span>
-              </span>
-            )}
-          </>
-        )}
-      </div>
-      <p className="px-3 py-2 text-xs leading-4" style={{ background: "#F7F3FC", color: MUTED, borderBottom: "1px solid #E4DBF0" }}>
-        {isPrime
-          ? "You set the menu · the family sees it"
-          : "Menu set by your Key Member · tap a dish to log it"}
-      </p>
 
-      {/* Food values: first thing under the title bar, right after every log */}
-      <div className="px-3 py-3 flex flex-col gap-2.5" style={{ background: INK }} aria-live="polite">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="m-0 text-sm font-bold text-white">{canLog ? "Food values today" : "Food values of the menu"}</p>
-          <p className="m-0 text-xs" style={{ color: "#C9B8E4" }}>
-            {Math.round(dayTotal.kcal)} kcal{canLog && dailyKcalGoal ? ` of ${dailyKcalGoal}` : ""}
-          </p>
+  // ── The four tiles. Morning snack lives inside Breakfast. Each tile's rings
+  // fill by what was taken against that meal's share of the day's need.
+  const TILES = [
+    { id: "breakfast",     title: "Breakfast",     sub: "with morning snack", slots: ["breakfast", "morning_snack"], share: 0.30 },
+    { id: "lunch",         title: "Lunch",         sub: "",                   slots: ["lunch"],                       share: 0.35 },
+    { id: "evening_snack", title: "Evening snack", sub: "",                   slots: ["evening_snack"],               share: 0.10 },
+    { id: "dinner",        title: "Dinner",        sub: "",                   slots: ["dinner"],                      share: 0.25 },
+  ];
+  const tileHas = (t: typeof TILES[number]) => t.slots.some((k) => (canLog ? slotLogs(k).length : slotPlans(k).length) > 0);
+  const tilesDone = TILES.filter(tileHas).length;
+  const anyOpen = TILES.some((t) => open[t.id]);
+  const RING = [
+    { key: "kcal", name: "Energy",  unit: "kcal", color: "#FF2E93", target: targets.kcal },
+    { key: "p",    name: "Protein", unit: "g",    color: "#00E5FF", target: targets.p },
+    { key: "c",    name: "Carbs",   unit: "g",    color: "#FFE600", target: targets.c },
+    { key: "fi",   name: "Fibre",   unit: "g",    color: "#39FF14", target: targets.fi },
+  ] as const;
+
+  function Rings({ t, size }: { t: typeof TILES[number]; size: number }) {
+    const total = sum(t.slots.map((k) => valueOf(k)));
+    const proj = t.slots.some((k) => projected(k)) && !t.slots.some((k) => !fromMenu(k));
+    const c = size / 2, sw = size * 0.085, gap = sw + 3;
+    return (
+      <>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block mx-auto" role="img"
+          aria-label={RING.map((g) => `${g.name} ${Math.round(total[g.key])} of ${Math.round(g.target * t.share)} ${g.unit}`).join(", ")}>
+          {RING.map((g, i) => {
+            const r = c - sw / 2 - 2 - i * gap;
+            const circ = 2 * Math.PI * r;
+            const need = g.target * t.share;
+            const f = need > 0 ? Math.min(1, total[g.key] / need) : 0;
+            return (
+              <g key={g.key}>
+                <circle cx={c} cy={c} r={r} fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth={sw} />
+                {f > 0 && (
+                  <circle cx={c} cy={c} r={r} fill="none" stroke={g.color} strokeWidth={sw} strokeLinecap="round"
+                    strokeDasharray={circ} strokeDashoffset={circ * (1 - f)} transform={`rotate(-90 ${c} ${c})`}
+                    opacity={proj ? 0.55 : 1} />
+                )}
+              </g>
+            );
+          })}
+        </svg>
+        <div className="grid gap-1 mt-2">
+          {RING.map((g) => {
+            const need = Math.round(g.target * t.share);
+            const have = Math.round(total[g.key] * (g.key === "kcal" ? 1 : 10)) / (g.key === "kcal" ? 1 : 10);
+            return (
+              <div key={g.key} className="flex items-center gap-1.5 text-[10px] leading-4" style={{ color: "#C9B8E4" }}>
+                <i className="w-2 h-2 rounded-full flex-none" style={{ background: g.color }} aria-hidden />
+                <span className="flex-1">{g.name}</span>
+                <b className="text-white" style={proj ? { opacity: 0.7 } : undefined}>{proj && have ? "~" : ""}{have}<span className="font-normal" style={{ color: "#C9B8E4" }}>/{need} {g.unit}</span></b>
+              </div>
+            );
+          })}
         </div>
-        {canLog && dailyKcalGoal ? (
-          <div className="rounded-full h-1.5 overflow-hidden" style={{ background: "rgba(255,255,255,0.15)" }}>
-            <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, Math.round((dayTotal.kcal / dailyKcalGoal) * 100))}%`, background: dayTotal.kcal >= dailyKcalGoal ? "#E07B39" : "#F5B82E" }} />
-          </div>
-        ) : null}
-        <div className="grid grid-cols-5 gap-1">
-          {SLOTS.map((s) => (
-            <div key={s.key} className="flex flex-col min-w-0">
-              <span className="text-sm font-bold leading-[18px] text-white" style={projected(s.key) ? { opacity: 0.65 } : undefined}>{Math.round(valueOf(s.key).kcal) ? `${projected(s.key) ? "~" : ""}${Math.round(valueOf(s.key).kcal)}` : "–"}</span>
-              <span className="text-[10px] leading-3 truncate" style={{ color: "#C9B8E4" }}>{s.label.replace(" Snack", " snack")}</span>
-            </div>
-          ))}
-        </div>
-        <div className="pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}>
-          <Values title="" color="#C9B8E4" dark cells={nutrientCells(dayTotal)} />
-        </div>
-        <Values title="" color="#C9B8E4" dark cells={microCells(dayTotal)} />
-        {!anything && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{canLog ? "Plan or log a dish to see values" : "Add dishes to see values"}</p>}
-        {anyProjected && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>~ From the menu · your log replaces it</p>}
-        {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>{noValues} {noValues === 1 ? "dish" : "dishes"} without values · excluded</p>}
-        <p className="m-0 text-[11px]" style={{ color: "#C9B8E4" }}>Estimates · IFCT-based</p>
-      </div>
+      </>
+    );
+  }
 
-      {SLOTS.map(({ key, label, icon, time }) => {
-        const ps = slotPlans(key);
-        const ls = slotLogs(key);
-        const isOpen = !!open[key];
-        const kcalHere = Math.round(valueOf(key).kcal);
-        const extra = ls.filter((l) => !ps.some((p) => same(p, l)));
-        const sug = suggestions.find((x) => x.meal_slot === key);
-        const eatenCount = ps.filter((p) => logFor(key, p)).length;
-        const summary = ps.length
-          ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten${kcalHere ? ` · ${kcalHere} kcal` : ""}` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}${kcalHere ? ` · ~${kcalHere} kcal` : ""}`)
-          : (ls.length ? `${ls.length} logged` : "Not planned yet");
-
-        return (
-          <div key={key} style={{ borderBottom: "1px solid #E4DBF0" }}>
-            <button onClick={() => setOpen((o) => ({ ...o, [key]: !o[key] }))} aria-expanded={isOpen}
-              className="w-full flex items-center justify-between gap-2 px-3 text-left"
-              style={{ minHeight: 60, background: isOpen ? "#EFE6FA" : "#fff" }}>
-              <span className="flex items-center gap-3 min-w-0">
-                <span className="text-lg" aria-hidden>{icon}</span>
-                <span className="flex flex-col min-w-0">
-                  <span className="text-sm font-bold" style={{ color: INK }}>{label}</span>
-                  <span className="text-xs" style={{ color: MUTED }}>{summary} · {time}</span>
-                </span>
-              </span>
-              <span className="flex items-center gap-2 flex-shrink-0">
-                                <span aria-hidden style={{ color: PLUM, transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
-              </span>
-            </button>
-
-            {isOpen && (
-              <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
+  function slotBody(def: { key: string; label: string; icon: string; time: string }) {
+    const { key, label, icon, time } = def;
+    const ps = slotPlans(key);
+    const ls = slotLogs(key);
+    const extra = ls.filter((l) => !ps.some((p) => same(p, l)));
+    const sug = suggestions.find((x) => x.meal_slot === key);
+    return (
+<div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
                 {!isPrime && ps.length === 0 && ls.length === 0 && (
                   <p className="text-sm italic py-1" style={{ color: MUTED }}>The Key Member has not planned this meal yet.</p>
                 )}
@@ -435,11 +402,91 @@ export default function WhatsForToday({
                 )}
 
               </div>
-            )}
-          </div>
-        );
-      })}
+    );
+  }
 
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Day strip: Today and Tomorrow */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E4DBF0" }}>
+        <div className="flex items-stretch gap-0.5 px-1.5" style={{ background: PLUM, height: 48 }}>
+          <Link href="/dashboard" aria-current={isToday ? "page" : undefined} className={tabBase}
+            style={{ display: "flex", alignItems: "center", borderColor: isToday ? "#F5B82E" : "transparent",
+                     color: isToday ? "#fff" : "#C9B8E4", fontWeight: isToday ? 700 : 500 }}>
+            Today
+          </Link>
+          <Link href={`/dashboard?date=${tomorrow}`} aria-current={isTomorrow ? "page" : undefined} className={tabBase}
+            style={{ display: "flex", alignItems: "center", borderColor: isTomorrow ? "#F5B82E" : "transparent",
+                     color: isTomorrow ? "#fff" : "#C9B8E4", fontWeight: isTomorrow ? 700 : 500 }}>
+            Tomorrow
+          </Link>
+        </div>
+        <p className="px-3 py-2 text-xs leading-4 m-0" style={{ background: "#F7F3FC", color: MUTED }}>
+          {festivalTab ? `🪔 ${festivalTab} · ` : ""}
+          {isPrime ? "You set the menu · the family sees it" : "Menu set by your Key Member · tap a dish to log it"}
+        </p>
+      </div>
+
+      {/* Tiles */}
+      <div className="relative grid grid-cols-2 gap-2.5" aria-live="polite">
+        {TILES.map((t) => {
+          const isOpen = !!open[t.id];
+          const tileKcal = Math.round(sum(t.slots.map((k) => valueOf(k))).kcal);
+          const proj = t.slots.some((k) => projected(k));
+          const status = tileHas(t)
+            ? `${proj && !t.slots.some((k) => !fromMenu(k)) ? "~ from the menu" : canLog ? "logged" : "planned"}`
+            : "not planned yet";
+          return (
+            <section key={t.id} className={`rounded-3xl px-3 pt-3 pb-3 ${isOpen ? "col-span-2" : ""}`}
+              style={{ background: INK, border: "1px solid rgba(255,255,255,0.10)" }}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="m-0 text-sm font-bold text-white">{t.title}</h3>
+                  <p className="m-0 text-[10px] leading-4" style={{ color: "#C9B8E4" }}>{t.sub ? `${t.sub} · ` : ""}{status}</p>
+                </div>
+                <button onClick={() => setOpen((o) => ({ ...o, [t.id]: !o[t.id] }))} aria-expanded={isOpen}
+                  className="flex-none px-3 rounded-full text-xs font-bold"
+                  style={{ minHeight: 36, background: isOpen ? "#F5B82E" : "rgba(255,255,255,0.14)", color: isOpen ? INK : "#fff" }}>
+                  {isOpen ? "Done" : "Edit"}
+                </button>
+              </div>
+              <div className="mt-2" style={isOpen ? { display: "grid", gridTemplateColumns: "112px 1fr", gap: 14, alignItems: "center" } : undefined}>
+                <Rings t={t} size={isOpen ? 112 : 108} />
+                {isOpen && <p className="m-0 text-xs" style={{ color: "#C9B8E4" }}>{tileKcal ? `${proj && !t.slots.some((k) => !fromMenu(k)) ? "~" : ""}${tileKcal} kcal` : "No values yet"}</p>}
+              </div>
+              {isOpen && (
+                <div className="mt-3 rounded-2xl" style={{ background: "#fff" }}>
+                  {t.slots.map((k) => {
+                    const def = SLOTS.find((x) => x.key === k)!;
+                    return (
+                      <div key={k} className="px-3 pt-3 pb-1">
+                        {t.slots.length > 1 && <p className="m-0 mb-1 text-[11px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>{def.label}</p>}
+                        {slotBody(def)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })}
+        {!anyOpen && (
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full px-3 py-1.5 text-center leading-tight pointer-events-none"
+            style={{ background: PLUM, color: "#fff", border: "3px solid #F3EEFA", fontSize: 11 }}>
+            {canLog ? "Meals logged" : "Meals planned"}
+            <b className="block" style={{ fontSize: 15, color: "#F5B82E" }}>{tilesDone} of {TILES.length}</b>
+            {canLog ? "today" : "that day"}
+          </div>
+        )}
+      </div>
+
+      {anything && (
+        <div className="px-1 flex flex-col gap-0.5">
+          {anyProjected && <p className="m-0 text-[11px]" style={{ color: MUTED }}>~ From the menu · your log replaces it</p>}
+          {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: MUTED }}>{noValues} {noValues === 1 ? "dish" : "dishes"} without values · excluded</p>}
+          <p className="m-0 text-[11px]" style={{ color: MUTED }}>Estimates · IFCT-based</p>
+        </div>
+      )}
       {error && <p className="px-3 py-2 text-xs" style={{ color: "#B42318" }}>{error}</p>}
       {undo && (
         <div className="px-3 flex items-center justify-between text-sm" style={{ background: "#F3ECFC", color: PLUM }}>
@@ -448,22 +495,6 @@ export default function WhatsForToday({
         </div>
       )}
 
-    </div>
-  );
-}
-
-function Values({ title, color, cells, dark }: { title: string; color: string; cells: { label: string; value: string }[]; dark?: boolean }) {
-  return (
-    <div>
-      {title && <p className="text-[11px] font-bold mb-1" style={{ color }}>{title}</p>}
-      <div className="grid grid-cols-5 gap-1">
-        {cells.map((c) => (
-          <div key={c.label} className="flex flex-col min-w-0">
-            <span className="text-sm font-bold leading-[18px]" style={{ color: dark ? "#fff" : INK }}>{c.value}</span>
-            <span className="text-[10px] leading-3" style={{ color: dark ? color : MUTED }}>{c.label}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import KutumbhLogo from "@/components/KutumbhLogo";
 import WhatsForToday, { type MealSuggestion } from "@/components/WhatsForToday";
 import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
-import { clampDay, daysAheadLocal, longDateFor, todayLocal } from "@/lib/dates";
+import { clampDay, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
 import DayNav from "@/components/DayNav";
 import CouldNotRead from "@/components/CouldNotRead";
@@ -11,7 +11,8 @@ import Face from "@/components/Face";
 import { signedFaces } from "@/lib/faces";
 import Link from "next/link";
 import type { QuickPick } from "@/components/PlanSlotCard";
-import { builtInOn, festivalMenu, shortFestivalName, EVERYDAY, MEAL_KEYS } from "@/lib/festivals";
+import { BUILT_IN_FESTIVALS, builtInOn, festivalMenu, shortFestivalName, EVERYDAY, MEAL_KEYS } from "@/lib/festivals";
+import { computeNeeds } from "@/lib/insights/needs";
 import { FOOD_NUTRIENT_COLS, perServing, type FoodNutrientRow, type Nutr } from "@/lib/serving-nutrition";
 
 type MealLog = {
@@ -54,7 +55,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     familyOf(supabase, user!.id),
     supabase
       .from("profiles")
-      .select("onboarding_complete, full_name, daily_kcal_goal")
+      .select("onboarding_complete, full_name, daily_kcal_goal, date_of_birth, gender, height_cm, weight_kg, activity_level")
       .eq("id", user!.id)
       .maybeSingle(),
   ]);
@@ -170,6 +171,26 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }
     for (const [m, list] of Object.entries(want)) quickPicks[m] = list.map((n) => byName.get(n)).filter(Boolean) as QuickPick[];
   }
+  // The day's needs (the same figures as the Needs tab) drive the rings
+  const needs = computeNeeds({
+    date_of_birth: profile?.date_of_birth ?? null, gender: profile?.gender ?? null,
+    height_cm: profile?.height_cm ?? null, weight_kg: profile?.weight_kg ?? null,
+    activity_level: profile?.activity_level ?? null, daily_kcal_goal: profile?.daily_kcal_goal ?? null,
+    primary_dosha: null, diet_type: null, allergies: null, conditions: null,
+  }, today);
+  const targets = { kcal: needs.kcal.value, p: needs.protein_g.value, c: needs.carbs_g.value, fi: needs.fiber_g.value };
+
+  // The next festival ahead: the app's list and the family's own
+  const nextBuiltIn = BUILT_IN_FESTIVALS.filter((f) => f.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
+  let nextFest: { name: string; date: string } | null = nextBuiltIn;
+  if (kutumbhId) {
+    const { data: ownNext } = await supabase.from("family_festivals").select("name, festival_date")
+      .eq("kutumbh_id", kutumbhId).gte("festival_date", today).order("festival_date").limit(1);
+    const o = ownNext?.[0];
+    if (o && (!nextFest || o.festival_date < nextFest.date)) nextFest = { name: o.name, date: o.festival_date };
+  }
+  const festOff = nextFest ? daysFromToday(nextFest.date, timeZone) : null;
+
   const festivalTab = festivalName
     ? `${shortFestivalName(festivalName)} · ${new Date(`${day}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
     : null;
@@ -237,7 +258,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             const fi = Array.isArray(food_items) ? food_items[0] : food_items;
             return { ...l, recipe_id: fi?.recipe_id ?? null, n: perServing(fi) as Nutr | null };
           })}
-          dailyKcalGoal={profile?.daily_kcal_goal ?? null}
+          targets={targets}
           day={day}
           today={today}
           tomorrow={tomorrow}
@@ -251,6 +272,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           userId={user!.id}
           kutumbhId={kutumbhId}
         />
+
+        {/* Next festival: the whole strip opens that day's menu */}
+        {nextFest && festOff != null && (
+          <div className="mt-3">
+            <Link href={festOff === 0 ? "/dashboard" : `/dashboard?date=${nextFest.date}&fest=1`}
+              className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
+              style={{ background: "#fff", border: "1px solid #E0D4F2", borderLeft: "6px solid #F5B82E", minHeight: 60 }}>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold truncate" style={{ color: "#241C33" }}>🪔 Next Festival Day → {shortFestivalName(nextFest.name)}</span>
+                <span className="block text-xs font-semibold" style={{ color: "#6B46B8" }}>{isPrime ? "Create your menu here" : "See the menu here"}</span>
+              </span>
+              <span className="text-sm font-bold whitespace-nowrap" style={{ color: "#6B46B8" }}>
+                {festOff === 0 ? "today" : festOff === 1 ? "tomorrow" : `in ${festOff} days`} ›
+              </span>
+            </Link>
+            <Link href="/festivals" className="block text-center text-xs font-semibold underline pt-2" style={{ color: "#6B46B8" }}>All festival days</Link>
+          </div>
+        )}
       </main>
 
       </div>

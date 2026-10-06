@@ -5,7 +5,8 @@ import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
 import { clampDay, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
-import DayNav from "@/components/DayNav";
+import FestivalMenu, { type Suggestion } from "@/components/FestivalMenu";
+import { starterMenu, type DishInfo } from "@/lib/festival-starter";
 import CouldNotRead from "@/components/CouldNotRead";
 import Face from "@/components/Face";
 import { signedFaces } from "@/lib/faces";
@@ -142,7 +143,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // Quick picks for each meal's "Change menu": a festival's own dishes on a festival day,
   // otherwise what this family plans most often, topped up with everyday dishes (at least five)
   const quickPicks: Record<string, QuickPick[]> = {};
-  if (isPrime) {
+  const dishInfo = new Map<string, DishInfo>();
+  const festivalMode = fest === "1" && day > today && !!festivalName;
+  if (isPrime || festivalMode) {
     const want: Record<string, string[]> = {};
     if (festivalName) {
       for (const x of festivalMenu(builtIn)) (want[x.meal] ??= []).push(x.name);
@@ -169,6 +172,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       // a family's own dish of the same name wins over the shared one
       if (!have || f.kutumbh_id) byName.set(f.name, f);
     }
+    for (const f of byName.values()) dishInfo.set(f.name, { id: f.id, name: f.name, category: f.category, serving_unit: f.serving_unit });
     for (const [m, list] of Object.entries(want)) quickPicks[m] = list.map((n) => byName.get(n)).filter(Boolean) as QuickPick[];
   }
   // The day's needs (the same figures as the Needs tab); each meal carries a share
@@ -190,6 +194,37 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     if (o && (!nextFest || o.festival_date < nextFest.date)) nextFest = { name: o.name, date: o.festival_date };
   }
   const festOff = nextFest ? daysFromToday(nextFest.date, timeZone) : null;
+
+  // The festival menu is a draft until the Key Member publishes it. Where the
+  // tables are not made yet, every menu counts as published.
+  const menuDates = [...new Set([day, nextFest?.date].filter((d): d is string => !!d))];
+  const menuRes = kutumbhId
+    ? await supabase.from("festival_menus").select("festival_date, published_at").eq("kutumbh_id", kutumbhId).in("festival_date", menuDates)
+    : { data: [] as { festival_date: string; published_at: string | null }[], error: null };
+  const festReady = !menuRes.error;
+  const menuState = (d: string): "unset" | "draft" | "published" => {
+    const r = (menuRes.data ?? []).find((x) => x.festival_date === d);
+    return !r ? "unset" : r.published_at ? "published" : "draft";
+  };
+  const dayState = menuState(day);
+  const hidden = festReady && !isPrime && !!festivalName && dayState === "draft";
+  let suggestions: Suggestion[] = [];
+  let waiting = 0;
+  if (festReady && kutumbhId && festivalMode) {
+    const { data } = await supabase.from("festival_suggestions").select("id, meal_slot, food_item_id, food_name, note, suggested_by, status")
+      .eq("kutumbh_id", kutumbhId).eq("festival_date", day).order("created_at");
+    suggestions = (data ?? []) as Suggestion[];
+  }
+  if (festReady && kutumbhId && isPrime && nextFest) {
+    const { count } = await supabase.from("festival_suggestions").select("id", { count: "exact", head: true })
+      .eq("kutumbh_id", kutumbhId).eq("festival_date", nextFest.date).eq("status", "pending");
+    waiting = count ?? 0;
+  }
+  const nextState = nextFest ? menuState(nextFest.date) : "unset";
+  const nextLine = isPrime
+    ? (!festReady || nextState === "unset" ? "Create your menu here" : nextState === "draft" ? "Continue your draft menu" : "Menu published · see it here")
+    : (!festReady || nextState === "published" ? "See the menu here" : "Menu is being prepared");
+  const starter = festivalMode && isPrime && festivalName ? starterMenu(festivalMenu(builtIn), dishInfo) : [];
 
   const festivalTab = festivalName
     ? `${shortFestivalName(festivalName)} · ${new Date(`${day}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
@@ -239,12 +274,31 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
 
-        {fest !== "1" && <DayNav date={day} back={30} ahead={6} path="/dashboard" onDark />}
       </header>
 
       {/* ── Tabs + content ── */}
       <main className="flex-1 px-4 py-5">
         {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools" />}
+        {festivalMode && festivalName ? (
+          <FestivalMenu
+            day={day}
+            festival={shortFestivalName(festivalName)}
+            dayLabel={longDateFor(day)}
+            daysAway={daysFromToday(day, timeZone)}
+            isPrime={isPrime}
+            ready={festReady}
+            state={dayState}
+            hidden={hidden}
+            plans={hidden ? [] : plans}
+            starter={starter}
+            suggestions={suggestions}
+            quickPicks={quickPicks}
+            poolNames={poolNames}
+            memberNames={memberNames}
+            userId={user!.id}
+            kutumbhId={kutumbhId}
+          />
+        ) : (
         <WhatsForToday
           suggestions={(sugRes.data ?? []) as MealSuggestion[]}
           logs={((logs ?? []) as MealLog[]).map(({ food_items, ...l }) => {
@@ -258,18 +312,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           tomorrow={tomorrow}
           isPrime={isPrime}
           festivalTab={festivalTab}
-          festivalDayLabel={fest === "1" ? longDateFor(day) : null}
           quickPicks={quickPicks}
           quickLabel={festivalName ? `Made for ${shortFestivalName(festivalName)}` : "Often on your menu"}
-          plans={plans}
+          plans={hidden ? [] : plans}
           poolNames={poolNames}
           memberNames={memberNames}
           userId={user!.id}
           kutumbhId={kutumbhId}
         />
+        )}
 
         {/* Next festival: the whole strip opens that day's menu */}
-        {nextFest && festOff != null && (
+        {nextFest && festOff != null && !festivalMode && (
           <div className="mt-3">
             <Link href={festOff === 0 ? "/dashboard" : `/dashboard?date=${nextFest.date}&fest=1`}
               className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
@@ -278,7 +332,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <span aria-hidden className="text-base leading-5">🪔</span>
                 <span className="min-w-0">
                   <span className="block text-sm font-bold truncate" style={{ color: "#241C33" }}>Next Festival Day → {shortFestivalName(nextFest.name)}</span>
-                  <span className="block text-xs font-semibold" style={{ color: "#6B46B8" }}>{isPrime ? "Create your menu here" : "See the menu here"}</span>
+                  <span className="block text-xs font-semibold" style={{ color: "#6B46B8" }}>{nextLine}{waiting > 0 ? ` · 💡 ${waiting} ${waiting === 1 ? "suggestion" : "suggestions"} waiting` : ""}</span>
                 </span>
               </span>
               <span className="text-sm font-bold whitespace-nowrap" style={{ color: "#6B46B8" }}>

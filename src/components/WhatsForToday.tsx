@@ -51,8 +51,6 @@ type Props = {
   tomorrow: string;
   isPrime: boolean;
   festivalTab: string | null;
-  /** Set when a festival day is opened from the Festival days list */
-  festivalDayLabel: string | null;
   quickPicks: Record<string, QuickPick[]>;
   quickLabel: string;
   plans: Plan[];
@@ -88,8 +86,8 @@ const same = (p: Plan, l: Log) =>
 // What share of the day's need each meal is meant to carry
 const SHARE: Record<string, number> = { breakfast: 0.25, morning_snack: 0.05, lunch: 0.35, evening_snack: 0.10, dinner: 0.25 };
 // Two clearly different card families: warm for the day's values, cool for the meals
-const WARM = { bg: "#FFE9C7", edge: "#C2551F" };
-const COOL = { bg: "#E8F2FD", edge: "#2E64A0", open: "#D3E6FA" };
+export const WARM = { bg: "#FFE9C7", edge: "#C2551F" };
+export const COOL = { bg: "#E8F2FD", edge: "#2E64A0", open: "#D3E6FA" };
 const BARS = [
   { key: "kcal", name: "Energy",  unit: "kcal", color: "#FF1F8E" },
   { key: "p",    name: "Protein", unit: "g",    color: "#0091FF" },
@@ -97,12 +95,12 @@ const BARS = [
   { key: "fi",   name: "Fibre",   unit: "g",    color: "#1FD100" },
 ] as const;
 
-const INK = "#241238";
-const PLUM = "#3B1F5C";
-const MUTED = "#5F5473";
+export const INK = "#241238";
+export const PLUM = "#3B1F5C";
+export const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, festivalDayLabel, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -282,17 +280,10 @@ export default function WhatsForToday({
       </p>
      </div>
 
-      {festivalDayLabel && (
-        <Link href="/festivals" className="inline-flex items-center self-start px-4 rounded-xl text-sm font-semibold"
-          style={{ minHeight: 44, background: PLUM, color: "#fff" }}>
-          ‹ Festival days · {festivalDayLabel}
-        </Link>
-      )}
-
       {/* Food values: first thing under the title bar, right after every log */}
       <div className="rounded-2xl px-3 py-3 flex flex-col gap-2.5" style={{ background: WARM.bg, border: `2.5px solid ${WARM.edge}` }} aria-live="polite">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="m-0 text-sm font-bold" style={{ color: INK }}>{canLog ? "Food values today" : festivalDayLabel ? "Food Values of the Festival Menu" : "Food values of the menu"}</p>
+          <p className="m-0 text-sm font-bold" style={{ color: INK }}>{canLog ? "Food values today" : "Food values of the menu"}</p>
           <p className="m-0 text-xs" style={{ color: MUTED }}>
             {Math.round(dayTotal.kcal)} kcal{canLog && dailyKcalGoal ? ` of ${dailyKcalGoal}` : ""}
           </p>
@@ -487,7 +478,7 @@ export default function WhatsForToday({
   );
 }
 
-function Values({ title, color, cells, dark }: { title: string; color: string; cells: { label: string; value: string }[]; dark?: boolean }) {
+export function Values({ title, color, cells, dark }: { title: string; color: string; cells: { label: string; value: string }[]; dark?: boolean }) {
   return (
     <div>
       {title && <p className="text-[11px] font-bold mb-1" style={{ color }}>{title}</p>}

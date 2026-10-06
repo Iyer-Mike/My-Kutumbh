@@ -44,6 +44,8 @@ type Props = {
   logs: Log[];
   suggestions: MealSuggestion[];
   dailyKcalGoal: number | null;
+  /** Day needs from the profile (ICMR-NIN): each meal gets a share */
+  targets: { kcal: number; p: number; c: number; fi: number };
   day: string;
   today: string;
   tomorrow: string;
@@ -81,12 +83,24 @@ const qtyText = (q: number, unit: string | null) => {
 const same = (p: Plan, l: Log) =>
   p.food_item_id && l.food_item_id ? p.food_item_id === l.food_item_id : p.food_name.toLowerCase() === l.food_name.toLowerCase();
 
+// What share of the day's need each meal is meant to carry
+const SHARE: Record<string, number> = { breakfast: 0.25, morning_snack: 0.05, lunch: 0.35, evening_snack: 0.10, dinner: 0.25 };
+// Two clearly different card families: warm for the day's values, cool for the meals
+const WARM = { bg: "#FFE9C7", edge: "#C2551F" };
+const COOL = { bg: "#E8F2FD", edge: "#2E64A0", open: "#D3E6FA" };
+const BARS = [
+  { key: "kcal", name: "Energy",  unit: "kcal", color: "#FF1F8E" },
+  { key: "p",    name: "Protein", unit: "g",    color: "#0091FF" },
+  { key: "c",    name: "Carbs",   unit: "g",    color: "#FF8F00" },
+  { key: "fi",   name: "Fibre",   unit: "g",    color: "#1FD100" },
+] as const;
+
 const INK = "#241238";
 const PLUM = "#3B1F5C";
 const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -267,7 +281,7 @@ export default function WhatsForToday({
      </div>
 
       {/* Food values: first thing under the title bar, right after every log */}
-      <div className="rounded-2xl px-3 py-3 flex flex-col gap-2.5" style={{ background: "#fff", border: "2.5px solid #6B46B8" }} aria-live="polite">
+      <div className="rounded-2xl px-3 py-3 flex flex-col gap-2.5" style={{ background: WARM.bg, border: `2.5px solid ${WARM.edge}` }} aria-live="polite">
         <div className="flex items-baseline justify-between gap-2">
           <p className="m-0 text-sm font-bold" style={{ color: INK }}>{canLog ? "Food values today" : "Food values of the menu"}</p>
           <p className="m-0 text-xs" style={{ color: MUTED }}>
@@ -275,8 +289,8 @@ export default function WhatsForToday({
           </p>
         </div>
         {canLog && dailyKcalGoal ? (
-          <div className="rounded-full h-1.5 overflow-hidden" style={{ background: "#E7DCF7" }}>
-            <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, Math.round((dayTotal.kcal / dailyKcalGoal) * 100))}%`, background: dayTotal.kcal >= dailyKcalGoal ? "#E07B39" : "#6B46B8" }} />
+          <div className="rounded-full h-1.5 overflow-hidden" style={{ background: "rgba(194,85,31,0.18)" }}>
+            <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, Math.round((dayTotal.kcal / dailyKcalGoal) * 100))}%`, background: dayTotal.kcal >= dailyKcalGoal ? "#B42318" : WARM.edge }} />
           </div>
         ) : null}
         <div className="grid grid-cols-5 gap-1">
@@ -287,7 +301,7 @@ export default function WhatsForToday({
             </div>
           ))}
         </div>
-        <div className="pt-2" style={{ borderTop: "1px solid #E4DBF0" }}>
+        <div className="pt-2" style={{ borderTop: "1px solid rgba(194,85,31,0.30)" }}>
           <Values title="" color={MUTED} cells={nutrientCells(dayTotal)} />
         </div>
         <Values title="" color={MUTED} cells={microCells(dayTotal)} />
@@ -306,28 +320,55 @@ export default function WhatsForToday({
         const sug = suggestions.find((x) => x.meal_slot === key);
         const eatenCount = ps.filter((p) => logFor(key, p)).length;
         const summary = ps.length
-          ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten${kcalHere ? ` · ${kcalHere} kcal` : ""}` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}${kcalHere ? ` · ~${kcalHere} kcal` : ""}`)
+          ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}`)
           : (ls.length ? `${ls.length} logged` : "Not planned yet");
+        const share = SHARE[key] ?? 0;
+        const tot = valueOf(key);
+        const needKcal = Math.round(targets.kcal * share);
+        const pct = needKcal > 0 ? Math.min(100, Math.round((tot.kcal / needKcal) * 100)) : 0;
 
         return (
-          <div key={key} className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: "2.5px solid #6B46B8" }}>
+          <div key={key} className="rounded-2xl overflow-hidden" style={{ background: COOL.bg, border: `2.5px solid ${COOL.edge}` }}>
             <button onClick={() => setOpen((o) => ({ ...o, [key]: !o[key] }))} aria-expanded={isOpen}
               className="w-full flex items-center justify-between gap-2 px-3 text-left"
-              style={{ minHeight: 60, background: isOpen ? "#EFE6FA" : "#fff" }}>
+              style={{ minHeight: 60, background: isOpen ? COOL.open : COOL.bg }}>
               <span className="flex items-center gap-3 min-w-0">
                 <span className="text-lg" aria-hidden>{icon}</span>
                 <span className="flex flex-col min-w-0">
-                  <span className="text-sm font-bold" style={{ color: INK }}>{label}</span>
+                  <span className="text-sm font-bold" style={{ color: INK }}>{label} <span className="text-[11px] font-semibold" style={{ color: COOL.edge }}>· {Math.round(share * 100)}% of the day</span></span>
                   <span className="text-xs" style={{ color: MUTED }}>{summary} · {time}</span>
                 </span>
               </span>
               <span className="flex items-center gap-2 flex-shrink-0">
-                                <span aria-hidden style={{ color: PLUM, transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
+                <span className="text-xs font-bold tabular-nums text-right" style={{ color: INK, ...(projected(key) ? { opacity: 0.7 } : {}) }}>
+                  {Math.round(tot.kcal) ? `${projected(key) ? "~" : ""}${Math.round(tot.kcal)}` : "–"}<span className="font-normal" style={{ color: MUTED }}> / {needKcal} kcal</span>
+                </span>
+                <span aria-hidden style={{ color: PLUM, transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
               </span>
             </button>
+            <div className="mx-3 mb-2 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(46,100,160,0.18)" }} aria-hidden>
+              <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, background: COOL.edge, opacity: projected(key) ? 0.55 : 1 }} />
+            </div>
 
             {isOpen && (
               <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
+                <div className="rounded-xl px-3 py-2 grid gap-1.5" style={{ background: "#fff", border: "1px solid #C9DDF3" }}>
+                  <p className="m-0 text-[11px] font-semibold" style={{ color: MUTED }}>Against this meal&apos;s {Math.round(share * 100)}% of the day{projected(key) ? " · ~ from the menu" : ""}</p>
+                  {BARS.map((g) => {
+                    const need = (g.key === "kcal" ? targets.kcal : g.key === "p" ? targets.p : g.key === "c" ? targets.c : targets.fi) * share;
+                    const have = tot[g.key];
+                    const f = need > 0 ? Math.min(100, Math.round((have / need) * 100)) : 0;
+                    return (
+                      <div key={g.key} className="flex items-center gap-2 text-[11px]">
+                        <span className="w-12 flex-none" style={{ color: MUTED }}>{g.name}</span>
+                        <span className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#E7EEF7" }}>
+                          <span className="block h-1.5 rounded-full" style={{ width: `${f}%`, background: g.color }} />
+                        </span>
+                        <b className="tabular-nums" style={{ color: INK }}>{Math.round(have * 10) / 10}<span className="font-normal" style={{ color: MUTED }}>/{Math.round(need * 10) / 10} {g.unit}</span></b>
+                      </div>
+                    );
+                  })}
+                </div>
                 {!isPrime && ps.length === 0 && ls.length === 0 && (
                   <p className="text-sm italic py-1" style={{ color: MUTED }}>The Key Member has not planned this meal yet.</p>
                 )}

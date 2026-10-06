@@ -11,6 +11,7 @@ import Face from "@/components/Face";
 import { signedFaces } from "@/lib/faces";
 import Link from "next/link";
 import type { QuickPick } from "@/components/PlanSlotCard";
+import { computeNeeds } from "@/lib/insights/needs";
 import { BUILT_IN_FESTIVALS, builtInOn, festivalMenu, shortFestivalName, EVERYDAY, MEAL_KEYS } from "@/lib/festivals";
 import { FOOD_NUTRIENT_COLS, perServing, type FoodNutrientRow, type Nutr } from "@/lib/serving-nutrition";
 
@@ -54,7 +55,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     familyOf(supabase, user!.id),
     supabase
       .from("profiles")
-      .select("onboarding_complete, full_name, daily_kcal_goal")
+      .select("onboarding_complete, full_name, daily_kcal_goal, date_of_birth, gender, height_cm, weight_kg, activity_level")
       .eq("id", user!.id)
       .maybeSingle(),
   ]);
@@ -170,6 +171,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }
     for (const [m, list] of Object.entries(want)) quickPicks[m] = list.map((n) => byName.get(n)).filter(Boolean) as QuickPick[];
   }
+  // The day's needs (the same figures as the Needs tab); each meal carries a share
+  const needs = computeNeeds({
+    date_of_birth: profile?.date_of_birth ?? null, gender: profile?.gender ?? null,
+    height_cm: profile?.height_cm ?? null, weight_kg: profile?.weight_kg ?? null,
+    activity_level: profile?.activity_level ?? null, daily_kcal_goal: profile?.daily_kcal_goal ?? null,
+    primary_dosha: null, diet_type: null, allergies: null, conditions: null,
+  }, today);
+  const targets = { kcal: needs.kcal.value, p: needs.protein_g.value, c: needs.carbs_g.value, fi: needs.fiber_g.value };
+
   // The next festival ahead: the app's list and the family's own
   const nextBuiltIn = BUILT_IN_FESTIVALS.filter((f) => f.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
   let nextFest: { name: string; date: string } | null = nextBuiltIn;
@@ -249,6 +259,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             return { ...l, recipe_id: fi?.recipe_id ?? null, n: perServing(fi) as Nutr | null };
           })}
           dailyKcalGoal={profile?.daily_kcal_goal ?? null}
+          targets={targets}
           day={day}
           today={today}
           tomorrow={tomorrow}

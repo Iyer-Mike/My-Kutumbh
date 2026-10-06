@@ -61,7 +61,7 @@ export default function FestivalMenu(p: Props) {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
 
-  const published = !ready || state === "published" || (state === "unset" && plans.length > 0);
+  const published = !ready || state === "published";
   const draft = ready && !published;
   const version = plans.map((x) => x.id).join("-") || "empty";
 
@@ -77,12 +77,14 @@ export default function FestivalMenu(p: Props) {
   // A new festival menu opens already filled, as a draft only the Key Member sees
   const started = useRef(false);
   useEffect(() => {
-    if (started.current || !isPrime || !ready || !kutumbhId || state !== "unset" || plans.length > 0 || !starter.length) return;
+    if (started.current || !isPrime || !ready || !kutumbhId || state !== "unset" || !starter.length) return;
     started.current = true;
     (async () => {
       const { error: e1 } = await supabase.from("festival_menus").insert({ kutumbh_id: kutumbhId, festival_date: day });
       if (e1) return;                                    // someone else just started it
-      await insertStarter(starter);
+      // keep what is already planned; fill only the meals that are empty
+      const have = new Set(plans.map((x) => x.meal_slot));
+      await insertStarter(starter.filter((i) => !have.has(i.meal)));
       router.refresh();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

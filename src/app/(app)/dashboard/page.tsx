@@ -207,7 +207,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     return !r ? "unset" : r.published_at ? "published" : "draft";
   };
   const dayState = menuState(day);
-  const hidden = festReady && !isPrime && !!festivalName && dayState === "draft";
+  // a festival still ahead is hidden from the family until published, whether drafted or not yet opened
+  const hidden = festReady && !isPrime && !!festivalName && (dayState === "draft" || (dayState === "unset" && day > today));
   let suggestions: Suggestion[] = [];
   let waiting = 0;
   if (festReady && kutumbhId && festivalMode) {

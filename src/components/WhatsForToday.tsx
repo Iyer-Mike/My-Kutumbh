@@ -254,16 +254,16 @@ export default function WhatsForToday({
   const tilesDone = TILES.filter(tileHas).length;
   const anyOpen = TILES.some((t) => open[t.id]);
   const RING = [
-    { key: "kcal", name: "Energy",  unit: "kcal", color: "#FF2E93", target: targets.kcal },
-    { key: "p",    name: "Protein", unit: "g",    color: "#00E5FF", target: targets.p },
-    { key: "c",    name: "Carbs",   unit: "g",    color: "#FFE600", target: targets.c },
-    { key: "fi",   name: "Fibre",   unit: "g",    color: "#39FF14", target: targets.fi },
+    { key: "kcal", name: "Energy",  unit: "kcal", color: "#FF1F8E", target: targets.kcal },
+    { key: "p",    name: "Protein", unit: "g",    color: "#0091FF", target: targets.p },
+    { key: "c",    name: "Carbs",   unit: "g",    color: "#FF8F00", target: targets.c },
+    { key: "fi",   name: "Fibre",   unit: "g",    color: "#1FD100", target: targets.fi },
   ] as const;
 
   function Rings({ t, size }: { t: typeof TILES[number]; size: number }) {
     const total = sum(t.slots.map((k) => valueOf(k)));
     const proj = t.slots.some((k) => projected(k)) && !t.slots.some((k) => !fromMenu(k));
-    const c = size / 2, sw = size * 0.085, gap = sw + 3;
+    const c = size / 2, sw = size * 0.0425, gap = size * 0.085 + 3;
     return (
       <>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block mx-auto" role="img"
@@ -275,7 +275,7 @@ export default function WhatsForToday({
             const f = need > 0 ? Math.min(1, total[g.key] / need) : 0;
             return (
               <g key={g.key}>
-                <circle cx={c} cy={c} r={r} fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth={sw} />
+                <circle cx={c} cy={c} r={r} fill="none" stroke="#E7DCF7" strokeWidth={sw} />
                 {f > 0 && (
                   <circle cx={c} cy={c} r={r} fill="none" stroke={g.color} strokeWidth={sw} strokeLinecap="round"
                     strokeDasharray={circ} strokeDashoffset={circ * (1 - f)} transform={`rotate(-90 ${c} ${c})`}
@@ -290,10 +290,10 @@ export default function WhatsForToday({
             const need = Math.round(g.target * t.share);
             const have = Math.round(total[g.key] * (g.key === "kcal" ? 1 : 10)) / (g.key === "kcal" ? 1 : 10);
             return (
-              <div key={g.key} className="flex items-center gap-1.5 text-[10px] leading-4" style={{ color: "#C9B8E4" }}>
+              <div key={g.key} className="flex items-center gap-1.5 text-[10px] leading-4" style={{ color: MUTED }}>
                 <i className="w-2 h-2 rounded-full flex-none" style={{ background: g.color }} aria-hidden />
                 <span className="flex-1">{g.name}</span>
-                <b className="text-white" style={proj ? { opacity: 0.7 } : undefined}>{proj && have ? "~" : ""}{have}<span className="font-normal" style={{ color: "#C9B8E4" }}>/{need} {g.unit}</span></b>
+                <b style={{ color: INK, ...(proj ? { opacity: 0.7 } : {}) }}>{proj && have ? "~" : ""}{have}<span className="font-normal" style={{ color: MUTED }}>/{need} {g.unit}</span></b>
               </div>
             );
           })}
@@ -438,24 +438,24 @@ export default function WhatsForToday({
             : "not planned yet";
           return (
             <section key={t.id} className={`rounded-3xl px-3 pt-3 pb-3 ${isOpen ? "col-span-2" : ""}`}
-              style={{ background: INK, border: "1px solid rgba(255,255,255,0.10)" }}>
+              style={{ background: "#fff", border: "1px solid #D9CBF0", boxShadow: "0 1px 3px rgba(36,18,56,0.08)" }}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="m-0 text-sm font-bold text-white">{t.title}</h3>
-                  <p className="m-0 text-[10px] leading-4" style={{ color: "#C9B8E4" }}>{t.sub ? `${t.sub} · ` : ""}{status}</p>
+                  <h3 className="m-0 text-sm font-bold" style={{ color: INK }}>{t.title}</h3>
+                  <p className="m-0 text-[10px] leading-4" style={{ color: MUTED }}>{t.sub ? `${t.sub} · ` : ""}{status}</p>
                 </div>
                 <button onClick={() => setOpen((o) => ({ ...o, [t.id]: !o[t.id] }))} aria-expanded={isOpen}
                   className="flex-none px-3 rounded-full text-xs font-bold"
-                  style={{ minHeight: 36, background: isOpen ? "#F5B82E" : "rgba(255,255,255,0.14)", color: isOpen ? INK : "#fff" }}>
+                  style={{ minHeight: 36, background: isOpen ? "#F5B82E" : "#E7DCF7", color: isOpen ? INK : "#6B46B8" }}>
                   {isOpen ? "Done" : "Edit"}
                 </button>
               </div>
               <div className="mt-2" style={isOpen ? { display: "grid", gridTemplateColumns: "112px 1fr", gap: 14, alignItems: "center" } : undefined}>
                 <Rings t={t} size={isOpen ? 112 : 108} />
-                {isOpen && <p className="m-0 text-xs" style={{ color: "#C9B8E4" }}>{tileKcal ? `${proj && !t.slots.some((k) => !fromMenu(k)) ? "~" : ""}${tileKcal} kcal` : "No values yet"}</p>}
+                {isOpen && <p className="m-0 text-sm font-semibold" style={{ color: INK }}>{tileKcal ? `${proj && !t.slots.some((k) => !fromMenu(k)) ? "~" : ""}${tileKcal} kcal` : "No values yet"}</p>}
               </div>
               {isOpen && (
-                <div className="mt-3 rounded-2xl" style={{ background: "#fff" }}>
+                <div className="mt-3 rounded-2xl" style={{ background: "#FAF7FE", border: "1px solid #E4DBF0" }}>
                   {t.slots.map((k) => {
                     const def = SLOTS.find((x) => x.key === k)!;
                     return (

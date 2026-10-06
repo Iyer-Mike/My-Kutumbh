@@ -279,9 +279,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <Link href={festOff === 0 ? "/dashboard" : `/dashboard?date=${nextFest.date}&fest=1`}
               className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
               style={{ background: "#fff", border: "1px solid #E0D4F2", borderLeft: "6px solid #F5B82E", minHeight: 60 }}>
-              <span className="min-w-0">
-                <span className="block text-sm font-bold truncate" style={{ color: "#241C33" }}>🪔 Next Festival Day → {shortFestivalName(nextFest.name)}</span>
-                <span className="block text-xs font-semibold" style={{ color: "#6B46B8" }}>{isPrime ? "Create your menu here" : "See the menu here"}</span>
+              <span className="flex items-start gap-2 min-w-0">
+                <span aria-hidden className="text-base leading-5">🪔</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold truncate" style={{ color: "#241C33" }}>Next Festival Day → {shortFestivalName(nextFest.name)}</span>
+                  <span className="block text-xs font-semibold" style={{ color: "#6B46B8" }}>{isPrime ? "Create your menu here" : "See the menu here"}</span>
+                </span>
               </span>
               <span className="text-sm font-bold whitespace-nowrap" style={{ color: "#6B46B8" }}>
                 {festOff === 0 ? "today" : festOff === 1 ? "tomorrow" : `in ${festOff} days`} ›

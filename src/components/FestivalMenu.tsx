@@ -245,7 +245,7 @@ export default function FestivalMenu(p: Props) {
               <Values title="" color={MUTED} cells={nutrientCells(dayTotal)} />
             </div>
             <Values title="" color={MUTED} cells={microCells(dayTotal)} />
-            {!plans.length && <p className="m-0 text-[11px]" style={{ color: MUTED }}>Add dishes to see values</p>}
+            {!plans.length && <p className="m-0 text-[11px]" style={{ color: MUTED }}>No dishes yet · values appear as you plan</p>}
             {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: MUTED }}>{noValues} {noValues === 1 ? "dish" : "dishes"} without values · excluded</p>}
             <p className="m-0 text-[11px]" style={{ color: MUTED }}>Estimates · IFCT-based</p>
           </div>
@@ -264,7 +264,11 @@ export default function FestivalMenu(p: Props) {
             const mine = sugs.filter((s) => s.meal_slot === key && (isPrime ? s.status === "pending" : s.suggested_by === userId && s.status !== "approved"));
             return (
               <div key={key} className="rounded-2xl overflow-hidden" style={{ background: COOL.bg, border: `2.5px solid ${COOL.edge}` }}>
-                <div className="flex items-center justify-between gap-2 px-3" style={{ minHeight: 56, background: COOL.open }}>
+                {/* The title bar is the way in: the Key Member taps it to change the meal */}
+                <button type="button" disabled={!isPrime} onClick={() => setEditing((e) => ({ ...e, [key]: !e[key] }))}
+                  aria-expanded={isPrime ? !!editing[key] : undefined}
+                  className="w-full flex items-center justify-between gap-2 px-3 text-left"
+                  style={{ minHeight: 56, background: COOL.open, cursor: isPrime ? "pointer" : "default" }}>
                   <span className="flex items-center gap-3 min-w-0">
                     <span className="text-lg" aria-hidden>{icon}</span>
                     <span className="flex flex-col min-w-0">
@@ -272,8 +276,11 @@ export default function FestivalMenu(p: Props) {
                       <span className="text-xs" style={{ color: MUTED }}>{ps.length ? `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}` : "Nothing planned yet"} · {time}</span>
                     </span>
                   </span>
-                  <span className="text-xs font-bold tabular-nums" style={{ color: INK }}>{Math.round(tot.kcal) ? `${Math.round(tot.kcal)} kcal` : "–"}</span>
-                </div>
+                  <span className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs font-bold tabular-nums" style={{ color: INK }}>{Math.round(tot.kcal) ? `${Math.round(tot.kcal)} kcal` : "–"}</span>
+                    {isPrime && <span aria-hidden style={{ color: PLUM, transform: editing[key] ? "rotate(180deg)" : undefined }}>⌄</span>}
+                  </span>
+                </button>
 
                 <div className="px-3 pb-3 pt-2 flex flex-col gap-1.5">
                   {ps.map((x) => (
@@ -310,12 +317,6 @@ export default function FestivalMenu(p: Props) {
                   ))}
 
                   <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                    {isPrime && (
-                      <button onClick={() => setEditing((e) => ({ ...e, [key]: !e[key] }))} className={pill}
-                        style={{ minHeight: 44, border: `1.5px solid ${PLUM}`, color: PLUM, background: "#fff" }}>
-                        {editing[key] ? "Done" : (ps.length ? "Change menu" : "Add dishes")}
-                      </button>
-                    )}
                     {!isPrime && ready && (
                       <button onClick={() => { setSuggesting(suggesting === key ? null : key); setChosen(null); setQuery(""); setNote(""); }} className={pill}
                         style={{ minHeight: 44, border: `1.5px solid ${PLUM}`, color: PLUM, background: "#fff" }}>

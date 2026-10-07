@@ -87,6 +87,7 @@ export default function PantryView({
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ name: "", category: "grain", quantity: "", unit: "kg" as Unit, low_when: "" });
   const [buyName, setBuyName] = useState("");
+  const [copied, setCopied] = useState(false);
   const [step, setStep] = useState<null | "shelf" | "menu" | "shop">(null);
   const [tab, setTab] = useState<"staple" | "spice" | "fruit" | "fresh">("staple");
 
@@ -99,9 +100,6 @@ export default function PantryView({
   const [bill, setBill] = useState<{ shop: string | null; lines: BillLine[] } | null>(null);
 
   const open = shopping.filter((s) => s.status === "open");
-  // Ticked off in the last two days stays in view, so you can see it took
-  const recentCut = Date.now() - 2 * 24 * 3600 * 1000;
-  const bought = shopping.filter((s) => s.status === "bought" && (!s.bought_at || new Date(s.bought_at).getTime() >= recentCut));
 
   // What the next seven days' dishes need that is neither on the shelf nor already on the list
   const shelfNames = items.map((i) => i.name);
@@ -230,25 +228,6 @@ export default function PantryView({
     setBusy(false);
   }
 
-  /** Bought: tick it off and, when it came from the shelf, refill that item. */
-  async function markBought(s: ShoppingItem) {
-    if (busy) return;
-    setBusy(true);
-    const { error } = await supabase.from("shopping_items")
-      .update({ status: "bought", bought_by: userId, bought_at: new Date().toISOString() }).eq("id", s.id);
-    if (error) return fail("tick that off", error.message);
-    setShopping((prev) => prev.map((x) => (x.id === s.id ? { ...x, status: "bought", bought_at: new Date().toISOString() } : x)));
-
-    const shelfItem = s.pantry_item_id ? items.find((i) => i.id === s.pantry_item_id) : undefined;
-    if (shelfItem && isPrime) {
-      await patch(shelfItem.id, {
-        status: "ok",
-        bought_on: shelfItem.kind === "fresh" ? today : shelfItem.bought_on,
-      });
-    }
-    setBusy(false);
-  }
-
   /** Unticked on the Menu step: it comes off the list again. */
   async function dropFromMenu(name: string) {
     if (busy) return;
@@ -258,17 +237,6 @@ export default function PantryView({
     const { error } = await supabase.from("shopping_items").delete().in("id", rows.map((r) => r.id));
     if (error) return fail("take that off the list", error.message);
     setShopping((prev) => prev.filter((x) => !rows.some((r) => r.id === x.id)));
-    setBusy(false);
-  }
-
-  /** Ticked by mistake: back onto the list. */
-  async function unbuy(s: ShoppingItem) {
-    if (busy) return;
-    setBusy(true);
-    const { error } = await supabase.from("shopping_items")
-      .update({ status: "open", bought_by: null, bought_at: null }).eq("id", s.id);
-    if (error) return fail("put that back", error.message);
-    setShopping((prev) => prev.map((x) => (x.id === s.id ? { ...x, status: "open", bought_at: null } : x)));
     setBusy(false);
   }
 
@@ -283,7 +251,8 @@ export default function PantryView({
   async function copyList() {
     try {
       await navigator.clipboard.writeText(`Shopping list\n${listText}`);
-      alert("Copied · Paste into WhatsApp or a note.");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     } catch {
       alert("Copy failed · Long-press the list to copy.");
     }
@@ -609,6 +578,124 @@ export default function PantryView({
       )}
 
       {isPrime && (
+        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.violet)}>
+          {/* The camera and the file chooser are two different doors, so a
+              tap lands where the words promised */}
+          <input ref={billCamRef} type="file" accept="image/*" capture="environment"
+            onChange={handleBillPhoto} className="hidden" />
+          <input ref={billRef} type="file" accept="image/*,application/pdf"
+            onChange={handleBillPhoto} className="hidden" />
+
+          {!bill && (
+            <>
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Back from the shop?</h2>
+                <p className="text-[11px]" style={{ color: B.muted2 }}>
+                  Photo or PDF of the bill → shelf.
+                </p>
+              </div>
+              {reading ? (
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 py-2.5 text-sm font-medium" style={{ color: B.violet }}>
+                    Reading the bill…
+                  </span>
+                  <button onClick={stopReading}
+                    className="px-4 py-2.5 rounded-xl text-sm font-semibold"
+                    style={{ background: B.tint, color: B.violet }}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <button onClick={() => billCamRef.current?.click()}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                      style={{ background: B.button }}>
+                      📷 Take a photo
+                    </button>
+                    <button onClick={() => billRef.current?.click()}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                      style={{ background: B.tint, color: B.violet }}>
+                      📄 Choose a file
+                    </button>
+                  </div>
+                  <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
+                    The camera or the file list is your phone&apos;s own, not ours — press your
+                    phone&apos;s back button to close it. Nothing happens here until you pick something.
+                  </p>
+                </>
+              )}
+            </>
+          )}
+
+          {billNote && (
+            <p className="text-xs rounded-xl px-3 py-2"
+              style={{ background: B.goldTint, color: B.goldInk }}>{billNote}</p>
+          )}
+
+          {bill && (
+            <>
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
+                  On the bill{bill.shop ? ` · ${bill.shop}` : ""}
+                </h2>
+                <p className="text-[11px]" style={{ color: B.muted2 }}>
+                  Untick what doesn&apos;t belong, then put away.
+                </p>
+              </div>
+
+              <div className="grid">
+                {bill.lines.map((line, idx) => {
+                  const shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
+                  const set = (changes: Partial<BillLine>) =>
+                    setBill((b) => b && { ...b, lines: b.lines.map((l, i) => (i === idx ? { ...l, ...changes } : l)) });
+                  return (
+                    <div key={`${line.name}-${idx}`} className="flex items-center gap-2 py-2"
+                      style={{ borderTop: `1px solid ${FAMILY.violet.line}` }}>
+                      <button onClick={() => set({ take: !line.take })} aria-pressed={line.take}
+                        className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
+                        style={{ background: line.take ? B.violet : "transparent", border: `2px solid ${line.take ? B.violet : FAMILY.violet.edge}` }}
+                        aria-label={`${line.take ? "Skip" : "Keep"} ${line.name}`}>
+                        {line.take && (
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm truncate" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
+                        <p className="text-[11px]" style={{ color: B.muted2 }}>
+                          {shelf
+                            ? `Tops up ${shelf.name}${shelf.kind !== "sundry" && line.quantity != null && inShelfUnit(line.quantity, line.unit, shelf.unit) != null
+                                ? ` · ${amount(shelf.quantity, shelf.unit)} → ${amount(Math.round(((shelf.quantity ?? 0) + inShelfUnit(line.quantity, line.unit, shelf.unit)!) * 100) / 100, shelf.unit)}`
+                                : ""}`
+                            : `New · ${categoryLabel(line.category)}`}
+                        </p>
+                      </div>
+                      <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>
+                        {amount(line.quantity, line.unit)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={applyBill} disabled={busy}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                  style={{ background: B.button }}>
+                  {busy ? "Putting away…" : `Put ${bill.lines.filter((l) => l.take).length} away`}
+                </button>
+                <button onClick={() => setBill(null)} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {isPrime && (
         <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.amber)}>
           {!adding ? (
             <button onClick={() => setAdding(true)} className="text-sm font-semibold text-left" style={{ color: B.violetLink }}>
@@ -758,77 +845,16 @@ export default function PantryView({
           ))}
         </section>
       ))}
-    </div>
-  );
 
-  // Step 3 · what to buy
-  const shopStep = (
-    <div className="grid gap-4">
-      <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.blue)}>
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
-            Shopping list
-          </h2>
-          {open.length > 0 && (
-            <button onClick={copyList} className="text-xs font-semibold" style={{ color: B.violetLink }}>
-              Copy list
-            </button>
-          )}
-        </div>
-
-        {open.length === 0 ? (
-          <p className="text-sm" style={{ color: B.muted }}>{bought.length ? "Everything is bought." : "Nothing to buy · Flagged items appear here."}</p>
-        ) : (
-          <div className="grid">
-            {open.map((s) => (
-              <div key={s.id} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${FAMILY.blue.line}` }}>
-                <button onClick={() => markBought(s)} disabled={busy}
-                  className="w-6 h-6 shrink-0 rounded-md" style={{ border: `2px solid ${B.violet}` }}
-                  aria-label={`Bought ${s.name}`} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm truncate" style={{ color: B.ink }}>
-                    {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
-                  </p>
-                </div>
-                <button onClick={() => removeFromList(s)} className="w-7 h-7 rounded-lg text-xs shrink-0"
-                  style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {bought.length > 0 && (
-          <div className="grid">
-            <p className="text-[11px] font-semibold uppercase tracking-wider pt-1" style={{ color: FAMILY.green.ink }}>
-              Bought · {bought.length}
-            </p>
-            {bought.map((s) => (
-              <div key={s.id} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${FAMILY.blue.line}` }}>
-                <button onClick={() => unbuy(s)} disabled={busy}
-                  className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
-                  style={{ background: FAMILY.green.edge, border: `2px solid ${FAMILY.green.edge}` }}
-                  aria-label={`${s.name} is bought, tap to put it back`}>
-                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
-                    <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <p className="min-w-0 flex-1 text-sm truncate" style={{ color: B.muted2, textDecoration: "line-through" }}>
-                  {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
-                </p>
-                <button onClick={() => removeFromList(s)} className="w-7 h-7 rounded-lg text-xs shrink-0"
-                  style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
-              </div>
-            ))}
-          </div>
-        )}
-
+      <section className="rounded-2xl px-4 py-4 grid gap-2" style={look(FAMILY.amber)}>
+        <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Something else to buy?</h2>
         <div className="flex gap-2">
           <label htmlFor="buy-name" className="sr-only">Add to the shopping list</label>
           <input id="buy-name" value={buyName} onChange={(e) => setBuyName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") addToList(); }}
             placeholder="Add something to buy…" maxLength={60}
             className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm"
-            style={fieldLook(FAMILY.blue)} />
+            style={fieldLook(FAMILY.amber)} />
           <button onClick={addToList} disabled={busy || !buyName.trim()}
             className="px-4 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
             style={{ background: B.button }}>
@@ -836,124 +862,41 @@ export default function PantryView({
           </button>
         </div>
       </section>
+    </div>
+  );
 
-      {isPrime && (
-        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.violet)}>
-          {/* The camera and the file chooser are two different doors, so a
-              tap lands where the words promised */}
-          <input ref={billCamRef} type="file" accept="image/*" capture="environment"
-            onChange={handleBillPhoto} className="hidden" />
-          <input ref={billRef} type="file" accept="image/*,application/pdf"
-            onChange={handleBillPhoto} className="hidden" />
+  // Step 3 · the list, finished: what to buy, and nothing else
+  const shopStep = (
+    <div className="grid gap-4">
+      <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.green)}>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: FAMILY.green.ink }}>
+            Shopping list{open.length ? ` · ${open.length}` : ""}
+          </h2>
+          {open.length > 0 && (
+            <button onClick={copyList} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+              style={{ background: B.button }}>
+              {copied ? "Copied ✓" : "Copy list"}
+            </button>
+          )}
+        </div>
 
-          {!bill && (
-            <>
-              <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Back from the shop?</h2>
-                <p className="text-[11px]" style={{ color: B.muted2 }}>
-                  Photo or PDF of the bill → shelf.
+        {open.length === 0 ? (
+          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Tick what you need on the Menu step.</p>
+        ) : (
+          <div className="grid">
+            {open.map((s) => (
+              <div key={s.id} className="flex items-center gap-2 py-2.5" style={{ borderTop: `1px solid ${FAMILY.green.line}` }}>
+                <p className="min-w-0 flex-1 text-sm" style={{ color: B.ink }}>
+                  {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
                 </p>
+                <button onClick={() => removeFromList(s)} className="w-8 h-8 rounded-lg text-sm shrink-0"
+                  style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
               </div>
-              {reading ? (
-                <div className="flex items-center gap-2">
-                  <span className="flex-1 py-2.5 text-sm font-medium" style={{ color: B.violet }}>
-                    Reading the bill…
-                  </span>
-                  <button onClick={stopReading}
-                    className="px-4 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: B.tint, color: B.violet }}>
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="flex gap-2">
-                    <button onClick={() => billCamRef.current?.click()}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
-                      style={{ background: B.button }}>
-                      📷 Take a photo
-                    </button>
-                    <button onClick={() => billRef.current?.click()}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                      style={{ background: B.tint, color: B.violet }}>
-                      📄 Choose a file
-                    </button>
-                  </div>
-                  <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
-                    The camera or the file list is your phone&apos;s own, not ours — press your
-                    phone&apos;s back button to close it. Nothing happens here until you pick something.
-                  </p>
-                </>
-              )}
-            </>
-          )}
-
-          {billNote && (
-            <p className="text-xs rounded-xl px-3 py-2"
-              style={{ background: B.goldTint, color: B.goldInk }}>{billNote}</p>
-          )}
-
-          {bill && (
-            <>
-              <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
-                  On the bill{bill.shop ? ` · ${bill.shop}` : ""}
-                </h2>
-                <p className="text-[11px]" style={{ color: B.muted2 }}>
-                  Untick what doesn&apos;t belong, then put away.
-                </p>
-              </div>
-
-              <div className="grid">
-                {bill.lines.map((line, idx) => {
-                  const shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
-                  const set = (changes: Partial<BillLine>) =>
-                    setBill((b) => b && { ...b, lines: b.lines.map((l, i) => (i === idx ? { ...l, ...changes } : l)) });
-                  return (
-                    <div key={`${line.name}-${idx}`} className="flex items-center gap-2 py-2"
-                      style={{ borderTop: `1px solid ${FAMILY.violet.line}` }}>
-                      <button onClick={() => set({ take: !line.take })} aria-pressed={line.take}
-                        className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
-                        style={{ background: line.take ? B.violet : "transparent", border: `2px solid ${line.take ? B.violet : FAMILY.violet.edge}` }}
-                        aria-label={`${line.take ? "Skip" : "Keep"} ${line.name}`}>
-                        {line.take && (
-                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm truncate" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
-                        <p className="text-[11px]" style={{ color: B.muted2 }}>
-                          {shelf
-                            ? `Tops up ${shelf.name}${shelf.kind !== "sundry" && line.quantity != null && inShelfUnit(line.quantity, line.unit, shelf.unit) != null
-                                ? ` · ${amount(shelf.quantity, shelf.unit)} → ${amount(Math.round(((shelf.quantity ?? 0) + inShelfUnit(line.quantity, line.unit, shelf.unit)!) * 100) / 100, shelf.unit)}`
-                                : ""}`
-                            : `New · ${categoryLabel(line.category)}`}
-                        </p>
-                      </div>
-                      <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>
-                        {amount(line.quantity, line.unit)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex gap-2">
-                <button onClick={applyBill} disabled={busy}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-                  style={{ background: B.button }}>
-                  {busy ? "Putting away…" : `Put ${bill.lines.filter((l) => l.take).length} away`}
-                </button>
-                <button onClick={() => setBill(null)} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
-                  Cancel
-                </button>
-              </div>
-            </>
-          )}
-        </section>
-      )}
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 

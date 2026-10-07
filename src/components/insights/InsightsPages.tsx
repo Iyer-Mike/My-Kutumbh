@@ -232,9 +232,8 @@ export default function InsightsPages({
 
       {tab === "report" && (
         <PageReport
-          flags={p.flags} gaps={p.plan.gaps} hasReport={hasReport} reportDate={reportDate}
+          flags={p.flags} gaps={p.plan.gaps} hasReport={hasReport}
           doctorNotes={p.plan.doctor} viewingOther={viewingOther} firstName={firstName}
-          onOpenIntake={() => pick("needs")}
         />
       )}
 

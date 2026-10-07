@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import InsightsPages, { type Period } from "@/components/insights/InsightsPages";
-import { addDays, monthStart, weekOf } from "@/lib/weeks";
+import { addDays, dayOfWeek, monthStart, weekOf } from "@/lib/weeks";
 import { loadInsightsData } from "@/lib/insights/load";
 import { computeNeeds, ageOn } from "@/lib/insights/needs";
 import { summarizeIntake } from "@/lib/insights/intake";
@@ -22,12 +22,13 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const needs = computeNeeds(d.profile, d.today);
   const labValues = latestLabValues(d.reports);
 
-  // The reader's own strip: today, the six days before it, the current
-  // calendar week and the three before it, and the month. A day in
-  // progress is marked partial — see InsightsPages.
+  // The weeks of this calendar month, Sunday to Saturday, laid out for the
+  // whole month so the strip stays put until the month changes; then the
+  // month itself. A week belongs to the month its Sunday falls in. Weeks
+  // still to come are shown but cannot be opened.
   const long = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short" });
   const period = (
-    key: string, group: Period["group"], label: string, sub: string, title: string, from: string, to: string, partial = false,
+    key: string, group: Period["group"], label: string, sub: string, title: string, from: string, to: string, future = false,
   ): Period => {
     const inRange = d.entries.filter((e) => e.logged_date >= from && e.logged_date <= to);
     const intake = summarizeIntake(d.entries, from, to);
@@ -35,24 +36,31 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
     const events = evaluateIntelligence({ profile: d.profile, needs, intake, entries: inRange, labs: labValues });
 
     return {
-      key, group, label, sub, title, partial, intake, flags, events,
+      key, group, label, sub, title, future, intake, flags, events,
       ayurveda: summarizeAyurveda(inRange, d.profile.primary_dosha),
       plan: planActions({ events, labFlags: flags, intake, needs, entries: inRange }),
     };
   };
 
-  const periods: Period[] = [period("d0", "day", "Today", long(d.today), "today, so far", d.today, d.today, true)];
-  for (let i = 1; i <= 6; i++) {
-    const day = addDays(d.today, -i);
-    periods.push(period(`d${i}`, "day", `D-${i}`, long(day), long(day), day, day));
-  }
-  for (let i = 0; i <= 3; i++) {
-    const wk = weekOf(addDays(d.today, -7 * i));
-    const to = wk.end > d.today ? d.today : wk.end;
-    periods.push(period(`w${i}`, "week", `Week ${wk.n}`, `${long(wk.start)}–${long(wk.end)}`, `Week ${wk.n} (${long(wk.start)}–${long(wk.end)})`, wk.start, to));
+  const first = monthStart(d.today);
+  const month = d.today.slice(0, 7);
+  const periods: Period[] = [];
+  const firstSunday = addDays(first, (7 - dayOfWeek(first)) % 7);
+  for (let s = firstSunday, i = 0; s.slice(0, 7) === month; s = addDays(s, 7), i++) {
+    const wk = weekOf(s);
+    const future = s > d.today;
+    periods.push(period(
+      `w${i}`, "week", `Week ${wk.n}`, `${long(wk.start)}–${long(wk.end)}`,
+      `Week ${wk.n} (${long(wk.start)}–${long(wk.end)})`,
+      future ? d.today : wk.start, future ? d.today : (wk.end > d.today ? d.today : wk.end), future,
+    ));
   }
   const monthName = new Date(`${d.today}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", month: "long" });
-  periods.push(period("m", "month", "Month", monthName, monthName, monthStart(d.today), d.today));
+  periods.push(period("m", "month", "Month", monthName, monthName, first, d.today));
+
+  // Open on the week we are in; in the days before the month's first Sunday, on the month
+  const thisWeek = weekOf(d.today).start;
+  const defaultKey = periods.find((x) => x.group === "week" && x.sub.startsWith(long(thisWeek)))?.key ?? "m";
 
   // Dishes still waiting for their details, which is why some of the
   // energy is an estimate rather than a reading. Same count the family
@@ -94,6 +102,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
       <main className="flex-1 px-4 py-5">
         <InsightsPages
           periods={periods}
+          defaultKey={defaultKey}
           needs={needs}
           profile={d.profile}
           age={ageOn(d.profile.date_of_birth, d.today)}

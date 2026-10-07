@@ -1,5 +1,6 @@
 "use client";
 
+import { addDays } from "@/lib/weeks";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,6 +51,8 @@ type Props = {
   day: string;
   today: string;
   tomorrow: string;
+  /** Days in the last week with something logged */
+  loggedDates: string[];
   isPrime: boolean;
   festivalTab: string | null;
   quickPicks: Record<string, QuickPick[]>;
@@ -101,7 +104,7 @@ export const PLUM = "#3B1F5C";
 export const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, loggedDates, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -272,6 +275,27 @@ export default function WhatsForToday({
                    color: isTomorrow ? "#fff" : "#C9B8E4", fontWeight: isTomorrow ? 700 : 500 }}>
           Tomorrow
         </Link>
+      </div>
+      {/* The last six days: tap one to see or fill in what was eaten */}
+      <div className="flex gap-1.5 overflow-x-auto px-2 py-2" style={{ background: "#fff", borderBottom: `1px solid ${FAMILY.violet.line}` }}
+        role="navigation" aria-label="The last six days">
+        <span className="shrink-0 self-center text-[10px] font-bold uppercase tracking-wider pl-1 pr-0.5" style={{ color: MUTED }}>Last 6 days</span>
+        {Array.from({ length: 6 }, (_, i) => {
+          const date = addDays(today, -(i + 1));
+          const on = date === day;
+          const logged = loggedDates.includes(date);
+          const wd = new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short" });
+          const dd = new Date(`${date}T00:00:00Z`).getUTCDate();
+          return (
+            <Link key={date} href={`/dashboard?date=${date}`} aria-current={on ? "page" : undefined}
+              className="shrink-0 rounded-xl px-2.5 py-1 text-center leading-tight"
+              style={{ background: on ? PLUM : "#fff", color: on ? "#fff" : INK, border: `2px solid ${on ? PLUM : FAMILY.violet.edge}` }}>
+              <span className="block text-[11px] font-bold">D-{i + 1}</span>
+              <span className="block text-[10px]" style={{ opacity: 0.85 }}>{wd} {dd}</span>
+              <span className="block text-[10px] font-bold" style={{ color: on ? "#F5B82E" : logged ? "#2E8B57" : "#B42318" }}>{logged ? "● logged" : "○ none"}</span>
+            </Link>
+          );
+        })}
       </div>
       <p className="px-3 py-2 text-xs leading-4" style={{ background: "#F7F3FC", color: MUTED, borderBottom: `1px solid ${FAMILY.violet.line}` }}>
         {festivalTab ? `🪔 ${festivalTab} · ` : ""}

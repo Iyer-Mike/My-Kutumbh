@@ -28,12 +28,12 @@ import { FAMILY, fieldLook } from "@/lib/brand";
  */
 
 export type Period = {
-  key: string;                       // d0 (today), d1–d6, w0–w3 (calendar weeks), m
-  group: "day" | "week" | "month";
-  label: string;                     // "Today", "D-2", "Week 41", "Month"
+  key: string;                       // w0, w1… (the month's weeks), m
+  group: "week" | "month";
+  label: string;                     // "Week 41", "Month"
   sub: string;                       // its dates
   title: string;                     // how a sentence names it
-  partial: boolean;                  // the day is not over, so no verdicts yet
+  future: boolean;                   // a week still to come: shown, not opened
   intake: IntakeSummary;
   ayurveda: AyurvedaSummary;
   flags: LabFlag[];
@@ -95,7 +95,7 @@ function onScreenFor(tab: Tab, p: Period): string {
         `Energy ${Math.round(p.intake.perDay.kcal)} kcal a day on ${p.intake.loggedDays} logged days.`,
         p.plan.actions.length ? `The changes shown: ${p.plan.actions.map((a) => a.headline).join(" | ")}` : "No changes are being suggested.",
         p.plan.doctor.length ? `Marked for a doctor: ${p.plan.doctor.join(" ")}` : "",
-        p.partial ? "This is today so far; the day is not over, so shortfalls are not final." : p.plan.gaps.length
+        p.plan.gaps.length
           ? `Short of target: ${p.plan.gaps.map((g) => `${g.label} ${g.had} of ${g.target} ${g.unit}`).join("; ")}.`
           : "Everything is within range for this period.",
       ].filter(Boolean).join("\n");
@@ -108,50 +108,14 @@ function onScreenFor(tab: Tab, p: Period): string {
   }
 }
 
-/** The day is not over: what is logged against the day's need, with no verdict. */
-function TodaySoFar({ intake, needs }: { intake: Period["intake"]; needs: Needs }) {
-  const rows = [
-    { key: "kcal", label: "Energy", unit: "kcal" },
-    { key: "protein_g", label: "Protein", unit: "g" },
-    { key: "carbs_g", label: "Carbs", unit: "g" },
-    { key: "fat_g", label: "Fat", unit: "g" },
-    { key: "fiber_g", label: "Fibre", unit: "g" },
-  ] as const;
-  return (
-    <div className="grid gap-3">
-      <div className="rounded-2xl px-4 py-4" style={{ background: "#FBEBCF", color: "#6A3D06", border: "2.5px solid #C2551F", fontSize: T.body }}>
-        <b>Today so far.</b> The day is not over, so there is no verdict yet — only what you have logged.
-        The full picture comes tomorrow, as D-1.
-      </div>
-      <div className="rounded-2xl px-4 py-4 grid gap-2" style={{ background: "#fff", border: "2.5px solid #6B46B8" }}>
-        {rows.map((r) => {
-          const had = intake.perDay[r.key];
-          const need = needs[r.key]?.value ?? 0;
-          const share = need > 0 ? Math.min(1, had / need) : 0;
-          return (
-            <div key={r.key}>
-              <div className="flex justify-between" style={{ fontSize: T.note, color: C.ink }}>
-                <span className="font-semibold">{r.label}</span>
-                <span className="tabular-nums">{Math.round(had)}{need ? ` of ${Math.round(need)}` : ""} {r.unit}</span>
-              </div>
-              <div className="rounded-full overflow-hidden" style={{ height: 8, background: "#E4E0EC" }}>
-                <div style={{ width: `${share * 100}%`, height: "100%", background: "#6B46B8" }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 const STORE = "insights-tab-v1";
 
 export default function InsightsPages({
-  periods, needs, profile, age, primaryDosha, hasReport, reportDate, dishesToComplete,
+  periods, defaultKey, needs, profile, age, primaryDosha, hasReport, reportDate, dishesToComplete,
   viewingOther, memberId, firstName,
 }: {
   periods: Period[];
+  defaultKey: string;
   needs: Needs;
   profile: Profile;
   age: number | null;
@@ -164,7 +128,7 @@ export default function InsightsPages({
   firstName: string;
 }) {
   const [tab, setTab] = useState<Tab>("needs");
-  const [periodKey, setPeriodKey] = useState<string>("w0");
+  const [periodKey, setPeriodKey] = useState<string>(defaultKey);
   const [asking, setAsking] = useState(false);
 
   // Remember the page this reader keeps returning to — a convenience only
@@ -205,37 +169,35 @@ export default function InsightsPages({
   return (
     <div className="grid gap-3">
 
-      {/* ── When: the days, then the weeks and the month ── */}
-      {[
-        { name: "Days", list: periods.filter((x) => x.group === "day") },
-        { name: "Weeks · Sunday to Saturday", list: periods.filter((x) => x.group !== "day") },
-      ].map((row) => (
-        <div key={row.name} className="grid gap-1">
-          <p className="m-0 font-semibold uppercase tracking-widest" style={{ fontSize: T.label, color: C.ink2 }}>{row.name}</p>
-          <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label={row.name}>
-            {row.list.map((x) => {
-              const on = x.key === periodKey;
-              return (
-                <button
-                  key={x.key}
-                  role="tab"
-                  aria-selected={on}
-                  onClick={() => setPeriodKey(x.key)}
-                  className="shrink-0 px-3 py-1.5 rounded-xl text-center leading-tight"
-                  style={{
-                    background: on ? "#241238" : "#fff",
-                    color: on ? "#fff" : C.ink2,
-                    border: `2px solid ${on ? "#241238" : "#B9A8D6"}`,
-                  }}
-                >
-                  <span className="block font-bold" style={{ fontSize: T.note }}>{x.label}</span>
-                  <span className="block" style={{ fontSize: 10, opacity: 0.85 }}>{x.sub}</span>
-                </button>
-              );
-            })}
-          </div>
+      {/* ── When: this month's weeks, then the month. Changing it changes every page below. ── */}
+      <div className="grid gap-1">
+        <p className="m-0 font-semibold uppercase tracking-widest" style={{ fontSize: T.label, color: C.ink2 }}>
+          {periods.find((x) => x.group === "month")?.sub} · weeks run Sunday to Saturday
+        </p>
+        <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Week or month">
+          {periods.map((x) => {
+            const on = x.key === periodKey;
+            return (
+              <button
+                key={x.key}
+                role="tab"
+                aria-selected={on}
+                disabled={x.future}
+                onClick={() => setPeriodKey(x.key)}
+                className="shrink-0 px-3 py-1.5 rounded-xl text-center leading-tight disabled:opacity-40"
+                style={{
+                  background: on ? "#241238" : "#fff",
+                  color: on ? "#fff" : C.ink2,
+                  border: `2px solid ${on ? "#241238" : "#B9A8D6"}`,
+                }}
+              >
+                <span className="block font-bold" style={{ fontSize: T.note }}>{x.label}</span>
+                <span className="block" style={{ fontSize: 10, opacity: 0.85 }}>{x.sub}</span>
+              </button>
+            );
+          })}
         </div>
-      ))}
+      </div>
 
       {/* ── The three pages ── */}
       <div className="grid grid-cols-3 gap-1" role="tablist" aria-label="Insights pages">
@@ -259,14 +221,12 @@ export default function InsightsPages({
 
       {nothingLogged && tab !== "report" && (
         <div className="rounded-2xl px-4 py-4" style={{ background: "#FBEBCF", color: "#6A3D06", border: "1px solid #F2B531", fontSize: T.body }}>
-          Nothing logged {p.group === "day" ? "for" : "in"} {p.title}.
+          Nothing logged in {p.title}.
           {!viewingOther && <> <Link href="/log" className="font-bold underline">Log a meal</Link> and this fills in.</>}
         </div>
       )}
 
-      {tab === "needs" && p.partial && <TodaySoFar intake={p.intake} needs={needs} />}
-
-      {tab === "needs" && !p.partial && (
+      {tab === "needs" && (
         <>
           <PageNeeds
             plan={p.plan} flags={p.flags} intake={p.intake} needs={needs}
@@ -283,8 +243,8 @@ export default function InsightsPages({
 
       {tab === "report" && (
         <PageReport
-          flags={p.flags} gaps={p.partial ? [] : p.plan.gaps} hasReport={hasReport} reportDate={reportDate}
-          doctorNotes={p.partial ? [] : p.plan.doctor} viewingOther={viewingOther} firstName={firstName}
+          flags={p.flags} gaps={p.plan.gaps} hasReport={hasReport} reportDate={reportDate}
+          doctorNotes={p.plan.doctor} viewingOther={viewingOther} firstName={firstName}
           onOpenIntake={() => pick("needs")}
         />
       )}

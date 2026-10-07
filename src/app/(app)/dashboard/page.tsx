@@ -4,7 +4,7 @@ import KutumbhLogo from "@/components/KutumbhLogo";
 import WhatsForToday, { type MealSuggestion } from "@/components/WhatsForToday";
 import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
-import { clampDay, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
+import { clampDay, daysAgoLocal, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
 import FestivalMenu, { type Suggestion } from "@/components/FestivalMenu";
 import { starterMenu, type DishInfo } from "@/lib/festival-starter";
@@ -133,6 +133,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   for (const p of rosterRes.data ?? []) memberNames[p.id] = p.full_name?.split(" ")[0] ?? "Family";
 
   const tomorrow = daysAheadLocal(1, timeZone);
+
+  // Which of the last seven days have something logged, for the day strip
+  const { data: recent } = await supabase
+    .from("meal_logs")
+    .select("logged_date")
+    .eq("user_id", user!.id)
+    .gte("logged_date", daysAgoLocal(6, timeZone))
+    .lte("logged_date", today);
+  const loggedDates = [...new Set((recent ?? []).map((r) => r.logged_date as string))];
 
   // Is this a festival day? The app's list first, then the family's own
   const builtIn = builtInOn(day);
@@ -312,6 +321,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           day={day}
           today={today}
           tomorrow={tomorrow}
+          loggedDates={loggedDates}
           isPrime={isPrime}
           festivalTab={festivalTab}
           quickPicks={quickPicks}

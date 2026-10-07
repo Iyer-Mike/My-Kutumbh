@@ -21,6 +21,7 @@ export type ShoppingItem = {
   id: string; name: string; quantity: number | null; unit: Unit | null;
   source: "manual" | "low" | "menu"; status: "open" | "bought";
   pantry_item_id: string | null; requested_by: string | null; created_at: string;
+  bought_at: string | null;
 };
 
 const STATUS_STYLE: Record<Status, { label: string; bg: string; fg: string }> = {
@@ -98,6 +99,9 @@ export default function PantryView({
   const [bill, setBill] = useState<{ shop: string | null; lines: BillLine[] } | null>(null);
 
   const open = shopping.filter((s) => s.status === "open");
+  // Ticked off in the last two days stays in view, so you can see it took
+  const recentCut = Date.now() - 2 * 24 * 3600 * 1000;
+  const bought = shopping.filter((s) => s.status === "bought" && (!s.bought_at || new Date(s.bought_at).getTime() >= recentCut));
 
   // What the next seven days' dishes need that is neither on the shelf nor already on the list
   const shelfNames = items.map((i) => i.name);
@@ -182,7 +186,7 @@ export default function PantryView({
     if (error) return fail("flag that", error.message);
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: "low" } : i)));
     const { data } = await supabase.from("shopping_items")
-      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at")
+      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at, bought_at")
       .eq("kutumbh_id", kutumbhId).order("created_at", { ascending: false }).limit(120);
     setShopping((data ?? []) as ShoppingItem[]);
     setBusy(false);
@@ -195,7 +199,7 @@ export default function PantryView({
     setBusy(true);
     const { data, error } = await supabase.from("shopping_items")
       .insert({ kutumbh_id: kutumbhId, name, source: "manual", requested_by: userId })
-      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at").single();
+      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at, bought_at").single();
     if (error) return fail("add that to the list", error.message);
     setShopping((prev) => [data as ShoppingItem, ...prev]);
     setBuyName("");
@@ -208,7 +212,7 @@ export default function PantryView({
     setBusy(true);
     const { data, error } = await supabase.from("shopping_items")
       .insert({ kutumbh_id: kutumbhId, name, source: "menu", requested_by: userId })
-      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at").single();
+      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at, bought_at").single();
     if (error) return fail("add that to the list", error.message);
     setShopping((prev) => [data as ShoppingItem, ...prev]);
     setBusy(false);
@@ -220,7 +224,7 @@ export default function PantryView({
     setBusy(true);
     const { data, error } = await supabase.from("shopping_items")
       .insert(rest.map((m) => ({ kutumbh_id: kutumbhId, name: m.name, source: "menu", requested_by: userId })))
-      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at");
+      .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at, bought_at");
     if (error) return fail("add those to the list", error.message);
     setShopping((prev) => [...((data ?? []) as ShoppingItem[]), ...prev]);
     setBusy(false);
@@ -233,7 +237,7 @@ export default function PantryView({
     const { error } = await supabase.from("shopping_items")
       .update({ status: "bought", bought_by: userId, bought_at: new Date().toISOString() }).eq("id", s.id);
     if (error) return fail("tick that off", error.message);
-    setShopping((prev) => prev.map((x) => (x.id === s.id ? { ...x, status: "bought" } : x)));
+    setShopping((prev) => prev.map((x) => (x.id === s.id ? { ...x, status: "bought", bought_at: new Date().toISOString() } : x)));
 
     const shelfItem = s.pantry_item_id ? items.find((i) => i.id === s.pantry_item_id) : undefined;
     if (shelfItem && isPrime) {
@@ -242,6 +246,17 @@ export default function PantryView({
         bought_on: shelfItem.kind === "fresh" ? today : shelfItem.bought_on,
       });
     }
+    setBusy(false);
+  }
+
+  /** Ticked by mistake: back onto the list. */
+  async function unbuy(s: ShoppingItem) {
+    if (busy) return;
+    setBusy(true);
+    const { error } = await supabase.from("shopping_items")
+      .update({ status: "open", bought_by: null, bought_at: null }).eq("id", s.id);
+    if (error) return fail("put that back", error.message);
+    setShopping((prev) => prev.map((x) => (x.id === s.id ? { ...x, status: "open", bought_at: null } : x)));
     setBusy(false);
   }
 
@@ -741,7 +756,7 @@ export default function PantryView({
         </div>
 
         {open.length === 0 ? (
-          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Flagged items appear here.</p>
+          <p className="text-sm" style={{ color: B.muted }}>{bought.length ? "Everything is bought." : "Nothing to buy · Flagged items appear here."}</p>
         ) : (
           <div className="grid">
             {open.map((s) => (
@@ -754,6 +769,31 @@ export default function PantryView({
                     {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
                   </p>
                 </div>
+                <button onClick={() => removeFromList(s)} className="w-7 h-7 rounded-lg text-xs shrink-0"
+                  style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {bought.length > 0 && (
+          <div className="grid">
+            <p className="text-[11px] font-semibold uppercase tracking-wider pt-1" style={{ color: FAMILY.green.ink }}>
+              Bought · {bought.length}
+            </p>
+            {bought.map((s) => (
+              <div key={s.id} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${FAMILY.blue.line}` }}>
+                <button onClick={() => unbuy(s)} disabled={busy}
+                  className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
+                  style={{ background: FAMILY.green.edge, border: `2px solid ${FAMILY.green.edge}` }}
+                  aria-label={`${s.name} is bought, tap to put it back`}>
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                    <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <p className="min-w-0 flex-1 text-sm truncate" style={{ color: B.muted2, textDecoration: "line-through" }}>
+                  {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
+                </p>
                 <button onClick={() => removeFromList(s)} className="w-7 h-7 rounded-lg text-xs shrink-0"
                   style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
               </div>

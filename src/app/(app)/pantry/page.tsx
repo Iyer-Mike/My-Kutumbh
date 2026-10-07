@@ -35,7 +35,7 @@ export default async function PantryPage() {
         .select("id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note")
         .eq("kutumbh_id", kutumbhId).order("name"),
       supabase.from("shopping_items")
-        .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at")
+        .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at, bought_at")
         .eq("kutumbh_id", kutumbhId).order("created_at", { ascending: false }).limit(120),
       supabase.from("family_roster")
         .select("id, full_name")

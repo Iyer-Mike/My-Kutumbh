@@ -362,7 +362,6 @@ export default function WhatsForToday({
         const names = ps.length ? ps.map((p) => p.food_name) : ls.map((l) => l.food_name);
         const dishLine = names.join(", ");
         const tot = valueOf(key);
-        const needKcal = Math.round(targets.kcal * 0.95).toLocaleString("en-IN");
 
         return (
           <div key={key} className="rounded-2xl overflow-hidden" style={{ background: COOL.bg, border: `2.5px solid ${COOL.edge}` }}>
@@ -370,10 +369,12 @@ export default function WhatsForToday({
               className="w-full flex flex-col px-3 pt-2 pb-2.5 text-left"
               style={{ minHeight: 60, background: isOpen ? COOL.open : COOL.bg }}>
               <span className="flex items-center justify-between gap-2 w-full">
-                <span className="text-sm font-bold uppercase tracking-wide" style={{ color: "#1B3F6B" }}>{label}</span>
+                <span className="text-sm font-bold" style={{ color: INK }}>{label}</span>
                 <span className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-sm font-bold tabular-nums" style={{ color: INK, ...(projected(key) ? { opacity: 0.7 } : {}) }}>
-                    {Math.round(tot.kcal) ? `${projected(key) ? "~" : ""}${Math.round(tot.kcal)}` : "0"} / {needKcal} kcal
+                  <span className="text-sm font-bold tabular-nums" style={{ color: INK }}>
+                    {canLog
+                      ? (ls.length && Math.round(tot.kcal) ? `${Math.round(tot.kcal)} kcal` : "Not logged")
+                      : (Math.round(tot.kcal) ? `~${Math.round(tot.kcal)} kcal` : "Not planned")}
                   </span>
                   <span aria-hidden style={{ color: PLUM, display: "inline-block", transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
                 </span>

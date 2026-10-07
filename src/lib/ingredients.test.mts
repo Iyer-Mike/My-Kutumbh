@@ -19,7 +19,18 @@ describe("reading an ingredient line", () => {
     assert.equal(ingredientName("1 cup sambar (reheated)"), "Sambar");
     assert.equal(ingredientName("6 idlis (from fermented batter)"), "Idlis");
     assert.equal(ingredientName("3 tbsp coconut chutney"), "Coconut chutney");
-    assert.equal(ingredientName("1 tsp ghee (optional)"), "Ghee");
+    assert.equal(ingredientName("4 tbsp ghee (optional)"), "Ghee");
+  });
+
+  test("tiny amounts and shelf basics are not shopping", () => {
+    assert.equal(ingredientName("Oil — 2 tsp"), null);
+    assert.equal(ingredientName("1 tsp ghee (optional)"), null);
+    assert.equal(ingredientName("Turmeric powder — 1/2 tsp"), null);
+    assert.equal(ingredientName("Turmeric powder — 1 cup"), null);
+    assert.equal(ingredientName("Hing — a pinch"), null);
+    assert.equal(ingredientName("Cumin seeds — 1 tbsp"), null);
+    assert.equal(ingredientName("Cumin seeds — 3 tbsp"), "Cumin seeds");
+    assert.equal(ingredientName("Water — 1 cup"), null);
   });
 
   test("what nobody shops for", () => {
@@ -63,7 +74,7 @@ describe("reading an ingredient line", () => {
       assert.equal(ingredientName(l), null, l);
     }
     assert.equal(ingredientName("Yogurt starter culture — 1 tsp"), null);
-    assert.equal(ingredientName("Rose water — 1 tsp"), "Rose water");
+    assert.equal(ingredientName("Rose water — 100 ml"), "Rose water");
     assert.equal(ingredientName("Coconut water — 1 cup"), "Coconut water");
   });
 

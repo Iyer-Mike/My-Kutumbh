@@ -18,10 +18,25 @@ const PREP_WORDS = /\b(chopped|finely|thinly|sliced|diced|minced|grated|soaked|r
 
 const NOISE = /^(?:optional|toppings?|to serve|garnish|for the .*|others?)\s*[:\-]?\s*/i;
 
+/** A pinch, a dash, a few teaspoons or a spoon or two: kitchen-shelf quantities, never a trip to the shop. */
+function isTinyAmount(line: string): boolean {
+  const l = line.toLowerCase();
+  if (/\b(?:pinch(?:es)?|dash(?:es)?|drops?|to taste|as needed)\b/.test(l)) return true;
+  const m = l.match(/(\d+(?:\.\d+)?|\d+\/\d+|[\u00BD\u00BC\u00BE\u2153\u2154\u215B])\s*(tsp|teaspoons?|tbsp|tablespoons?)\b/);
+  if (!m) return false;
+  const frac: Record<string, number> = { "\u00BD": .5, "\u00BC": .25, "\u00BE": .75, "\u2153": .33, "\u2154": .67, "\u215B": .125 };
+  const q = frac[m[1]] ?? (m[1].includes("/") ? Number(m[1].split("/")[0]) / Number(m[1].split("/")[1]) : Number(m[1]));
+  return /^t(?:sp|easpoon)/.test(m[2]) ? true : q <= 2;
+}
+
+/** Always on the kitchen shelf, whatever the amount. */
+const SHELF_BASICS = /^(?:turmeric|haldi|hing|asafoetida|asafetida|baking soda|ice(?: cubes?)?)(?:\s+powder)?$/i;
+
 /** The thing you would actually buy, from one line of a recipe. */
 export function ingredientName(line: string): string | null {
   let s = (line ?? "").trim();
   if (!s) return null;
+  if (isTinyAmount(s)) return null;
 
   // "Name — 1 cup" → keep the left side; an amount-first line loses its head
   const dash = s.split(/\s+[—–]\s+| - /)[0];
@@ -43,6 +58,7 @@ export function ingredientName(line: string): string | null {
        .replace(/\s+(?:and|or|plus)$/i, "");
 
   if (s.length < 2) return null;
+  if (SHELF_BASICS.test(s)) return null;
   if (/^salt$/i.test(s) || /^water\b/i.test(s)) return null;   // nobody shops for these
   // Hot, warm, cold or boiling water comes from the tap; coconut or rose water is a different thing
   if (/^(?:hot|warm|lukewarm|luke warm|cold|chilled|boiling|ice|iced|tap|drinking|filtered|plain)\s+water\b/i.test(s)) return null;

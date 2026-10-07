@@ -28,8 +28,12 @@ import { FAMILY, fieldLook } from "@/lib/brand";
  */
 
 export type Period = {
-  key: "week" | "month";
-  label: string;
+  key: string;                       // d0 (today), d1–d6, w0–w3 (calendar weeks), m
+  group: "day" | "week" | "month";
+  label: string;                     // "Today", "D-2", "Week 41", "Month"
+  sub: string;                       // its dates
+  title: string;                     // how a sentence names it
+  partial: boolean;                  // the day is not over, so no verdicts yet
   intake: IntakeSummary;
   ayurveda: AyurvedaSummary;
   flags: LabFlag[];
@@ -37,12 +41,11 @@ export type Period = {
   plan: Plan;
 };
 
-type Tab = "needs" | "intake" | "report" | "ayurveda";
+type Tab = "needs" | "report" | "ayurveda";
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: "needs", label: "Needs" },
-  { key: "intake", label: "Intake" },
-  { key: "report", label: "Report" },
+  { key: "needs", label: "Needs vs Actual" },
+  { key: "report", label: "Reports vs Analysis" },
   { key: "ayurveda", label: "Ayurveda" },
 ];
 
@@ -65,17 +68,9 @@ function questionsFor(tab: Tab, p: Period, name: string | null): string[] {
       return [
         top ? (mine ? `Why ${top.headline.replace(/[.?!]$/, "")}?` : `Why should ${me} — ${top.headline.replace(/[.?!]$/, "")}?`) : "What should change first?",
         mine ? "What can I eat instead?" : `What can ${me} eat instead?`,
-        mine ? "Plan a day of meals for me" : `Plan a day of meals for ${me}`,
-      ];
-    case "intake":
-      return [
         gap
-          ? (mine
-              ? `Which of our dishes would close the ${gap.label.toLowerCase()} gap?`
-              : `Which dishes would close ${me}'s ${gap.label.toLowerCase()} gap?`)
-          : "Which dishes suit us best?",
-        gap ? (mine ? `Why am I short of ${gap.label.toLowerCase()}?` : `Why is ${me} short of ${gap.label.toLowerCase()}?`) : "Am I eating enough?",
-        mine ? "What should a day's food look like?" : `What should ${me}'s day look like?`,
+          ? (mine ? `Which of our dishes would close the ${gap.label.toLowerCase()} gap?` : `Which dishes would close ${me}'s ${gap.label.toLowerCase()} gap?`)
+          : (mine ? "Plan a day of meals for me" : `Plan a day of meals for ${me}`),
       ];
     case "report":
       return [
@@ -100,11 +95,10 @@ function onScreenFor(tab: Tab, p: Period): string {
         `Energy ${Math.round(p.intake.perDay.kcal)} kcal a day on ${p.intake.loggedDays} logged days.`,
         p.plan.actions.length ? `The changes shown: ${p.plan.actions.map((a) => a.headline).join(" | ")}` : "No changes are being suggested.",
         p.plan.doctor.length ? `Marked for a doctor: ${p.plan.doctor.join(" ")}` : "",
+        p.partial ? "This is today so far; the day is not over, so shortfalls are not final." : p.plan.gaps.length
+          ? `Short of target: ${p.plan.gaps.map((g) => `${g.label} ${g.had} of ${g.target} ${g.unit}`).join("; ")}.`
+          : "Everything is within range for this period.",
       ].filter(Boolean).join("\n");
-    case "intake":
-      return p.plan.gaps.length
-        ? `Short of target: ${p.plan.gaps.map((g) => `${g.label} ${g.had} of ${g.target} ${g.unit}`).join("; ")}.`
-        : "Everything is within range for this period.";
     case "report":
       return p.flags.filter((f) => f.known).map((f) =>
         `${f.label}: ${f.readings.map((r) => `${r.label} ${r.value}${r.unit ? " " + r.unit : ""}`).join(", ")}`,
@@ -112,6 +106,43 @@ function onScreenFor(tab: Tab, p: Period): string {
     case "ayurveda":
       return `Tastes this period: ${Object.entries(p.ayurveda.tasteShare).map(([t, v]) => `${t} ${Math.round((v as number) * 100)}%`).join(", ")}.`;
   }
+}
+
+/** The day is not over: what is logged against the day's need, with no verdict. */
+function TodaySoFar({ intake, needs }: { intake: Period["intake"]; needs: Needs }) {
+  const rows = [
+    { key: "kcal", label: "Energy", unit: "kcal" },
+    { key: "protein_g", label: "Protein", unit: "g" },
+    { key: "carbs_g", label: "Carbs", unit: "g" },
+    { key: "fat_g", label: "Fat", unit: "g" },
+    { key: "fiber_g", label: "Fibre", unit: "g" },
+  ] as const;
+  return (
+    <div className="grid gap-3">
+      <div className="rounded-2xl px-4 py-4" style={{ background: "#FBEBCF", color: "#6A3D06", border: "2.5px solid #C2551F", fontSize: T.body }}>
+        <b>Today so far.</b> The day is not over, so there is no verdict yet — only what you have logged.
+        The full picture comes tomorrow, as D-1.
+      </div>
+      <div className="rounded-2xl px-4 py-4 grid gap-2" style={{ background: "#fff", border: "2.5px solid #6B46B8" }}>
+        {rows.map((r) => {
+          const had = intake.perDay[r.key];
+          const need = needs[r.key]?.value ?? 0;
+          const share = need > 0 ? Math.min(1, had / need) : 0;
+          return (
+            <div key={r.key}>
+              <div className="flex justify-between" style={{ fontSize: T.note, color: C.ink }}>
+                <span className="font-semibold">{r.label}</span>
+                <span className="tabular-nums">{Math.round(had)}{need ? ` of ${Math.round(need)}` : ""} {r.unit}</span>
+              </div>
+              <div className="rounded-full overflow-hidden" style={{ height: 8, background: "#E4E0EC" }}>
+                <div style={{ width: `${share * 100}%`, height: "100%", background: "#6B46B8" }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 const STORE = "insights-tab-v1";
@@ -133,7 +164,7 @@ export default function InsightsPages({
   firstName: string;
 }) {
   const [tab, setTab] = useState<Tab>("needs");
-  const [periodKey, setPeriodKey] = useState<Period["key"]>("week");
+  const [periodKey, setPeriodKey] = useState<string>("w0");
   const [asking, setAsking] = useState(false);
 
   // Remember the page this reader keeps returning to — a convenience only
@@ -174,35 +205,47 @@ export default function InsightsPages({
   return (
     <div className="grid gap-3">
 
-      {/* ── Period: a week, or four ── */}
-      <div className="flex gap-2" role="tablist" aria-label="Period">
-        {periods.map((x) => (
-          <button
-            key={x.key}
-            role="tab"
-            aria-selected={x.key === periodKey}
-            onClick={() => setPeriodKey(x.key)}
-            className="px-4 py-2 rounded-full font-semibold"
-            style={{
-              fontSize: T.note,
-              background: x.key === periodKey ? "#241238" : "#E4E0EC",
-              color: x.key === periodKey ? "#fff" : C.ink2,
-            }}
-          >
-            {x.label}
-          </button>
-        ))}
-      </div>
+      {/* ── When: the days, then the weeks and the month ── */}
+      {[
+        { name: "Days", list: periods.filter((x) => x.group === "day") },
+        { name: "Weeks · Sunday to Saturday", list: periods.filter((x) => x.group !== "day") },
+      ].map((row) => (
+        <div key={row.name} className="grid gap-1">
+          <p className="m-0 font-semibold uppercase tracking-widest" style={{ fontSize: T.label, color: C.ink2 }}>{row.name}</p>
+          <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label={row.name}>
+            {row.list.map((x) => {
+              const on = x.key === periodKey;
+              return (
+                <button
+                  key={x.key}
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setPeriodKey(x.key)}
+                  className="shrink-0 px-3 py-1.5 rounded-xl text-center leading-tight"
+                  style={{
+                    background: on ? "#241238" : "#fff",
+                    color: on ? "#fff" : C.ink2,
+                    border: `2px solid ${on ? "#241238" : "#B9A8D6"}`,
+                  }}
+                >
+                  <span className="block font-bold" style={{ fontSize: T.note }}>{x.label}</span>
+                  <span className="block" style={{ fontSize: 10, opacity: 0.85 }}>{x.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
 
-      {/* ── The four pages ── */}
-      <div className="flex gap-1" role="tablist" aria-label="Insights pages">
+      {/* ── The three pages ── */}
+      <div className="grid grid-cols-3 gap-1" role="tablist" aria-label="Insights pages">
         {TABS.map((t) => (
           <button
             key={t.key}
             role="tab"
             aria-selected={t.key === tab}
             onClick={() => pick(t.key)}
-            className="flex-1 py-2.5 rounded-xl font-semibold"
+            className="px-1 py-2.5 rounded-xl font-semibold leading-tight"
             style={{
               fontSize: T.note,
               background: t.key === tab ? "#241238" : "#E4E0EC",
@@ -216,32 +259,33 @@ export default function InsightsPages({
 
       {nothingLogged && tab !== "report" && (
         <div className="rounded-2xl px-4 py-4" style={{ background: "#FBEBCF", color: "#6A3D06", border: "1px solid #F2B531", fontSize: T.body }}>
-          Nothing logged in {p.label.toLowerCase()}.
+          Nothing logged {p.group === "day" ? "for" : "in"} {p.title}.
           {!viewingOther && <> <Link href="/log" className="font-bold underline">Log a meal</Link> and this fills in.</>}
         </div>
       )}
 
-      {tab === "needs" && (
-        <PageNeeds
-          plan={p.plan} flags={p.flags} intake={p.intake} needs={needs}
-          hasReport={hasReport} viewingOther={viewingOther} firstName={firstName}
-          onOpenReport={() => pick("report")} dishesToComplete={dishesToComplete}
-        />
-      )}
+      {tab === "needs" && p.partial && <TodaySoFar intake={p.intake} needs={needs} />}
 
-      {tab === "intake" && (
-        <PageIntake
-          gaps={p.plan.gaps} intake={p.intake} needs={needs} profile={profile} age={age}
-          vitDLow={vitDLow} dishesToComplete={dishesToComplete}
-          viewingOther={viewingOther} firstName={firstName}
-        />
+      {tab === "needs" && !p.partial && (
+        <>
+          <PageNeeds
+            plan={p.plan} flags={p.flags} intake={p.intake} needs={needs}
+            hasReport={hasReport} viewingOther={viewingOther} firstName={firstName}
+            onOpenReport={() => pick("report")} dishesToComplete={dishesToComplete}
+          />
+          <PageIntake
+            gaps={p.plan.gaps} intake={p.intake} needs={needs} profile={profile} age={age}
+            vitDLow={vitDLow} dishesToComplete={dishesToComplete}
+            viewingOther={viewingOther} firstName={firstName}
+          />
+        </>
       )}
 
       {tab === "report" && (
         <PageReport
-          flags={p.flags} gaps={p.plan.gaps} hasReport={hasReport} reportDate={reportDate}
-          doctorNotes={p.plan.doctor} viewingOther={viewingOther} firstName={firstName}
-          onOpenIntake={() => pick("intake")}
+          flags={p.flags} gaps={p.partial ? [] : p.plan.gaps} hasReport={hasReport} reportDate={reportDate}
+          doctorNotes={p.partial ? [] : p.plan.doctor} viewingOther={viewingOther} firstName={firstName}
+          onOpenIntake={() => pick("needs")}
         />
       )}
 
@@ -263,16 +307,13 @@ export default function InsightsPages({
                 general invitation to ask something. */}
             <p className="m-0 mt-1.5" style={{ fontSize: T.body, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>
               {viewingOther ? (
-                <>About {firstName}&apos;s {tab === "needs" ? "changes" : tab === "intake" ? "shortfalls" : tab === "report" ? "readings" : "tastes"}, or anything else.</>
+                <>About {firstName}&apos;s {tab === "needs" ? "changes and shortfalls" : tab === "report" ? "readings" : "tastes"}, or anything else.</>
               ) : (
                 <>
                   {firstName}, ask me about{" "}
                   {tab === "needs" && (p.plan.actions[0]
                     ? <>the {p.plan.actions[0].id.replace(/^(more|less)-/, "")} — or anything else.</>
                     : "these changes, or anything else.")}
-                  {tab === "intake" && (p.plan.gaps[0]
-                    ? <>the {p.plan.gaps[0].label.toLowerCase()} gap, or anything else.</>
-                    : "what is short, or anything else.")}
                   {tab === "report" && (p.flags.find((f) => f.known)
                     ? <>{p.flags.find((f) => f.known)!.label.toLowerCase()}, in plain words.</>
                     : "these readings, in plain words.")}

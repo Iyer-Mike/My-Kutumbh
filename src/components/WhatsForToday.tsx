@@ -323,6 +323,9 @@ export default function WhatsForToday({
         const summary = ps.length
           ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}`)
           : (ls.length ? `${ls.length} logged` : "Not planned yet");
+        // The dishes in one line, so a closed card says what is cooking
+        const names = ps.length ? ps.map((p) => p.food_name) : ls.map((l) => l.food_name);
+        const dishLine = names.length > 2 ? `${names.slice(0, 2).join(" · ")} +${names.length - 2}` : names.join(" · ");
         const share = SHARE[key] ?? 0;
         const tot = valueOf(key);
         const needKcal = Math.round(targets.kcal * share);
@@ -338,6 +341,9 @@ export default function WhatsForToday({
                 <span className="flex flex-col min-w-0">
                   <span className="text-sm font-bold" style={{ color: INK }}>{label} <span className="text-[11px] font-semibold" style={{ color: COOL.edge }}>· {Math.round(share * 100)}% of the day</span></span>
                   <span className="text-xs" style={{ color: MUTED }}>{summary} · {time}</span>
+                  {!isOpen && dishLine && (
+                    <span className="text-xs font-medium truncate" style={{ color: INK }}>{dishLine}</span>
+                  )}
                 </span>
               </span>
               <span className="flex items-center gap-2 flex-shrink-0">

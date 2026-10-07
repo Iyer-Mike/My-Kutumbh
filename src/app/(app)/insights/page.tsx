@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import InsightsPages, { type Period } from "@/components/insights/InsightsPages";
-import { daysAgoLocal } from "@/lib/dates";
+import { addDays, monthStart, weekOf } from "@/lib/weeks";
 import { loadInsightsData } from "@/lib/insights/load";
 import { computeNeeds, ageOn } from "@/lib/insights/needs";
 import { summarizeIntake } from "@/lib/insights/intake";
@@ -22,24 +22,37 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const needs = computeNeeds(d.profile, d.today);
   const labValues = latestLabValues(d.reports);
 
-  // A week, or four. One day was removed deliberately — see InsightsPages.
-  const period = (key: Period["key"], label: string, from: string): Period => {
-    const inRange = d.entries.filter((e) => e.logged_date >= from && e.logged_date <= d.today);
-    const intake = summarizeIntake(d.entries, from, d.today);
+  // The reader's own strip: today, the six days before it, the current
+  // calendar week and the three before it, and the month. A day in
+  // progress is marked partial — see InsightsPages.
+  const long = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short" });
+  const period = (
+    key: string, group: Period["group"], label: string, sub: string, title: string, from: string, to: string, partial = false,
+  ): Period => {
+    const inRange = d.entries.filter((e) => e.logged_date >= from && e.logged_date <= to);
+    const intake = summarizeIntake(d.entries, from, to);
     const flags = evaluateLabs(labValues, { intake, needs, foods: d.foods, allergies: d.profile.allergies ?? [] });
     const events = evaluateIntelligence({ profile: d.profile, needs, intake, entries: inRange, labs: labValues });
 
     return {
-      key, label, intake, flags, events,
+      key, group, label, sub, title, partial, intake, flags, events,
       ayurveda: summarizeAyurveda(inRange, d.profile.primary_dosha),
       plan: planActions({ events, labFlags: flags, intake, needs, entries: inRange }),
     };
   };
 
-  const periods: Period[] = [
-    period("week", "1 week", daysAgoLocal(6, d.timeZone)),
-    period("month", "4 weeks", daysAgoLocal(27, d.timeZone)),
-  ];
+  const periods: Period[] = [period("d0", "day", "Today", long(d.today), "today, so far", d.today, d.today, true)];
+  for (let i = 1; i <= 6; i++) {
+    const day = addDays(d.today, -i);
+    periods.push(period(`d${i}`, "day", `D-${i}`, long(day), long(day), day, day));
+  }
+  for (let i = 0; i <= 3; i++) {
+    const wk = weekOf(addDays(d.today, -7 * i));
+    const to = wk.end > d.today ? d.today : wk.end;
+    periods.push(period(`w${i}`, "week", `Week ${wk.n}`, `${long(wk.start)}–${long(wk.end)}`, `Week ${wk.n} (${long(wk.start)}–${long(wk.end)})`, wk.start, to));
+  }
+  const monthName = new Date(`${d.today}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", month: "long" });
+  periods.push(period("m", "month", "Month", monthName, monthName, monthStart(d.today), d.today));
 
   // Dishes still waiting for their details, which is why some of the
   // energy is an estimate rather than a reading. Same count the family
@@ -66,14 +79,16 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
           {d.viewingOther ? "Key Member view" : "Your nutrition & health"}
         </p>
-        <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
-          {d.viewingOther ? `${d.name}'s Insights` : "Insights"}
-        </h1>
-        <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
-          {reportDate
-            ? `Lab report · ${new Date(`${reportDate}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })}`
-            : "No lab report · add one on Profile"}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
+            {d.viewingOther ? `${d.name}'s Insights` : "Insights"}
+          </h1>
+          <p className="text-[11px] text-right pt-2 shrink-0" style={{ color: "#C9B8E4" }}>
+            {reportDate
+              ? `Latest report ${new Date(`${reportDate}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })} ✓`
+              : "No lab report · add one on Profile"}
+          </p>
+        </div>
       </header>
 
       <main className="flex-1 px-4 py-5">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { haveIt, sameThing } from "@/lib/ingredients";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
 import { readBase64, toJpegPayload } from "@/lib/photo";
@@ -71,11 +72,11 @@ function inShelfUnit(qty: number, from: Unit | null, to: Unit | null): number | 
 }
 
 export default function PantryView({
-  kutumbhId, userId, isPrime, initialItems, initialShopping, fromMenu, memberNames, today,
+  kutumbhId, userId, isPrime, initialItems, initialShopping, menuDays, memberNames, today,
 }: {
   kutumbhId: string; userId: string; isPrime: boolean;
   initialItems: PantryItem[]; initialShopping: ShoppingItem[];
-  fromMenu: { name: string; dishes: string[] }[];
+  menuDays: { date: string; label: string; dishes: { name: string; ings: string[] }[] }[];
   memberNames: Record<string, string>; today: string;
 }) {
   const supabase = createClient();
@@ -85,7 +86,8 @@ export default function PantryView({
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ name: "", category: "grain", quantity: "", unit: "kg" as Unit, low_when: "" });
   const [buyName, setBuyName] = useState("");
-  const [addedFromMenu, setAddedFromMenu] = useState<string[]>([]);
+  const [step, setStep] = useState<null | "shelf" | "menu" | "shop">(null);
+  const [tab, setTab] = useState<"staple" | "spice" | "fruit" | "fresh">("staple");
 
   // Reading a shop bill
   const billRef = useRef<HTMLInputElement>(null);
@@ -96,6 +98,20 @@ export default function PantryView({
   const [bill, setBill] = useState<{ shop: string | null; lines: BillLine[] } | null>(null);
 
   const open = shopping.filter((s) => s.status === "open");
+
+  // What the next seven days' dishes need that is neither on the shelf nor already on the list
+  const shelfNames = items.map((i) => i.name);
+  const listedNames = open.map((s) => s.name);
+  const ingState = (n: string): "have" | "listed" | "short" =>
+    haveIt(n, shelfNames) ? "have" : haveIt(n, listedNames) ? "listed" : "short";
+  const needed = (() => {
+    const m = new Map<string, { name: string }>();
+    for (const d of menuDays) for (const dish of d.dishes) for (const ing of dish.ings) {
+      const k = sameThing(ing);
+      if (k && !m.has(k) && ingState(ing) === "short") m.set(k, { name: ing.charAt(0).toUpperCase() + ing.slice(1) });
+    }
+    return [...m.values()];
+  })();
 
   function fail(what: string, message: string) {
     alert(`Couldn't ${what}: ${message}`);
@@ -195,12 +211,11 @@ export default function PantryView({
       .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at").single();
     if (error) return fail("add that to the list", error.message);
     setShopping((prev) => [data as ShoppingItem, ...prev]);
-    setAddedFromMenu((prev) => [...prev, name]);
     setBusy(false);
   }
 
   async function addAllFromMenu() {
-    const rest = fromMenu.filter((m) => !addedFromMenu.includes(m.name));
+    const rest = needed;
     if (!rest.length || busy) return;
     setBusy(true);
     const { data, error } = await supabase.from("shopping_items")
@@ -208,7 +223,6 @@ export default function PantryView({
       .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at");
     if (error) return fail("add those to the list", error.message);
     setShopping((prev) => [...((data ?? []) as ShoppingItem[]), ...prev]);
-    setAddedFromMenu((prev) => [...prev, ...rest.map((m) => m.name)]);
     setBusy(false);
   }
 
@@ -480,11 +494,240 @@ export default function PantryView({
     );
   }
 
-  const byKind = (k: Kind) => items.filter((i) => i.kind === k);
 
-  return (
+  // ── The steps ───────────────────────────────────────────────
+  const TABS = [
+    { key: "staple", label: "Staples",        hint: "Rice, dals, atta, oil, sugar — kept by weight",   tone: KIND_LOOK.staple, match: (i: PantryItem) => i.kind === "staple" },
+    { key: "spice",  label: "Spices",         hint: "Nobody weighs haldi — just OK, low or out",       tone: KIND_LOOK.sundry, match: (i: PantryItem) => i.kind === "sundry" },
+    { key: "fruit",  label: "Fruits",         hint: "Bought often, used soon",                         tone: { bg: FAMILY.violet.bg, edge: FAMILY.violet.edge, ink: FAMILY.violet.ink }, match: (i: PantryItem) => i.kind === "fresh" && i.category === "fruit" },
+    { key: "fresh",  label: "Greens & Fresh", hint: "Vegetables, greens, milk and curd — used soon",   tone: KIND_LOOK.fresh,  match: (i: PantryItem) => i.kind === "fresh" && i.category !== "fruit" },
+  ] as const;
+  const lowCount = items.filter((i) => isLow(i) || i.status !== "ok").length;
+  const plannedDays = menuDays.filter((d) => d.dishes.length > 0).length;
+
+  const STEPS = [
+    { key: "shelf", n: 1, title: "Shelf", ask: "What do we have?",
+      line: items.length === 0 ? "Not started yet" : `${items.length} item${items.length === 1 ? "" : "s"}${lowCount ? ` · ${lowCount} low` : " · none low"}`,
+      tone: FAMILY.blue },
+    { key: "menu", n: 2, title: "Menu", ask: "What will we cook?",
+      line: plannedDays === 0 ? "Nothing planned this week" : `${plannedDays} day${plannedDays === 1 ? "" : "s"} planned · ${needed.length ? `${needed.length} short` : "nothing short"}`,
+      tone: FAMILY.amber },
+    { key: "shop", n: 3, title: "Shop", ask: "What do we buy?",
+      line: open.length ? `${open.length} to buy` : "Nothing to buy",
+      tone: FAMILY.green },
+  ] as const;
+
+  const Arrow = ({ dir, tone }: { dir: "left" | "right"; tone: { edge: string } }) => (
+    <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-xl font-bold leading-none"
+      style={{ background: "#fff", border: `2px solid ${tone.edge}`, color: tone.edge }} aria-hidden="true">
+      {dir === "right" ? "›" : "‹"}
+    </span>
+  );
+
+  // Step 1 · the shelf, four tabs
+  const current = TABS.find((t) => t.key === tab)!;
+  const tabRows = items.filter(current.match);
+  const shelfStep = (
     <div className="grid gap-4">
-      {/* Shopping list */}
+      {items.length === 0 ? (
+        <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={look(FAMILY.violet)}>
+          <p className="text-sm" style={{ color: B.muted }}>
+            Shelf empty · {isPrime ? "Start with the usual list, then edit." : "The Key Member sets it up."}
+          </p>
+          {isPrime && (
+            <button onClick={fillStarter} disabled={busy}
+              className="mx-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: B.button }}>
+              {busy ? "Setting up…" : "Start with 16 usual items"}
+            </button>
+          )}
+        </section>
+      ) : (
+        <>
+          <div role="tablist" className="grid grid-cols-4 gap-1.5">
+            {TABS.map((t) => {
+              const n = items.filter(t.match).length;
+              const low = items.filter((i) => t.match(i) && (isLow(i) || i.status !== "ok")).length;
+              const on = t.key === tab;
+              return (
+                <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)}
+                  className="rounded-xl px-1 py-2 text-center leading-tight"
+                  style={{ background: on ? t.tone.edge : t.tone.bg, border: `2px solid ${t.tone.edge}`, color: on ? "#fff" : t.tone.ink }}>
+                  <span className="block text-xs font-bold">{t.label}</span>
+                  <span className="block text-[10px] opacity-90">{n}{low ? ` · ${low} low` : ""}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <section className="rounded-2xl px-4 py-4 grid gap-2"
+            style={{ background: current.tone.bg, border: `2.5px solid ${current.tone.edge}` }}>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: current.tone.ink }}>{current.label}</h2>
+              <p className="text-[11px]" style={{ color: B.muted2 }}>{current.hint}</p>
+            </div>
+            {tabRows.length === 0 ? (
+              <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
+            ) : current.key === "spice" ? (
+              <div className="flex flex-wrap gap-2 pt-1">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
+            ) : (
+              <div className="grid">
+                {tabRows.map((i) => current.key === "staple"
+                  ? <StapleRow key={i.id} item={i} />
+                  : <FreshRow key={i.id} item={i} />)}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
+      {isPrime && (
+        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.amber)}>
+          {!adding ? (
+            <button onClick={() => setAdding(true)} className="text-sm font-semibold text-left" style={{ color: B.violetLink }}>
+              ＋ Put something on the shelf
+            </button>
+          ) : (
+            <>
+              <div className="grid gap-2">
+                <label htmlFor="p-name" className="text-xs font-medium" style={{ color: B.muted }}>What is it?</label>
+                <input id="p-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  placeholder="Basmati rice, curry leaves, hing…" maxLength={60}
+                  className="rounded-xl px-3 py-2 text-sm"
+                  style={fieldLook(FAMILY.amber)} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="grid gap-1">
+                  <label htmlFor="p-cat" className="text-xs font-medium" style={{ color: B.muted }}>Kind</label>
+                  <select id="p-cat" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                    className="rounded-xl px-3 py-2 text-sm"
+                    style={fieldLook(FAMILY.amber)}>
+                    {KINDS.map((k) => (
+                      <optgroup key={k.key} label={k.label}>
+                        {CATEGORIES.filter((c) => c.kind === k.key).map((c) => (
+                          <option key={c.key} value={c.key}>{c.label}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+
+                {kindOf(draft.category) !== "sundry" && (
+                  <div className="grid gap-1">
+                    <label htmlFor="p-qty" className="text-xs font-medium" style={{ color: B.muted }}>How much</label>
+                    <div className="flex gap-1.5">
+                      <input id="p-qty" type="number" inputMode="decimal" min="0" step="0.25" value={draft.quantity}
+                        onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
+                        className="w-full min-w-0 rounded-xl px-3 py-2 text-sm"
+                        style={fieldLook(FAMILY.amber)} />
+                      <select value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value as Unit })}
+                        aria-label="Unit" className="rounded-xl px-2 py-2 text-sm"
+                        style={fieldLook(FAMILY.amber)}>
+                        {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {kindOf(draft.category) === "staple" && (
+                <div className="grid gap-1">
+                  <label htmlFor="p-low" className="text-xs font-medium" style={{ color: B.muted }}>
+                    Tell me to buy more below
+                  </label>
+                  <input id="p-low" type="number" inputMode="decimal" min="0" step="0.25" value={draft.low_when}
+                    onChange={(e) => setDraft({ ...draft, low_when: e.target.value })}
+                    placeholder={`e.g. 1 ${draft.unit}`}
+                    className="rounded-xl px-3 py-2 text-sm"
+                    style={fieldLook(FAMILY.amber)} />
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button onClick={() => addItem()} disabled={busy || !draft.name.trim()}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
+                  style={{ background: B.button }}>
+                  {busy ? "Adding…" : "Put it on the shelf"}
+                </button>
+                <button onClick={() => setAdding(false)} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+    </div>
+  );
+
+  // Step 2 · the week's menu against the shelf
+  const chip = (state: "have" | "listed" | "short") =>
+    state === "have" ? FAMILY.green : state === "listed" ? FAMILY.gold : FAMILY.red;
+  const menuStep = (
+    <div className="grid gap-4">
+      <section className="rounded-2xl px-4 py-4 grid gap-2" style={look(needed.length ? FAMILY.red : FAMILY.green)}>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
+              {needed.length ? `${needed.length} short for the week` : "Nothing short"}
+            </h2>
+            <p className="text-[11px]" style={{ color: B.muted2 }}>
+              Next 7 days · <span style={{ color: FAMILY.green.ink }}>on the shelf</span> · <span style={{ color: FAMILY.gold.ink }}>already on the list</span> · <span style={{ color: FAMILY.red.ink }}>short</span>
+            </p>
+          </div>
+          {needed.length > 0 && (
+            <button onClick={addAllFromMenu} disabled={busy}
+              className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+              style={{ background: B.button }}>
+              Add all to list
+            </button>
+          )}
+        </div>
+        <p className="text-[11px]" style={{ color: B.muted2 }}>
+          Amounts are left to you — a family pot is never one recipe.
+        </p>
+      </section>
+
+      {menuDays.length === 0 ? (
+        <section className="rounded-2xl px-4 py-5 text-center" style={look(FAMILY.violet)}>
+          <p className="text-sm" style={{ color: B.muted }}>No dishes planned for the next 7 days.</p>
+        </section>
+      ) : menuDays.map((d) => (
+        <section key={d.date} className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.blue)}>
+          <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>{d.label}</h2>
+          {d.dishes.map((dish) => (
+            <div key={dish.name} className="grid gap-1.5" style={{ borderTop: `1px solid ${FAMILY.blue.line}`, paddingTop: 8 }}>
+              <p className="text-sm font-medium" style={{ color: B.ink }}>{dish.name}</p>
+              {dish.ings.length === 0 ? (
+                <p className="text-[11px]" style={{ color: B.muted2 }}>No ingredient list for this dish.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {dish.ings.map((ing) => {
+                    const st = ingState(ing);
+                    const f = chip(st);
+                    const body = `${st === "have" ? "✓ " : st === "listed" ? "✓ " : "＋ "}${ing.charAt(0).toUpperCase() + ing.slice(1)}`;
+                    return st === "short" ? (
+                      <button key={ing} onClick={() => addFromMenu(ing.charAt(0).toUpperCase() + ing.slice(1))} disabled={busy}
+                        className="px-2.5 py-1 rounded-full text-xs font-medium disabled:opacity-60"
+                        style={{ background: "#fff", color: f.ink, border: `2px solid ${f.edge}` }}>{body}</button>
+                    ) : (
+                      <span key={ing} className="px-2.5 py-1 rounded-full text-xs font-medium"
+                        style={{ background: f.bg, color: f.ink, border: `2px solid ${f.edge}` }}>{body}</span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+        </section>
+      ))}
+    </div>
+  );
+
+  // Step 3 · what to buy
+  const shopStep = (
+    <div className="grid gap-4">
       <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.blue)}>
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
@@ -510,10 +753,6 @@ export default function PantryView({
                   <p className="text-sm truncate" style={{ color: B.ink }}>
                     {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
                   </p>
-                  <p className="text-[11px]" style={{ color: B.muted2 }}>
-                    {s.source === "low" ? "Running low" : s.source === "menu" ? "From the menu" : "Added"}
-                    {s.requested_by && memberNames[s.requested_by] ? ` · ${memberNames[s.requested_by]}` : ""}
-                  </p>
                 </div>
                 <button onClick={() => removeFromList(s)} className="w-7 h-7 rounded-lg text-xs shrink-0"
                   style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
@@ -537,53 +776,6 @@ export default function PantryView({
         </div>
       </section>
 
-      {/* What the next three days' menu needs */}
-      {fromMenu.length > 0 && (
-        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.gold)}>
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
-                The menu needs
-              </h2>
-              <p className="text-[11px]" style={{ color: B.muted2 }}>
-                Next 3 days' menu · not on the shelf
-              </p>
-            </div>
-            {fromMenu.some((m) => !addedFromMenu.includes(m.name)) && (
-              <button onClick={addAllFromMenu} disabled={busy}
-                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50"
-                style={{ background: B.tint, color: B.violet }}>
-                Add all
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-1.5">
-            {fromMenu.map((m) => {
-              const added = addedFromMenu.includes(m.name);
-              return (
-                <button key={m.name} onClick={() => addFromMenu(m.name)} disabled={busy || added}
-                  title={`For ${m.dishes.join(", ")}`}
-                  className="px-2.5 py-1.5 rounded-full text-xs font-medium disabled:opacity-60"
-                  style={added
-                    ? { background: B.goldTint, color: B.goldInk }
-                    : { background: "#fff", color: B.ink, border: `2px solid ${FAMILY.gold.edge}` }}>
-                  {added ? "✓ " : "＋ "}{m.name}
-                  {m.dishes.length > 1 && <span style={{ color: B.muted2 }}> ×{m.dishes.length}</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="text-[11px]" style={{ color: B.muted2 }}>
-            For {[...new Set(fromMenu.flatMap((m) => m.dishes))].slice(0, 6).join(", ")}
-            {[...new Set(fromMenu.flatMap((m) => m.dishes))].length > 6 ? " and more" : ""}.
-            Amounts are left to you — a family pot is never one recipe.
-          </p>
-        </section>
-      )}
-
-      {/* Shopped? Photograph the bill — Key Member only */}
       {isPrime && (
         <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.violet)}>
           {/* The camera and the file chooser are two different doors, so a
@@ -701,126 +893,57 @@ export default function PantryView({
           )}
         </section>
       )}
+    </div>
+  );
 
-      {/* The shelf, one card per kind */}
-      {items.length === 0 ? (
-        <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={look(FAMILY.violet)}>
-          <p className="text-sm" style={{ color: B.muted }}>
-            Shelf empty · {isPrime ? "Start with the usual list, then edit." : "The Key Member sets it up."}
-          </p>
-          {isPrime && (
-            <button onClick={fillStarter} disabled={busy}
-              className="mx-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-              style={{ background: B.button }}>
-              {busy ? "Setting up…" : "Start with 16 usual items"}
-            </button>
-          )}
-        </section>
-      ) : (
-        KINDS.map((k) => {
-          const rows = byKind(k.key);
-          if (rows.length === 0 && !isPrime) return null;
-          return (
-            <section key={k.key} className="rounded-2xl px-4 py-4 grid gap-2"
-              style={{ background: KIND_LOOK[k.key].bg, border: `2.5px solid ${KIND_LOOK[k.key].edge}` }}>
-              <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: KIND_LOOK[k.key].ink }}>{k.label}</h2>
-                <p className="text-[11px]" style={{ color: B.muted2 }}>{k.hint}</p>
-              </div>
+  // ── The hub, and the step you opened ────────────────────────
+  if (step === null) {
+    return (
+      <div className="grid gap-3">
+        {STEPS.map((s) => (
+          <button key={s.key} onClick={() => setStep(s.key)}
+            className="w-full text-left rounded-2xl px-4 py-4 flex items-center gap-3"
+            style={look(s.tone)} aria-label={`${s.title}: ${s.ask}`}>
+            <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white"
+              style={{ background: s.tone.edge }}>{s.n}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold uppercase tracking-wider" style={{ color: s.tone.ink }}>{s.title}</span>
+              <span className="block text-sm" style={{ color: B.ink }}>{s.ask}</span>
+              <span className="block text-[11px]" style={{ color: B.muted2 }}>{s.line}</span>
+            </span>
+            <Arrow dir="right" tone={s.tone} />
+          </button>
+        ))}
+      </div>
+    );
+  }
 
-              {rows.length === 0 ? (
-                <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
-              ) : k.key === "sundry" ? (
-                <div className="flex flex-wrap gap-2 pt-1">{rows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
-              ) : (
-                <div className="grid">
-                  {rows.map((i) => k.key === "staple"
-                    ? <StapleRow key={i.id} item={i} />
-                    : <FreshRow key={i.id} item={i} />)}
-                </div>
-              )}
-            </section>
-          );
-        })
-      )}
+  const idx = STEPS.findIndex((s) => s.key === step);
+  const cur = STEPS[idx];
+  const next = STEPS[idx + 1];
+  return (
+    <div className="grid gap-4">
+      <div className="flex items-center gap-3">
+        <button onClick={() => setStep(null)} className="flex items-center gap-2" aria-label="Back to the three steps">
+          <Arrow dir="left" tone={cur.tone} />
+          <span className="text-xs font-semibold" style={{ color: B.violetLink }}>All steps</span>
+        </button>
+        <p className="flex-1 text-right text-sm font-bold uppercase tracking-wider" style={{ color: cur.tone.ink }}>
+          {cur.n} · {cur.title}
+        </p>
+      </div>
 
-      {/* Add to the shelf — Key Member only */}
-      {isPrime && (
-        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.amber)}>
-          {!adding ? (
-            <button onClick={() => setAdding(true)} className="text-sm font-semibold text-left" style={{ color: B.violetLink }}>
-              ＋ Put something on the shelf
-            </button>
-          ) : (
-            <>
-              <div className="grid gap-2">
-                <label htmlFor="p-name" className="text-xs font-medium" style={{ color: B.muted }}>What is it?</label>
-                <input id="p-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  placeholder="Basmati rice, curry leaves, hing…" maxLength={60}
-                  className="rounded-xl px-3 py-2 text-sm"
-                  style={fieldLook(FAMILY.amber)} />
-              </div>
+      {step === "shelf" ? shelfStep : step === "menu" ? menuStep : shopStep}
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="grid gap-1">
-                  <label htmlFor="p-cat" className="text-xs font-medium" style={{ color: B.muted }}>Kind</label>
-                  <select id="p-cat" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-                    className="rounded-xl px-3 py-2 text-sm"
-                    style={fieldLook(FAMILY.amber)}>
-                    {KINDS.map((k) => (
-                      <optgroup key={k.key} label={k.label}>
-                        {CATEGORIES.filter((c) => c.kind === k.key).map((c) => (
-                          <option key={c.key} value={c.key}>{c.label}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-
-                {kindOf(draft.category) !== "sundry" && (
-                  <div className="grid gap-1">
-                    <label htmlFor="p-qty" className="text-xs font-medium" style={{ color: B.muted }}>How much</label>
-                    <div className="flex gap-1.5">
-                      <input id="p-qty" type="number" inputMode="decimal" min="0" step="0.25" value={draft.quantity}
-                        onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
-                        className="w-full min-w-0 rounded-xl px-3 py-2 text-sm"
-                        style={fieldLook(FAMILY.amber)} />
-                      <select value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value as Unit })}
-                        aria-label="Unit" className="rounded-xl px-2 py-2 text-sm"
-                        style={fieldLook(FAMILY.amber)}>
-                        {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {kindOf(draft.category) === "staple" && (
-                <div className="grid gap-1">
-                  <label htmlFor="p-low" className="text-xs font-medium" style={{ color: B.muted }}>
-                    Tell me to buy more below
-                  </label>
-                  <input id="p-low" type="number" inputMode="decimal" min="0" step="0.25" value={draft.low_when}
-                    onChange={(e) => setDraft({ ...draft, low_when: e.target.value })}
-                    placeholder={`e.g. 1 ${draft.unit}`}
-                    className="rounded-xl px-3 py-2 text-sm"
-                    style={fieldLook(FAMILY.amber)} />
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button onClick={() => addItem()} disabled={busy || !draft.name.trim()}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
-                  style={{ background: B.button }}>
-                  {busy ? "Adding…" : "Put it on the shelf"}
-                </button>
-                <button onClick={() => setAdding(false)} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
-                  Cancel
-                </button>
-              </div>
-            </>
-          )}
-        </section>
+      {next && (
+        <button onClick={() => { setStep(next.key); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }}
+          className="w-full rounded-2xl px-4 py-3 flex items-center gap-3 text-left" style={look(next.tone)}>
+          <span className="flex-1 min-w-0">
+            <span className="block text-[11px]" style={{ color: B.muted2 }}>Next</span>
+            <span className="block text-sm font-bold" style={{ color: next.tone.ink }}>{next.n} · {next.title} — {next.ask}</span>
+          </span>
+          <Arrow dir="right" tone={next.tone} />
+        </button>
       )}
     </div>
   );

@@ -21,11 +21,11 @@ function Change({ a }: { a: Action }) {
   const plus = a.kind === "increase";
 
   return (
-    <div className="flex gap-3 items-start py-3" style={{ borderTop: `1px solid #EDE6F7` }}>
+    <div className="flex gap-2 items-start py-1.5" style={{ borderTop: `1px solid #EDE6F7` }}>
       <span
         className="flex-shrink-0 rounded-full flex items-center justify-center font-bold"
         style={{
-          width: "1.6rem", height: "1.6rem", fontSize: T.body, lineHeight: 1,
+          width: "1.4rem", height: "1.4rem", fontSize: T.body, lineHeight: 1,
           background: plus ? "#E1F0DE" : "#FBE2DC",
           color: plus ? C.leaf : C.warn,
         }}
@@ -33,10 +33,10 @@ function Change({ a }: { a: Action }) {
         {plus ? "+" : "−"}
       </span>
       <div className="min-w-0">
-        <p className="m-0" style={{ fontSize: T.say, color: C.ink, lineHeight: 1.45 }}>{a.headline}</p>
+        <p className="m-0" style={{ fontSize: T.say, color: C.ink, lineHeight: 1.3 }}>{a.headline}</p>
         {a.because.length > 0 && (
           <>
-            <button onClick={() => setWhy(!why)} className="mt-1 font-medium" style={{ fontSize: T.note, color: C.ink3 }}>
+            <button onClick={() => setWhy(!why)} className="font-medium" style={{ fontSize: T.note, color: C.ink3 }}>
               {why ? "Hide why" : `Why · ${a.because.length}`}
             </button>
             {why && (
@@ -135,7 +135,7 @@ export default function PageNeedsVsActual({
     <div className="grid gap-3">
 
       {/* Blood and profile, side by side */}
-      <div className="grid grid-cols-2 gap-2 items-start">
+      <div className="grid grid-cols-2 gap-2">
         <Card style={{ padding: "0.75rem" }}>
           <Label>Your med report says</Label>
           {!hasReport ? (

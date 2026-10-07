@@ -19,6 +19,44 @@ const RASA: Record<Rasa, string> = {
 /** Which tastes are so absent they are worth naming. */
 const SCARCE = 0.06;
 
+type Fix = { problem: string; change: string; how: string };
+
+/** What each missing taste brings, in the classical terms. */
+const TASTE_FIX: Partial<Record<Rasa, { change: string; how: string }>> = {
+  bitter: { change: "Add karela, methi, drumstick leaves, neem flowers or bitter greens.", how: "Bitter cools Pitta and dries Kapha, and is the taste most often missing; it also helps digestion and steadies blood sugar." },
+  astringent: { change: "Add moong, whole pulses, pomegranate, raw banana or green leafy vegetables.", how: "Astringent is drying and binding: it calms Pitta and Kapha and settles a loose or heavy stomach." },
+  pungent: { change: "Add ginger, black pepper, cumin, mustard or green chilli in the tempering.", how: "Pungent kindles digestion (agni) and clears Kapha heaviness." },
+  sour: { change: "Add lemon, amla, buttermilk, tamarind or a little curd.", how: "Sour wakes the appetite and digestion and calms Vata." },
+  sweet: { change: "Add whole grains, milk, ghee, dates or sweet fruit.", how: "Sweet is the taste that nourishes; it calms Vata and Pitta." },
+};
+
+/** What a food change would do for each shortcoming this page finds. */
+function fixes(a: AyurvedaSummary): Fix[] {
+  const out: Fix[] = [];
+  const name = (r: Rasa) => RASA[r].toLowerCase();
+
+  for (const r of (Object.keys(RASA) as Rasa[])) {
+    const t = TASTE_FIX[r];
+    if (t && a.tasteShare[r] < SCARCE) out.push({ problem: `Little ${name(r)} taste (${Math.round(a.tasteShare[r] * 100)}%)`, ...t });
+  }
+
+  for (const d of a.primaryDoshas) {
+    if (a.aggravatingShare[d] < 0.35) continue;
+    const pct = Math.round(a.aggravatingShare[d] * 100);
+    if (d === "vata") out.push({ problem: `${pct}% of food aggravates Vata`, change: "Favour warm, cooked, moist food with ghee or sesame oil; keep raw salads, dry snacks and cold drinks small.", how: "Warmth, oil and a little sweet, sour or salty taste steady Vata's dry, light, cold nature." });
+    if (d === "pitta") out.push({ problem: `${pct}% of food aggravates Pitta`, change: "Favour cooling food: coconut, cucumber, coriander, fennel, buttermilk; ease off chilli, fried and very sour food.", how: "Sweet, bitter and astringent tastes with cooling foods quench Pitta's heat." });
+    if (d === "kapha") out.push({ problem: `${pct}% of food aggravates Kapha`, change: "Favour light, warm food with ginger, pepper and bitter greens; go easy on sweets, dairy, fried food and cold drinks.", how: "Pungent, bitter and astringent tastes lighten and dry Kapha's heavy, damp nature." });
+  }
+
+  if (a.primaryDoshas.includes("pitta") && a.virya.heating >= 0.5) {
+    out.push({ problem: `${Math.round(a.virya.heating * 100)}% of food is heating`, change: "Swap some for cooling dishes: curd rice, cucumber raita, coconut chutney, buttermilk.", how: "Cooling food offsets the heat that builds up Pitta." });
+  }
+  if ((a.primaryDoshas.includes("vata") || a.primaryDoshas.includes("kapha")) && a.virya.cooling >= 0.5) {
+    out.push({ problem: `${Math.round(a.virya.cooling * 100)}% of food is cooling`, change: "Swap some for warming dishes: ginger tea, cumin rasam, hot soups, cooked vegetables.", how: "Warm food counters the cold, slow quality that Vata and Kapha tend to." });
+  }
+  return out.slice(0, 4);
+}
+
 export default function PageAyurveda({
   ayurveda, primaryDosha, viewingOther, firstName,
 }: {
@@ -42,6 +80,7 @@ export default function PageAyurveda({
     .map((r) => ({ r, share: ayurveda.tasteShare[r] }))
     .sort((a, b) => b.share - a.share);
 
+  const todo = fixes(ayurveda);
   const missing = tastes.filter((t) => t.share < SCARCE).map((t) => RASA[t.r].toLowerCase());
   const leading = tastes[0];
 
@@ -125,6 +164,28 @@ export default function PageAyurveda({
         <p className="m-0 mt-3" style={{ fontSize: T.note, color: C.ink3, lineHeight: 1.5 }}>
           Complements nutrition · not a substitute for {viewingOther ? `${firstName}'s` : "your"} doctor.
         </p>
+      </Card>
+
+      {/* 3 · How a change of food would help */}
+      <Card tone="mint">
+        <Label>How a change of food would help</Label>
+        {todo.length === 0 ? (
+          <Says>Tastes and doshas are in balance for this period · nothing to change ✓</Says>
+        ) : (
+          <div className="mt-2 grid gap-3">
+            {todo.map((f) => (
+              <div key={f.problem}>
+                <p className="m-0 font-bold" style={{ fontSize: T.body, color: C.ink }}>{f.problem}</p>
+                <p className="m-0 mt-0.5" style={{ fontSize: T.body, color: C.ink2, lineHeight: 1.5 }}>
+                  <b style={{ color: C.leaf }}>Change:</b> {f.change}
+                </p>
+                <p className="m-0 mt-0.5" style={{ fontSize: T.body, color: C.ink2, lineHeight: 1.5 }}>
+                  <b style={{ color: C.ink }}>How it helps:</b> {f.how}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

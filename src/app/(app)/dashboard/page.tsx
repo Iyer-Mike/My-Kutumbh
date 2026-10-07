@@ -4,7 +4,7 @@ import KutumbhLogo from "@/components/KutumbhLogo";
 import WhatsForToday, { type MealSuggestion } from "@/components/WhatsForToday";
 import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
-import { clampDay, daysAgoLocal, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
+import { clampDay, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
 import FestivalMenu, { type Suggestion } from "@/components/FestivalMenu";
 import { starterMenu, type DishInfo } from "@/lib/festival-starter";
@@ -134,15 +134,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const tomorrow = daysAheadLocal(1, timeZone);
 
-  // Which of the last seven days have something logged, for the day strip
-  const { data: recent } = await supabase
-    .from("meal_logs")
-    .select("logged_date")
-    .eq("user_id", user!.id)
-    .gte("logged_date", daysAgoLocal(6, timeZone))
-    .lte("logged_date", today);
-  const loggedDates = [...new Set((recent ?? []).map((r) => r.logged_date as string))];
-
   // Is this a festival day? The app's list first, then the family's own
   const builtIn = builtInOn(day);
   let festivalName: string | null = builtIn[0] ?? null;
@@ -192,7 +183,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     activity_level: profile?.activity_level ?? null, daily_kcal_goal: profile?.daily_kcal_goal ?? null,
     primary_dosha: null, diet_type: null, allergies: null, conditions: null,
   }, today);
-  const targets = { kcal: needs.kcal.value, p: needs.protein_g.value, c: needs.carbs_g.value, fi: needs.fiber_g.value };
+  const targets = {
+    kcal: needs.kcal.value, p: needs.protein_g.value, c: needs.carbs_g.value, fi: needs.fiber_g.value, fat: needs.fat_g.value,
+    fe: needs.iron_mg.value, ca: needs.calcium_mg.value, b12: needs.vitamin_b12_mcg.value, na: needs.sodium_mg.value, k: needs.potassium_mg.value,
+  };
 
   // The next festival ahead: the app's list and the family's own
   const nextBuiltIn = BUILT_IN_FESTIVALS.filter((f) => f.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
@@ -321,7 +315,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           day={day}
           today={today}
           tomorrow={tomorrow}
-          loggedDates={loggedDates}
           isPrime={isPrime}
           festivalTab={festivalTab}
           quickPicks={quickPicks}

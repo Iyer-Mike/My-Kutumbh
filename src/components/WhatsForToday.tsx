@@ -9,7 +9,7 @@ import { FAMILY, look } from "@/lib/brand";
 import { SLOTS } from "@/lib/meal-slots";
 import { dayLabel } from "@/lib/dates";
 import { useFamilyTimeZone } from "@/lib/family-time";
-import { microCells, nutrientCells, scaled, sum, type Nutr } from "@/lib/serving-nutrition";
+import { scaled, sum, type Nutr } from "@/lib/serving-nutrition";
 import PlanSlotCard, { type PlanItem, type QuickPick } from "./PlanSlotCard";
 
 export type MealSuggestion = {
@@ -47,12 +47,10 @@ type Props = {
   suggestions: MealSuggestion[];
   dailyKcalGoal: number | null;
   /** Day needs from the profile (ICMR-NIN): each meal gets a share */
-  targets: { kcal: number; p: number; c: number; fi: number };
+  targets: Targets;
   day: string;
   today: string;
   tomorrow: string;
-  /** Days in the last week with something logged */
-  loggedDates: string[];
   isPrime: boolean;
   festivalTab: string | null;
   quickPicks: Record<string, QuickPick[]>;
@@ -87,24 +85,36 @@ const qtyText = (q: number, unit: string | null) => {
 const same = (p: Plan, l: Log) =>
   p.food_item_id && l.food_item_id ? p.food_item_id === l.food_item_id : p.food_name.toLowerCase() === l.food_name.toLowerCase();
 
-// What share of the day's need each meal is meant to carry
-const SHARE: Record<string, number> = { breakfast: 0.25, morning_snack: 0.05, lunch: 0.35, evening_snack: 0.10, dinner: 0.25 };
 // Two clearly different card families: warm for the day's values, cool for the meals
 export const WARM = { bg: "#FFE9C7", edge: "#C2551F" };
 export const COOL = { bg: "#E8F2FD", edge: "#2E64A0", open: "#D3E6FA" };
-const BARS = [
-  { key: "kcal", name: "Energy",  unit: "kcal", color: "#FF1F8E" },
-  { key: "p",    name: "Protein", unit: "g",    color: "#0091FF" },
-  { key: "c",    name: "Carbs",   unit: "g",    color: "#FF8F00" },
-  { key: "fi",   name: "Fibre",   unit: "g",    color: "#1FD100" },
-] as const;
+
+type Targets = { kcal: number; p: number; c: number; fi: number; fat: number; fe: number; ca: number; b12: number; na: number; k: number };
+type Row = { name: string; key: keyof Nutr; tkey: keyof Targets; unit: string; limit?: boolean };
+// Five always on show; the rest behind "See more"
+const VALUE_ROWS: Row[] = [
+  { name: "Energy",       key: "kcal", tkey: "kcal", unit: "kcal" },
+  { name: "Protein",      key: "p",    tkey: "p",    unit: "g" },
+  { name: "Carbohydrate", key: "c",    tkey: "c",    unit: "g" },
+  { name: "Fat",          key: "fat",  tkey: "fat",  unit: "g" },
+  { name: "Fibre",        key: "fi",   tkey: "fi",   unit: "g" },
+];
+const MORE_ROWS: Row[] = [
+  { name: "Iron",      key: "fe",  tkey: "fe",  unit: "mg" },
+  { name: "Calcium",   key: "ca",  tkey: "ca",  unit: "mg" },
+  { name: "Vitamin B12", key: "b12", tkey: "b12", unit: "µg" },
+  { name: "Potassium", key: "k",   tkey: "k",   unit: "mg" },
+  { name: "Sodium",    key: "na",  tkey: "na",  unit: "mg", limit: true },
+];
+const num = (x: number, unit: string) => (x >= 100 || unit === "kcal" ? Math.round(x) : Math.round(x * 10) / 10).toLocaleString("en-IN");
+const fmtQ = (x: number, unit: string) => `${num(x, unit)} ${unit}`;
 
 export const INK = "#241238";
 export const PLUM = "#3B1F5C";
 export const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, loggedDates, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -121,6 +131,7 @@ export default function WhatsForToday({
 
   const [open, setOpen]         = useState<Record<string, boolean>>({});
   const [editing, setEditing]   = useState<Record<string, boolean>>({});
+  const [seeMore, setSeeMore]   = useState(false);
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [undo, setUndo]         = useState<{ ids: string[]; text: string } | null>(null);
@@ -255,6 +266,7 @@ export default function WhatsForToday({
     ? slotPlans(s.key).filter((p) => !p.n).length
     : slotLogs(s.key).filter((l) => !l.n).length), 0);
   const anything = logs.length > 0 || plans.length > 0;
+  const projectedDay = SLOTS.some((s) => projected(s.key));
 
   const tabBase = "px-3 text-sm min-h-[44px] self-end border-b-[3px] whitespace-nowrap";
   const isToday = day === today;
@@ -262,83 +274,81 @@ export default function WhatsForToday({
 
   return (
     <div className="flex flex-col gap-3">
-     <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: `2.5px solid ${FAMILY.violet.edge}` }}>
-      {/* Title bar */}
-      <div className="flex items-stretch gap-0.5 px-1.5" style={{ background: PLUM, height: 48 }}>
-        <Link href="/dashboard" aria-current={isToday ? "page" : undefined} className={tabBase}
-          style={{ display: "flex", alignItems: "center", borderColor: isToday ? "#F5B82E" : "transparent",
-                   color: isToday ? "#fff" : "#C9B8E4", fontWeight: isToday ? 700 : 500 }}>
-          {isToday || isTomorrow ? "What\u2019s for Today" : "Today"}
-        </Link>
-        <Link href={`/dashboard?date=${tomorrow}`} aria-current={isTomorrow ? "page" : undefined} className={tabBase}
-          style={{ display: "flex", alignItems: "center", borderColor: isTomorrow ? "#F5B82E" : "transparent",
-                   color: isTomorrow ? "#fff" : "#C9B8E4", fontWeight: isTomorrow ? 700 : 500 }}>
-          Tomorrow
-        </Link>
-      </div>
-      {/* The last six days: tap one to see or fill in what was eaten */}
-      <div className="px-2 py-2" style={{ background: "#fff", borderBottom: `1px solid ${FAMILY.violet.line}` }}
-        role="navigation" aria-label="The last six days">
-        <p className="m-0 mb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
-          Last 6 days <span className="font-normal normal-case tracking-normal">· ● logged · ○ nothing yet</span>
-        </p>
-        <div className="grid grid-cols-6 gap-1">
-          {Array.from({ length: 6 }, (_, i) => {
-            const date = addDays(today, -(i + 1));
+     {/* Intake This Week: today in the middle, three days either side. The chosen day drives everything below. */}
+     <div className="rounded-2xl px-2 py-2" style={{ background: "#fff", border: `2.5px solid ${FAMILY.violet.edge}` }} role="navigation" aria-label="Intake this week">
+        <p className="m-0 mb-1.5 px-1 text-sm font-bold" style={{ color: PLUM }}>Intake This Week</p>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 7 }, (_, i) => {
+            const date = addDays(today, i - 3);
             const on = date === day;
-            const logged = loggedDates.includes(date);
+            const isNow = date === today;
+            const ahead = date > today;
             const wd = new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short" });
             const dd = new Date(`${date}T00:00:00Z`).getUTCDate();
             return (
-              <Link key={date} href={`/dashboard?date=${date}`} aria-current={on ? "page" : undefined}
-                aria-label={`${wd} ${dd}, ${logged ? "logged" : "nothing logged yet"}`}
-                className="rounded-xl py-1 text-center leading-tight min-w-0"
-                style={{ background: on ? PLUM : "#fff", color: on ? "#fff" : INK, border: `2px solid ${on ? PLUM : FAMILY.violet.edge}` }}>
-                <span className="block text-[11px] font-bold">D-{i + 1}</span>
-                <span className="block text-[10px]" style={{ opacity: 0.85 }}>{wd} {dd}</span>
-                <span className="block text-[11px] font-bold" style={{ color: on ? "#F5B82E" : logged ? "#2E8B57" : "#B42318" }}>{logged ? "●" : "○"}</span>
+              <Link key={date} href={isNow ? "/dashboard" : `/dashboard?date=${date}`} aria-current={on ? "page" : undefined}
+                aria-label={`${isNow ? "Today, " : ""}${wd} ${dd}`}
+                className="rounded-xl text-center leading-tight min-w-0 flex flex-col items-center justify-center"
+                style={{ minHeight: 56, background: on ? PLUM : ahead ? "#F3EEFA" : "#fff", color: on ? "#fff" : INK,
+                         border: `${on ? 2 : 1.5}px ${ahead && !on ? "dashed" : "solid"} ${on ? PLUM : "#C9BEDD"}` }}>
+                <span className="block text-[10px]" style={{ color: on ? "#F5B82E" : MUTED, fontWeight: isNow ? 800 : 400 }}>{isNow ? "TODAY" : wd}</span>
+                <span className="block text-base font-bold">{dd}</span>
               </Link>
             );
           })}
         </div>
-      </div>
-      <p className="px-3 py-2 text-xs leading-4" style={{ background: "#F7F3FC", color: MUTED, borderBottom: `1px solid ${FAMILY.violet.line}` }}>
-        {festivalTab ? `🪔 ${festivalTab} · ` : ""}
-        {isPrime
-          ? "You set the menu · the family sees it"
-          : "Menu set by your Key Member · tap a dish to log it"}
-      </p>
-     </div>
-
-      {/* Food values: first thing under the title bar, right after every log */}
-      <div className="rounded-2xl px-3 py-3 flex flex-col gap-2.5" style={{ background: WARM.bg, border: `2.5px solid ${WARM.edge}` }} aria-live="polite">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="m-0 text-sm font-bold" style={{ color: INK }}>{canLog ? "Food values today" : "Food values of the menu"}</p>
-          <p className="m-0 text-xs" style={{ color: MUTED }}>
-            {Math.round(dayTotal.kcal)} kcal{canLog && dailyKcalGoal ? ` of ${dailyKcalGoal}` : ""}
+        {(day < addDays(today, -3) || day > addDays(today, 3)) && (
+          <p className="m-0 mt-1.5 px-1 text-xs" style={{ color: MUTED }}>
+            Showing {dayLabel(day, tz)} · <Link href="/dashboard" className="font-semibold underline" style={{ color: "#6B46B8" }}>back to today</Link>
           </p>
+        )}
+        {festivalTab && <p className="m-0 mt-1.5 px-1 text-xs" style={{ color: MUTED }}>🪔 {festivalTab}</p>}
+      </div>
+
+      {/* Food values of the chosen day: what was eaten against the member's own range */}
+      <div className="rounded-2xl px-3 py-3 flex flex-col gap-2" style={{ background: WARM.bg, border: `2.5px solid ${WARM.edge}` }} aria-live="polite">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="m-0 text-sm font-bold" style={{ color: INK }}>
+            Food Values · {isToday ? "Today" : isTomorrow ? "Tomorrow" : new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short" })}
+          </p>
+          <p className="m-0 text-xs" style={{ color: MUTED }}>{new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" })}</p>
         </div>
-        {canLog && dailyKcalGoal ? (
-          <div className="rounded-full h-1.5 overflow-hidden" style={{ background: "rgba(194,85,31,0.18)" }}>
-            <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, Math.round((dayTotal.kcal / dailyKcalGoal) * 100))}%`, background: dayTotal.kcal >= dailyKcalGoal ? "#B42318" : WARM.edge }} />
-          </div>
-        ) : null}
-        <div className="grid grid-cols-5 gap-1">
-          {SLOTS.map((s) => (
-            <div key={s.key} className="flex flex-col items-center text-center min-w-0">
-              <span className="text-sm font-bold leading-[18px]" style={{ color: INK, ...(projected(s.key) ? { opacity: 0.65 } : {}) }}>{Math.round(valueOf(s.key).kcal) ? `${projected(s.key) ? "~" : ""}${Math.round(valueOf(s.key).kcal)}` : "–"}</span>
-              <span className="text-[10px] leading-3 truncate" style={{ color: MUTED }}>{s.label.replace(" Snack", " snack")}</span>
-            </div>
-          ))}
-        </div>
-        <div className="pt-2" style={{ borderTop: "1px solid rgba(194,85,31,0.30)" }}>
-          <Values title="" color={MUTED} cells={nutrientCells(dayTotal)} />
-        </div>
-        <Values title="" color={MUTED} cells={microCells(dayTotal)} />
+        <table className="w-full text-[13px]" style={{ color: INK, borderCollapse: "collapse" }}>
+          <thead>
+            <tr className="text-left text-[11px]" style={{ color: MUTED, borderBottom: `1.5px solid ${WARM.edge}` }}>
+              <th className="py-1 font-bold">Particulars</th>
+              <th className="py-1 font-bold text-right">Qty</th>
+              <th className="py-1 font-bold text-right">Good Range</th>
+              <th className="py-1 font-bold text-right">Intake %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(seeMore ? [...VALUE_ROWS, ...MORE_ROWS] : VALUE_ROWS).map((row, i, all) => {
+              const have = dayTotal[row.key];
+              const t = targets[row.tkey];
+              const lo = row.limit ? t : t * 0.95;
+              const hi = row.limit ? t : t * 1.05;
+              const pct = lo > 0 ? Math.round((have / lo) * 100) : 0;
+              return (
+                <tr key={row.name} style={{ borderBottom: i < all.length - 1 ? "1px solid rgba(194,85,31,0.25)" : undefined }}>
+                  <td className="py-2 font-bold">{row.name}</td>
+                  <td className="py-2 text-right tabular-nums" style={projectedDay ? { opacity: 0.7 } : undefined}>{projectedDay ? "~" : ""}{fmtQ(have, row.unit)}</td>
+                  <td className="py-2 text-right tabular-nums">{row.limit ? `up to ${fmtQ(t, row.unit)}` : `${num(lo, row.unit)}–${fmtQ(hi, row.unit)}`}</td>
+                  <td className="py-2 text-right font-extrabold tabular-nums">{pct}%</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <button onClick={() => setSeeMore((v) => !v)} aria-expanded={seeMore}
+          className="w-full rounded-xl text-sm font-bold" style={{ minHeight: 44, background: "#fff", border: `1.5px solid ${WARM.edge}`, color: "#8A3A12" }}>
+          {seeMore ? "See less ▴" : "See more ▾"}
+        </button>
         {!anything && <p className="m-0 text-[11px]" style={{ color: MUTED }}>{canLog ? "Plan or log a dish to see values" : "Add dishes to see values"}</p>}
-        {anyProjected && <p className="m-0 text-[11px]" style={{ color: MUTED }}>~ From the menu · your log replaces it</p>}
-        {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: MUTED }}>{noValues} {noValues === 1 ? "dish" : "dishes"} without values · excluded</p>}
-        <p className="m-0 text-[11px]" style={{ color: MUTED }}>Estimates · IFCT-based</p>
+        <p className="m-0 text-[11px]" style={{ color: MUTED }}>
+          Good Range is from your profile; Intake % is against its lower number.{anyProjected ? " ~ From the menu · your log replaces it." : ""}
+          {noValues > 0 ? ` ${noValues} ${noValues === 1 ? "dish" : "dishes"} without values · excluded.` : ""} Estimates · IFCT-based
+        </p>
       </div>
 
       {SLOTS.map(({ key, label, icon, time }) => {
@@ -348,63 +358,31 @@ export default function WhatsForToday({
         const kcalHere = Math.round(valueOf(key).kcal);
         const extra = ls.filter((l) => !ps.some((p) => same(p, l)));
         const sug = suggestions.find((x) => x.meal_slot === key);
-        const eatenCount = ps.filter((p) => logFor(key, p)).length;
-        const summary = ps.length
-          ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}`)
-          : (ls.length ? `${ls.length} logged` : "Not planned yet");
         // The dishes in one line, so a closed card says what is cooking
         const names = ps.length ? ps.map((p) => p.food_name) : ls.map((l) => l.food_name);
-        const dishLine = names.length > 2 ? `${names.slice(0, 2).join(" · ")} +${names.length - 2}` : names.join(" · ");
-        const share = SHARE[key] ?? 0;
+        const dishLine = names.join(", ");
         const tot = valueOf(key);
-        const needKcal = Math.round(targets.kcal * share);
-        const pct = needKcal > 0 ? Math.min(100, Math.round((tot.kcal / needKcal) * 100)) : 0;
+        const needKcal = Math.round(targets.kcal * 0.95).toLocaleString("en-IN");
 
         return (
           <div key={key} className="rounded-2xl overflow-hidden" style={{ background: COOL.bg, border: `2.5px solid ${COOL.edge}` }}>
             <button onClick={() => setOpen((o) => ({ ...o, [key]: !o[key] }))} aria-expanded={isOpen}
-              className="w-full flex items-center justify-between gap-2 px-3 text-left"
+              className="w-full flex flex-col px-3 pt-2 pb-2.5 text-left"
               style={{ minHeight: 60, background: isOpen ? COOL.open : COOL.bg }}>
-              <span className="flex items-center gap-3 min-w-0">
-                <span className="text-lg" aria-hidden>{icon}</span>
-                <span className="flex flex-col min-w-0">
-                  <span className="text-sm font-bold" style={{ color: INK }}>{label} <span className="text-[11px] font-semibold" style={{ color: COOL.edge }}>· {Math.round(share * 100)}% of the day</span></span>
-                  <span className="text-xs" style={{ color: MUTED }}>{summary} · {time}</span>
-                  {!isOpen && dishLine && (
-                    <span className="text-xs font-medium truncate" style={{ color: INK }}>{dishLine}</span>
-                  )}
+              <span className="flex items-center justify-between gap-2 w-full">
+                <span className="text-sm font-bold uppercase tracking-wide" style={{ color: "#1B3F6B" }}>{label}</span>
+                <span className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-sm font-bold tabular-nums" style={{ color: INK, ...(projected(key) ? { opacity: 0.7 } : {}) }}>
+                    {Math.round(tot.kcal) ? `${projected(key) ? "~" : ""}${Math.round(tot.kcal)}` : "0"} / {needKcal} kcal
+                  </span>
+                  <span aria-hidden style={{ color: PLUM, display: "inline-block", transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
                 </span>
               </span>
-              <span className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-xs font-bold tabular-nums text-right" style={{ color: INK, ...(projected(key) ? { opacity: 0.7 } : {}) }}>
-                  {Math.round(tot.kcal) ? `${projected(key) ? "~" : ""}${Math.round(tot.kcal)}` : "–"}<span className="font-normal" style={{ color: MUTED }}> / {needKcal} kcal</span>
-                </span>
-                <span aria-hidden style={{ color: PLUM, transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
-              </span>
+              <span className="text-sm leading-5" style={{ color: INK }}>{dishLine || "Not planned yet"}</span>
             </button>
-            <div className="mx-3 mb-2 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(46,100,160,0.18)" }} aria-hidden>
-              <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, background: COOL.edge, opacity: projected(key) ? 0.55 : 1 }} />
-            </div>
 
             {isOpen && (
               <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
-                <div className="rounded-xl px-3 py-2 grid gap-1.5" style={{ background: "#fff", border: `2px solid ${COOL.edge}` }}>
-                  <p className="m-0 text-[11px] font-semibold" style={{ color: MUTED }}>Against this meal&apos;s {Math.round(share * 100)}% of the day{projected(key) ? " · ~ from the menu" : ""}</p>
-                  {BARS.map((g) => {
-                    const need = (g.key === "kcal" ? targets.kcal : g.key === "p" ? targets.p : g.key === "c" ? targets.c : targets.fi) * share;
-                    const have = tot[g.key];
-                    const f = need > 0 ? Math.min(100, Math.round((have / need) * 100)) : 0;
-                    return (
-                      <div key={g.key} className="flex items-center gap-2 text-[11px]">
-                        <span className="w-12 flex-none" style={{ color: MUTED }}>{g.name}</span>
-                        <span className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#E7EEF7" }}>
-                          <span className="block h-1.5 rounded-full" style={{ width: `${f}%`, background: g.color }} />
-                        </span>
-                        <b className="tabular-nums" style={{ color: INK }}>{Math.round(have * 10) / 10}<span className="font-normal" style={{ color: MUTED }}>/{Math.round(need * 10) / 10} {g.unit}</span></b>
-                      </div>
-                    );
-                  })}
-                </div>
                 {!isPrime && ps.length === 0 && ls.length === 0 && (
                   <p className="text-sm italic py-1" style={{ color: MUTED }}>The Key Member has not planned this meal yet.</p>
                 )}

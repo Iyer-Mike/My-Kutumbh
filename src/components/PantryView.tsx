@@ -249,6 +249,18 @@ export default function PantryView({
     setBusy(false);
   }
 
+  /** Unticked on the Menu step: it comes off the list again. */
+  async function dropFromMenu(name: string) {
+    if (busy) return;
+    const rows = open.filter((s) => haveIt(name, [s.name]));
+    if (!rows.length) return;
+    setBusy(true);
+    const { error } = await supabase.from("shopping_items").delete().in("id", rows.map((r) => r.id));
+    if (error) return fail("take that off the list", error.message);
+    setShopping((prev) => prev.filter((x) => !rows.some((r) => r.id === x.id)));
+    setBusy(false);
+  }
+
   /** Ticked by mistake: back onto the list. */
   async function unbuy(s: ShoppingItem) {
     if (busy) return;
@@ -688,19 +700,19 @@ export default function PantryView({
               {needed.length ? `${needed.length} short for the week` : "Nothing short"}
             </h2>
             <p className="text-[11px]" style={{ color: B.muted2 }}>
-              Next 7 days · <span style={{ color: FAMILY.green.ink }}>on the shelf</span> · <span style={{ color: FAMILY.gold.ink }}>already on the list</span> · <span style={{ color: FAMILY.red.ink }}>short</span>
+              Next 7 days · <span style={{ color: FAMILY.green.ink }}>on the shelf</span> · <span style={{ color: FAMILY.gold.ink }}>ticked = on the shopping list</span> · <span style={{ color: FAMILY.red.ink }}>short</span>
             </p>
           </div>
           {needed.length > 0 && (
             <button onClick={addAllFromMenu} disabled={busy}
               className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
               style={{ background: B.button }}>
-              Add all to list
+              Tick all
             </button>
           )}
         </div>
         <p className="text-[11px]" style={{ color: B.muted2 }}>
-          Amounts are left to you — a family pot is never one recipe.
+          Tick what to buy; untick and it leaves the list. Amounts are left to you — a family pot is never one recipe.
         </p>
       </section>
 
@@ -721,14 +733,23 @@ export default function PantryView({
                   {dish.ings.map((ing) => {
                     const st = ingState(ing);
                     const f = chip(st);
-                    const body = `${st === "have" ? "✓ " : st === "listed" ? "✓ " : "＋ "}${ing.charAt(0).toUpperCase() + ing.slice(1)}`;
-                    return st === "short" ? (
-                      <button key={ing} onClick={() => addFromMenu(ing.charAt(0).toUpperCase() + ing.slice(1))} disabled={busy}
+                    const nice = ing.charAt(0).toUpperCase() + ing.slice(1);
+                    if (st === "have") {
+                      return (
+                        <span key={ing} className="px-2.5 py-1 rounded-full text-xs font-medium"
+                          style={{ background: f.bg, color: f.ink, border: `2px solid ${f.edge}` }}>✓ {nice} · on shelf</span>
+                      );
+                    }
+                    const ticked = st === "listed";
+                    return (
+                      <button key={ing} onClick={() => (ticked ? dropFromMenu(ing) : addFromMenu(nice))} disabled={busy}
+                        aria-pressed={ticked}
                         className="px-2.5 py-1 rounded-full text-xs font-medium disabled:opacity-60"
-                        style={{ background: "#fff", color: f.ink, border: `2px solid ${f.edge}` }}>{body}</button>
-                    ) : (
-                      <span key={ing} className="px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{ background: f.bg, color: f.ink, border: `2px solid ${f.edge}` }}>{body}</span>
+                        style={ticked
+                          ? { background: FAMILY.gold.edge, color: "#fff", border: `2px solid ${FAMILY.gold.edge}` }
+                          : { background: "#fff", color: FAMILY.red.ink, border: `2px solid ${FAMILY.red.edge}` }}>
+                        {ticked ? "✓ " : "☐ "}{nice}
+                      </button>
                     );
                   })}
                 </div>

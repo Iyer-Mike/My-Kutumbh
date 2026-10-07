@@ -45,6 +45,9 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const first = monthStart(d.today);
   const month = d.today.slice(0, 7);
   const periods: Period[] = [];
+  const short = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", month: "short" });
+  const lastDayPrev = addDays(first, -1);
+  periods.push(period("mp", "month", short(lastDayPrev), "month", new Date(`${lastDayPrev}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", month: "long" }), monthStart(lastDayPrev), lastDayPrev));
   const firstSunday = addDays(first, (7 - dayOfWeek(first)) % 7);
   for (let s = firstSunday, i = 0; s.slice(0, 7) === month; s = addDays(s, 7), i++) {
     const wk = weekOf(s);
@@ -56,7 +59,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
     ));
   }
   const monthName = new Date(`${d.today}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", month: "long" });
-  periods.push(period("m", "month", "Month", monthName, monthName, first, d.today));
+  periods.push(period("m", "month", short(d.today), "month", monthName, first, d.today));
 
   // Open on the week we are in; in the days before the month's first Sunday, on the month
   const thisWeek = weekOf(d.today).start;

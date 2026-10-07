@@ -6,8 +6,7 @@ import type { CorrectionEvent, IntakeSummary, LabFlag, Needs, Profile } from "@/
 import type { AyurvedaSummary } from "@/lib/insights/ayurveda";
 import type { Plan } from "@/lib/insights/actions";
 import CoachChat from "@/components/CoachChat";
-import PageNeeds from "./PageNeeds";
-import PageIntake from "./PageIntake";
+import PageNeedsVsActual from "./PageNeedsVsActual";
 import PageReport from "./PageReport";
 import PageAyurveda from "./PageAyurveda";
 import Beginning from "./Beginning";
@@ -169,34 +168,30 @@ export default function InsightsPages({
   return (
     <div className="grid gap-3">
 
-      {/* ── When: this month's weeks, then the month. Changing it changes every page below. ── */}
-      <div className="grid gap-1">
-        <p className="m-0 font-semibold uppercase tracking-widest" style={{ fontSize: T.label, color: C.ink2 }}>
-          {periods.find((x) => x.group === "month")?.sub} · weeks run Sunday to Saturday
-        </p>
-        <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Week or month">
-          {periods.map((x) => {
-            const on = x.key === periodKey;
-            return (
-              <button
-                key={x.key}
-                role="tab"
-                aria-selected={on}
-                disabled={x.future}
-                onClick={() => setPeriodKey(x.key)}
-                className="shrink-0 px-3 py-1.5 rounded-xl text-center leading-tight disabled:opacity-40"
-                style={{
-                  background: on ? "#241238" : "#fff",
-                  color: on ? "#fff" : C.ink2,
-                  border: `2px solid ${on ? "#241238" : "#B9A8D6"}`,
-                }}
-              >
-                <span className="block font-bold" style={{ fontSize: T.note }}>{x.label}</span>
-                <span className="block" style={{ fontSize: 10, opacity: 0.85 }}>{x.sub}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* ── When: last month, this month's weeks, this month. Changing it changes every page below. ── */}
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Month or week">
+        {periods.map((x) => {
+          const on = x.key === periodKey;
+          return (
+            <button
+              key={x.key}
+              role="tab"
+              aria-selected={on}
+              disabled={x.future}
+              onClick={() => setPeriodKey(x.key)}
+              className="flex-1 px-2 py-1.5 rounded-xl text-center leading-tight disabled:opacity-40"
+              style={{
+                minWidth: "3.6rem",
+                background: on ? "#241238" : "#fff",
+                color: on ? "#fff" : C.ink2,
+                border: `2px solid ${on ? "#241238" : "#B9A8D6"}`,
+              }}
+            >
+              <span className="block font-bold" style={{ fontSize: T.note }}>{x.label}</span>
+              <span className="block" style={{ fontSize: 10, opacity: 0.85 }}>{x.sub}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── The three pages ── */}
@@ -227,18 +222,12 @@ export default function InsightsPages({
       )}
 
       {tab === "needs" && (
-        <>
-          <PageNeeds
-            plan={p.plan} flags={p.flags} intake={p.intake} needs={needs}
-            hasReport={hasReport} viewingOther={viewingOther} firstName={firstName}
-            onOpenReport={() => pick("report")} dishesToComplete={dishesToComplete}
-          />
-          <PageIntake
-            gaps={p.plan.gaps} intake={p.intake} needs={needs} profile={profile} age={age}
-            vitDLow={vitDLow} dishesToComplete={dishesToComplete}
-            viewingOther={viewingOther} firstName={firstName}
-          />
-        </>
+        <PageNeedsVsActual
+          plan={p.plan} flags={p.flags} gaps={p.plan.gaps} intake={p.intake} needs={needs}
+          profile={profile} age={age} vitDLow={vitDLow}
+          hasReport={hasReport} viewingOther={viewingOther} firstName={firstName}
+          onOpenReport={() => pick("report")} dishesToComplete={dishesToComplete}
+        />
       )}
 
       {tab === "report" && (

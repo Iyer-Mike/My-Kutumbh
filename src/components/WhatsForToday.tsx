@@ -277,25 +277,30 @@ export default function WhatsForToday({
         </Link>
       </div>
       {/* The last six days: tap one to see or fill in what was eaten */}
-      <div className="flex gap-1.5 overflow-x-auto px-2 py-2" style={{ background: "#fff", borderBottom: `1px solid ${FAMILY.violet.line}` }}
+      <div className="px-2 py-2" style={{ background: "#fff", borderBottom: `1px solid ${FAMILY.violet.line}` }}
         role="navigation" aria-label="The last six days">
-        <span className="shrink-0 self-center text-[10px] font-bold uppercase tracking-wider pl-1 pr-0.5" style={{ color: MUTED }}>Last 6 days</span>
-        {Array.from({ length: 6 }, (_, i) => {
-          const date = addDays(today, -(i + 1));
-          const on = date === day;
-          const logged = loggedDates.includes(date);
-          const wd = new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short" });
-          const dd = new Date(`${date}T00:00:00Z`).getUTCDate();
-          return (
-            <Link key={date} href={`/dashboard?date=${date}`} aria-current={on ? "page" : undefined}
-              className="shrink-0 rounded-xl px-2.5 py-1 text-center leading-tight"
-              style={{ background: on ? PLUM : "#fff", color: on ? "#fff" : INK, border: `2px solid ${on ? PLUM : FAMILY.violet.edge}` }}>
-              <span className="block text-[11px] font-bold">D-{i + 1}</span>
-              <span className="block text-[10px]" style={{ opacity: 0.85 }}>{wd} {dd}</span>
-              <span className="block text-[10px] font-bold" style={{ color: on ? "#F5B82E" : logged ? "#2E8B57" : "#B42318" }}>{logged ? "● logged" : "○ none"}</span>
-            </Link>
-          );
-        })}
+        <p className="m-0 mb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
+          Last 6 days <span className="font-normal normal-case tracking-normal">· ● logged · ○ nothing yet</span>
+        </p>
+        <div className="grid grid-cols-6 gap-1">
+          {Array.from({ length: 6 }, (_, i) => {
+            const date = addDays(today, -(i + 1));
+            const on = date === day;
+            const logged = loggedDates.includes(date);
+            const wd = new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short" });
+            const dd = new Date(`${date}T00:00:00Z`).getUTCDate();
+            return (
+              <Link key={date} href={`/dashboard?date=${date}`} aria-current={on ? "page" : undefined}
+                aria-label={`${wd} ${dd}, ${logged ? "logged" : "nothing logged yet"}`}
+                className="rounded-xl py-1 text-center leading-tight min-w-0"
+                style={{ background: on ? PLUM : "#fff", color: on ? "#fff" : INK, border: `2px solid ${on ? PLUM : FAMILY.violet.edge}` }}>
+                <span className="block text-[11px] font-bold">D-{i + 1}</span>
+                <span className="block text-[10px]" style={{ opacity: 0.85 }}>{wd} {dd}</span>
+                <span className="block text-[11px] font-bold" style={{ color: on ? "#F5B82E" : logged ? "#2E8B57" : "#B42318" }}>{logged ? "●" : "○"}</span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
       <p className="px-3 py-2 text-xs leading-4" style={{ background: "#F7F3FC", color: MUTED, borderBottom: `1px solid ${FAMILY.violet.line}` }}>
         {festivalTab ? `🪔 ${festivalTab} · ` : ""}

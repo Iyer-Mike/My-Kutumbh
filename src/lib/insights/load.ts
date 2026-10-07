@@ -11,7 +11,7 @@ export type InsightsData = {
   viewingOther: boolean;
   name: string;
   profile: Profile;
-  entries: LogEntry[];                       // last 35 days
+  entries: LogEntry[];                       // last 66 days
   reports: { report_date: string | null; extracted_values: Record<string, unknown> | null }[];
   foods: FoodData[];                         // catalogue + this family's dishes
   familyDishNames: string[];
@@ -48,7 +48,7 @@ export async function loadInsightsData(
   const timeZone =
     (membership?.kutumbhs as unknown as { time_zone: string | null } | null)?.time_zone || DEFAULT_TIME_ZONE;
   const today = todayLocal(timeZone);
-  const from30 = daysAgoLocal(34, timeZone);   // five weeks: a month, or the current week and three before it
+  const from30 = daysAgoLocal(65, timeZone);   // all of last month and this one
 
   const [{ data: profile }, { data: logRows }, { data: reports }, { data: foodRows }, { data: dishRows }] = await Promise.all([
     supabase

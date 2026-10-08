@@ -20,7 +20,7 @@ export default function SwitchPerson({ code, who }: { code: string; who?: string
   }
   return (
     <button onClick={go} disabled={busy}
-      className="w-full text-center py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-60"
+      className="w-full text-center px-3 py-3.5 rounded-2xl text-sm font-semibold disabled:opacity-60 break-words"
       style={{ background: "#fff", border: "1.5px solid #6B46B8", color: "#6B46B8" }}>
       {busy ? "Signing out…" : who ? `Sign out and continue as ${who}` : "Sign out and continue as the invited person"}
     </button>

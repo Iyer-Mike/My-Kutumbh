@@ -29,7 +29,7 @@ export default function RecipeLanguageSelect({ current }: { current: string | nu
     <div data-print-hide>
       <label htmlFor="recipe-lang" className="sr-only">Language</label>
       <select id="recipe-lang" value={current ?? ""} onChange={(e) => choose(e.target.value)}
-        className="rounded-full px-3 text-sm font-semibold"
+        className="rounded-full px-3 text-sm font-semibold max-w-full"
         style={{ minHeight: 44, background: "rgba(255,255,255,0.14)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.45)" }}>
         <option value="" style={{ color: "#241238" }}>English</option>
         {LANGS.map((l) => <option key={l.code} value={l.code} style={{ color: "#241238" }}>{l.native} ({l.name})</option>)}

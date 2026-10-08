@@ -56,8 +56,8 @@
 
 /* Nothing may push a page wider than the phone: grid pages shrink their cards instead */
 html, body { max-width: 100%; overflow-x: clip; }
-main.grid { grid-template-columns: minmax(0, 1fr); }
-main.grid > * { min-width: 0; }
+main .grid:not([class*="grid-cols"]), main.grid { grid-template-columns: minmax(0, 1fr); }
+main .grid:not([class*="grid-cols"]) > *, main.grid > * { min-width: 0; }
 main :where(p, li, span, h1, h2, h3) { overflow-wrap: anywhere; }
 
 body {

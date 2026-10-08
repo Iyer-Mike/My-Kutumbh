@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import EnterJoinCode from "@/components/EnterJoinCode";
 import { BRAND as B, FAMILY, look } from "@/lib/brand";
 import RememberInvite from "@/components/RememberInvite";
+import SwitchPerson from "@/components/SwitchPerson";
 
 interface Props {
   params: Promise<{ code: string }>;
@@ -163,23 +164,25 @@ export default async function JoinPage({ params }: Props) {
 
   // Already in this same kutumbh → go straight to family page
   if (existingMember && invite && existingMember.kutumbh_id === invite.kutumbh_id) {
-    // An invitation addressed to somebody else, opened by a person already in
-    // this family (the Key Member trying their own link, most often): say so
-    // rather than silently landing on the Kutumbh page, which looks like the
-    // link does not work.
-    const forOther = invite.invited_email && user.email
-      && invite.invited_email.toLowerCase() !== user.email.toLowerCase();
-    if (forOther) {
+    // Opened by a person already in this family: the Key Member trying the
+    // link, or a family member who was sent it by mistake. The invitation is
+    // for a newcomer, so say so and let the newcomer carry on from here.
+    const forThem = invite.invited_email && user.email
+      && invite.invited_email.toLowerCase() === user.email.toLowerCase();
+    if (!forThem) {
       return (
         <Shell eyebrow="An invitation" title="You are already in this Kutumbh">
           <p className="m-0 text-sm text-center" style={{ color: B.muted, lineHeight: 1.6 }}>
-            This link is for <span className="font-semibold">{invite.invited_email}</span>, and this browser is signed in
-            as <span className="font-semibold">{user.email}</span>, who belongs to {kutumbhName ?? "this Kutumbh"} already.
+            This browser is signed in as <span className="font-semibold">{user.email}</span>, who belongs to {kutumbhName ?? "this Kutumbh"} already.
+            {invite.invited_email
+              ? <> The invitation is for <span className="font-semibold">{invite.invited_email}</span>.</>
+              : <> The invitation is for a new member.</>}
           </p>
           <p className="m-0 text-xs text-center" style={{ color: B.muted2, lineHeight: 1.6 }}>
-            Send the link to {invite.invited_email}. They open it on their own phone, or in a private window
-            here, and sign up with that address. Nothing is wrong with the link.
+            Are you the person invited? Sign out here and the invitation opens again for you to register or sign in.
+            Nothing is wrong with the link.
           </p>
+          <SwitchPerson code={clean} who={invite.invited_email} />
           <Link href="/family" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
             style={{ background: B.button }}>
             View my Kutumbh
@@ -223,6 +226,7 @@ export default async function JoinPage({ params }: Props) {
         <p className="m-0 text-xs text-center" style={{ color: B.muted2 }}>
           Sign in with that address, or ask the Key Member for an invitation in your own name.
         </p>
+        <SwitchPerson code={clean} who={invite.invited_email} />
         <Link href="/dashboard" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
           style={{ background: B.button }}>
           Go to my day

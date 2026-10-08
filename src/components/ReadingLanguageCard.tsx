@@ -33,7 +33,7 @@ export default function ReadingLanguageCard({ userId, current }: { userId: strin
       <select id="read-lang" value={lang} onChange={(e) => choose(e.target.value)} disabled={saving}
         className="w-full rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.violet)}>
         <option value="">English only</option>
-        {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native} ({l.name})</option>)}
+        {LANGS.map((l) => <option key={l.code} value={l.code}>English &amp; {l.name} ({l.native})</option>)}
       </select>
       {msg && <p className="text-xs mt-2" style={{ color: msg === "Saved" ? "#2F7A35" : "#B42318" }}>{msg}</p>}
     </section>

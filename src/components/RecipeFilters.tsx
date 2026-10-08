@@ -67,11 +67,11 @@ export default function RecipeFilters({ q, cuisine, diet, type }: {
         </div>
       </div>
 
-      <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }} role="group" aria-label="Dish type">
+      <div className="flex flex-wrap gap-1" role="group" aria-label="Dish type">
         {[{ key: "", label: "All types", icon: "" }, ...DISH_TYPES].map((t) => (
           <button key={t.key || "all"} type="button" onClick={() => go({ type: t.key })}
             aria-pressed={type === t.key}
-            className="shrink-0 px-2.5 py-1.5 rounded-full text-xs font-medium"
+            className="px-2.5 py-1.5 rounded-full text-xs font-medium"
             style={type === t.key ? { background: B.button, color: "#fff" } : { background: B.tint, color: B.violet }}>
             {t.icon ? `${t.icon} ` : ""}{t.label}
           </button>

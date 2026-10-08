@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { FAMILY, look } from "@/lib/brand";
 import AuthHeader from "@/components/AuthHeader";
 import { pendingInvite } from "@/lib/invite";
 
@@ -55,7 +56,7 @@ export default function AuthCodeHandler() {
   return (
     <div className="w-full max-w-sm text-center">
       <AuthHeader subtitle="Family food & wellness, rooted in Ayurveda" />
-      <div className="rounded-2xl px-5 py-6" style={{ background: "#E7DCF7", border: "1px solid #C6DFBE" }}>
+      <div className="rounded-2xl px-5 py-6" style={look(FAMILY.violet)}>
         <p className="text-2xl mb-2">🔐</p>
         <p className="font-semibold text-sm" style={{ color: "#241238" }}>
           {stalled ? "Still working…" : "Verifying your link"}

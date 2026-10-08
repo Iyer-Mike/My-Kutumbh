@@ -6,12 +6,12 @@ import type { CorrectionEvent, IntakeSummary, LabFlag, Needs, Profile } from "@/
 import type { AyurvedaSummary } from "@/lib/insights/ayurveda";
 import type { Plan } from "@/lib/insights/actions";
 import CoachChat from "@/components/CoachChat";
-import PageNeeds from "./PageNeeds";
-import PageIntake from "./PageIntake";
+import PageNeedsVsActual from "./PageNeedsVsActual";
 import PageReport from "./PageReport";
 import PageAyurveda from "./PageAyurveda";
 import Beginning from "./Beginning";
 import { C, T } from "./bits";
+import { FAMILY, fieldLook } from "@/lib/brand";
 
 /**
  * Insights, in four pages.
@@ -27,8 +27,12 @@ import { C, T } from "./bits";
  */
 
 export type Period = {
-  key: "week" | "month";
-  label: string;
+  key: string;                       // w0, w1… (the month's weeks), m
+  group: "week" | "month";
+  label: string;                     // "Week 41", "Month"
+  sub: string;                       // its dates
+  title: string;                     // how a sentence names it
+  future: boolean;                   // a week still to come: shown, not opened
   intake: IntakeSummary;
   ayurveda: AyurvedaSummary;
   flags: LabFlag[];
@@ -36,12 +40,11 @@ export type Period = {
   plan: Plan;
 };
 
-type Tab = "needs" | "intake" | "report" | "ayurveda";
+type Tab = "needs" | "report" | "ayurveda";
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: "needs", label: "Needs" },
-  { key: "intake", label: "Intake" },
-  { key: "report", label: "Report" },
+  { key: "needs", label: "Needs vs Actual" },
+  { key: "report", label: "Reports vs Analysis" },
   { key: "ayurveda", label: "Ayurveda" },
 ];
 
@@ -64,17 +67,9 @@ function questionsFor(tab: Tab, p: Period, name: string | null): string[] {
       return [
         top ? (mine ? `Why ${top.headline.replace(/[.?!]$/, "")}?` : `Why should ${me} — ${top.headline.replace(/[.?!]$/, "")}?`) : "What should change first?",
         mine ? "What can I eat instead?" : `What can ${me} eat instead?`,
-        mine ? "Plan a day of meals for me" : `Plan a day of meals for ${me}`,
-      ];
-    case "intake":
-      return [
         gap
-          ? (mine
-              ? `Which of our dishes would close the ${gap.label.toLowerCase()} gap?`
-              : `Which dishes would close ${me}'s ${gap.label.toLowerCase()} gap?`)
-          : "Which dishes suit us best?",
-        gap ? (mine ? `Why am I short of ${gap.label.toLowerCase()}?` : `Why is ${me} short of ${gap.label.toLowerCase()}?`) : "Am I eating enough?",
-        mine ? "What should a day's food look like?" : `What should ${me}'s day look like?`,
+          ? (mine ? `Which of our dishes would close the ${gap.label.toLowerCase()} gap?` : `Which dishes would close ${me}'s ${gap.label.toLowerCase()} gap?`)
+          : (mine ? "Plan a day of meals for me" : `Plan a day of meals for ${me}`),
       ];
     case "report":
       return [
@@ -99,11 +94,10 @@ function onScreenFor(tab: Tab, p: Period): string {
         `Energy ${Math.round(p.intake.perDay.kcal)} kcal a day on ${p.intake.loggedDays} logged days.`,
         p.plan.actions.length ? `The changes shown: ${p.plan.actions.map((a) => a.headline).join(" | ")}` : "No changes are being suggested.",
         p.plan.doctor.length ? `Marked for a doctor: ${p.plan.doctor.join(" ")}` : "",
+        p.plan.gaps.length
+          ? `Short of target: ${p.plan.gaps.map((g) => `${g.label} ${g.had} of ${g.target} ${g.unit}`).join("; ")}.`
+          : "Everything is within range for this period.",
       ].filter(Boolean).join("\n");
-    case "intake":
-      return p.plan.gaps.length
-        ? `Short of target: ${p.plan.gaps.map((g) => `${g.label} ${g.had} of ${g.target} ${g.unit}`).join("; ")}.`
-        : "Everything is within range for this period.";
     case "report":
       return p.flags.filter((f) => f.known).map((f) =>
         `${f.label}: ${f.readings.map((r) => `${r.label} ${r.value}${r.unit ? " " + r.unit : ""}`).join(", ")}`,
@@ -116,10 +110,11 @@ function onScreenFor(tab: Tab, p: Period): string {
 const STORE = "insights-tab-v1";
 
 export default function InsightsPages({
-  periods, needs, profile, age, primaryDosha, hasReport, reportDate, dishesToComplete,
+  periods, defaultKey, needs, profile, age, primaryDosha, hasReport, reportDate, dishesToComplete,
   viewingOther, memberId, firstName,
 }: {
   periods: Period[];
+  defaultKey: string;
   needs: Needs;
   profile: Profile;
   age: number | null;
@@ -132,7 +127,7 @@ export default function InsightsPages({
   firstName: string;
 }) {
   const [tab, setTab] = useState<Tab>("needs");
-  const [periodKey, setPeriodKey] = useState<Period["key"]>("week");
+  const [periodKey, setPeriodKey] = useState<string>(defaultKey);
   const [asking, setAsking] = useState(false);
 
   // Remember the page this reader keeps returning to — a convenience only
@@ -173,35 +168,41 @@ export default function InsightsPages({
   return (
     <div className="grid gap-3">
 
-      {/* ── Period: a week, or four ── */}
-      <div className="flex gap-2" role="tablist" aria-label="Period">
-        {periods.map((x) => (
-          <button
-            key={x.key}
-            role="tab"
-            aria-selected={x.key === periodKey}
-            onClick={() => setPeriodKey(x.key)}
-            className="px-4 py-2 rounded-full font-semibold"
-            style={{
-              fontSize: T.note,
-              background: x.key === periodKey ? "#241238" : "#E4E0EC",
-              color: x.key === periodKey ? "#fff" : C.ink2,
-            }}
-          >
-            {x.label}
-          </button>
-        ))}
+      {/* ── When: last month, this month's weeks, this month. Changing it changes every page below. ── */}
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Month or week">
+        {periods.map((x) => {
+          const on = x.key === periodKey;
+          return (
+            <button
+              key={x.key}
+              role="tab"
+              aria-selected={on}
+              disabled={x.future}
+              onClick={() => setPeriodKey(x.key)}
+              className="flex-1 px-2 py-1.5 rounded-xl text-center leading-tight disabled:opacity-40"
+              style={{
+                minWidth: "3.6rem",
+                background: on ? "#241238" : "#fff",
+                color: on ? "#fff" : C.ink2,
+                border: `2px solid ${on ? "#241238" : "#B9A8D6"}`,
+              }}
+            >
+              <span className="block font-bold" style={{ fontSize: T.note }}>{x.label}</span>
+              <span className="block" style={{ fontSize: 10, opacity: 0.85 }}>{x.sub}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── The four pages ── */}
-      <div className="flex gap-1" role="tablist" aria-label="Insights pages">
+      {/* ── The three pages ── */}
+      <div className="grid grid-cols-3 gap-1" role="tablist" aria-label="Insights pages">
         {TABS.map((t) => (
           <button
             key={t.key}
             role="tab"
             aria-selected={t.key === tab}
             onClick={() => pick(t.key)}
-            className="flex-1 py-2.5 rounded-xl font-semibold"
+            className="px-1 py-2.5 rounded-xl font-semibold leading-tight"
             style={{
               fontSize: T.note,
               background: t.key === tab ? "#241238" : "#E4E0EC",
@@ -215,32 +216,24 @@ export default function InsightsPages({
 
       {nothingLogged && tab !== "report" && (
         <div className="rounded-2xl px-4 py-4" style={{ background: "#FBEBCF", color: "#6A3D06", border: "1px solid #F2B531", fontSize: T.body }}>
-          Nothing logged in {p.label.toLowerCase()}.
+          Nothing logged in {p.title}.
           {!viewingOther && <> <Link href="/log" className="font-bold underline">Log a meal</Link> and this fills in.</>}
         </div>
       )}
 
       {tab === "needs" && (
-        <PageNeeds
-          plan={p.plan} flags={p.flags} intake={p.intake} needs={needs}
+        <PageNeedsVsActual
+          plan={p.plan} flags={p.flags} gaps={p.plan.gaps} intake={p.intake} needs={needs}
+          profile={profile} age={age} vitDLow={vitDLow}
           hasReport={hasReport} viewingOther={viewingOther} firstName={firstName}
-          onOpenReport={() => pick("report")}
-        />
-      )}
-
-      {tab === "intake" && (
-        <PageIntake
-          gaps={p.plan.gaps} intake={p.intake} needs={needs} profile={profile} age={age}
-          vitDLow={vitDLow} dishesToComplete={dishesToComplete}
-          viewingOther={viewingOther} firstName={firstName}
+          onOpenReport={() => pick("report")} dishesToComplete={dishesToComplete}
         />
       )}
 
       {tab === "report" && (
         <PageReport
-          flags={p.flags} gaps={p.plan.gaps} hasReport={hasReport} reportDate={reportDate}
+          flags={p.flags} gaps={p.plan.gaps} hasReport={hasReport}
           doctorNotes={p.plan.doctor} viewingOther={viewingOther} firstName={firstName}
-          onOpenIntake={() => pick("intake")}
         />
       )}
 
@@ -262,16 +255,13 @@ export default function InsightsPages({
                 general invitation to ask something. */}
             <p className="m-0 mt-1.5" style={{ fontSize: T.body, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>
               {viewingOther ? (
-                <>About {firstName}&apos;s {tab === "needs" ? "changes" : tab === "intake" ? "shortfalls" : tab === "report" ? "readings" : "tastes"}, or anything else.</>
+                <>About {firstName}&apos;s {tab === "needs" ? "changes and shortfalls" : tab === "report" ? "readings" : "tastes"}, or anything else.</>
               ) : (
                 <>
                   {firstName}, ask me about{" "}
                   {tab === "needs" && (p.plan.actions[0]
                     ? <>the {p.plan.actions[0].id.replace(/^(more|less)-/, "")} — or anything else.</>
                     : "these changes, or anything else.")}
-                  {tab === "intake" && (p.plan.gaps[0]
-                    ? <>the {p.plan.gaps[0].label.toLowerCase()} gap, or anything else.</>
-                    : "what is short, or anything else.")}
                   {tab === "report" && (p.flags.find((f) => f.known)
                     ? <>{p.flags.find((f) => f.known)!.label.toLowerCase()}, in plain words.</>
                     : "these readings, in plain words.")}
@@ -296,7 +286,7 @@ export default function InsightsPages({
                 Close
               </button>
             </div>
-            <div className="mt-3 rounded-xl p-3" style={{ background: "#fff" }}>
+            <div className="mt-3 rounded-xl p-3" style={fieldLook(FAMILY.gold)}>
               <CoachChat
                 memberId={memberId}
                 firstName={firstName}

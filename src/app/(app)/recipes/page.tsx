@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { familyOf } from "@/lib/family";
 import PageNav from "@/components/PageNav";
 import RecipeFilters from "@/components/RecipeFilters";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look } from "@/lib/brand";
 import { CUISINES, DIETS, INDIAN_CUISINES, dishTypeOf } from "@/lib/food-taxonomy";
 
 type Search = { q?: string; cuisine?: string; diet?: string; type?: string };
@@ -47,17 +47,17 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
     <div className="flex flex-col min-h-screen" style={{ background: B.page }}>
       <header className="px-5 pt-safe pb-5" style={{ background: B.headerGradient }}>
         <PageNav />
-        <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>How it&apos;s cooked</p>
+        
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Recipes</h1>
         <p className="text-xs mt-1" style={{ color: B.gold }}>
-          Ingredients, method and nutrition for every dish on the menu
+          Ingredients, method, nutrition
         </p>
       </header>
 
       <main className="flex-1 px-4 py-5 grid gap-4">
         {fam?.isPrime && (
           <Link href="/recipes/bucket" className="rounded-2xl px-4 py-3 text-sm font-semibold flex items-center justify-between min-h-11"
-            style={{ background: B.card, border: `1px solid ${B.cardEdge}`, color: B.ink }}>
+            style={{ ...look(FAMILY.blue), color: B.ink }}>
             <span>Nutrition bucket</span>
             <span className="text-xs" style={{ color: B.muted }}>{bucketCount} waiting →</span>
           </Link>
@@ -66,14 +66,14 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
 
         {rows.length === 0 ? (
           <p className="text-sm text-center py-8" style={{ color: B.muted }}>
-            No recipes match. Try another cuisine, or clear the search.
+            No match · Try another cuisine or clear the search.
           </p>
         ) : (
           <div className="grid gap-2">
             {rows.map((r) => (
               <Link key={r.id} href={`/recipes/${r.id}`}
                 className="rounded-2xl px-4 py-3 flex items-center gap-3"
-                style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+                style={look(FAMILY.blue)}>
                 <span className="text-lg shrink-0" aria-hidden>{dishTypeOf(r.dish_type).icon}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: B.ink }}>
@@ -95,7 +95,7 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
             ))}
             {rows.length === 80 && (
               <p className="text-xs text-center pt-1" style={{ color: B.muted2 }}>
-                Showing the first 80 — narrow it with a search or a filter.
+                First 80 shown · Search or filter to narrow.
               </p>
             )}
           </div>

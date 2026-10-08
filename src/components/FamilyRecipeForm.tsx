@@ -29,6 +29,7 @@ export default function FamilyRecipeForm({
   const router = useRouter();
   const supabase = createClient();
 
+  const [name, setName]         = useState(dishName);
   const [cuisineKey, setCuisine] = useState(cuisine ?? "south_indian");
   const [dietKey, setDiet]       = useState(diet ?? "veg");
   const [jain, setJain]          = useState(initial?.is_jain ?? false);
@@ -51,6 +52,7 @@ export default function FamilyRecipeForm({
     setSaving(true);
     setError(null);
     const body = {
+      ...(recipeId != null && isPrime && name.trim().length >= 2 ? { name: name.trim() } : {}),
       cuisine: cuisineKey, diet: dietKey, is_jain: jain,
       serves: serves.trim(), prep_time: prep.trim(), cook_time: cook.trim(),
       blurb: blurb.trim(), tip: tip.trim(),
@@ -68,7 +70,7 @@ export default function FamilyRecipeForm({
     const { data, error: err } = await supabase.rpc("submit_family_recipe", { p_food_item_id: dishId, p: body });
     setSaving(false);
     if (err) { setError(err.message); return; }
-    // The Prime Member's bucket choice goes in after the recipe exists
+    // The Key Member's bucket choice goes in after the recipe exists
     if (isPrime && bucket && typeof data === "number") {
       await supabase.rpc("update_family_recipe", { p_recipe_id: data, p: body });
     }
@@ -82,6 +84,12 @@ export default function FamilyRecipeForm({
   return (
     <div className="grid gap-4">
       <section className="rounded-2xl px-4 py-4 grid gap-3" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+        {recipeId != null && isPrime && (
+          <label className="grid gap-1">
+            <span className={label} style={{ color: B.muted2 }}>Name · English (local name)</span>
+            <input className={field} style={fieldStyle} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+          </label>
+        )}
         <div className="grid grid-cols-3 gap-2">
           <label className="grid gap-1">
             <span className={label} style={{ color: B.muted2 }}>Serves</span>
@@ -139,13 +147,13 @@ export default function FamilyRecipeForm({
       {isPrime && (
         <label className="flex items-start gap-2 text-sm px-1" style={{ color: B.ink2, minHeight: 44 }}>
           <input type="checkbox" className="mt-1" checked={bucket} onChange={(e) => setBucket(e.target.checked)} />
-          <span>Add to the nutrition bucket, to have its values estimated later</span>
+          <span>Add to the nutrition bucket (estimate later)</span>
         </label>
       )}
 
       <p className="text-[11px] px-1" style={{ color: B.muted2 }}>
-        Nutrition for {dishName} comes from the dish itself and is marked as estimated.
-        {isPrime ? " As Prime Member, your recipe is shown to the family at once." : " The Prime Member approves it before the family sees it."}
+        Nutrition is taken from the dish (estimated).
+        {isPrime ? " Shown to the family at once." : " Shown after Key Member approval."}
       </p>
 
       {error && <p className="text-xs px-1" style={{ color: "#B42318" }}>{error}</p>}

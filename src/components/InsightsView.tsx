@@ -8,6 +8,7 @@ import { energyNarrative, microNarrative, trendNarrative, ayurvedaNarrative, lab
 import CoachChat from "@/components/CoachChat";
 import InsightsPlan from "@/components/InsightsPlan";
 import type { Plan } from "@/lib/insights/actions";
+import { FAMILY, look } from "@/lib/brand";
 
 export type InsightsPeriod = {
   key: "today" | "week" | "month";
@@ -139,7 +140,7 @@ function Section({ id, title, theme, summary, open, onToggle, aside, children }:
   onToggle: () => void; aside?: string; children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl overflow-hidden" style={{ background: "#FAF7FE", border: `1px solid ${C.rule}` }}>
+    <section className="rounded-2xl overflow-hidden" style={look(FAMILY.violet)}>
       <button onClick={onToggle} aria-expanded={open} aria-controls={`sec-${id}`}
         className="w-full text-left px-4 py-3 grid gap-1" style={{ background: theme.bar }}>
         <span className="flex items-center justify-between gap-3">
@@ -465,7 +466,7 @@ export default function InsightsView({ periods, needs, primaryDosha, hasReport, 
                     const word = net > 0.15 ? "Balancing" : net < -0.15 ? "Aggravating" : "Neutral";
                     return (
                       <div key={d} className="rounded-xl px-2 py-2 text-center"
-                        style={{ background: mine ? "#FBEBCF" : "#F3EEFA", border: mine ? "1px solid #F2B531" : `1px solid ${C.rule}` }}>
+                        style={mine ? { background: "#FBEBCF", border: "2.5px solid #F2B531" } : look(FAMILY.violet)}>
                         <p className="text-sm font-bold capitalize" style={{ color: C.ink }}>{d}{mine ? " ★" : ""}</p>
                         <p className="text-xs font-semibold" style={{ color: net < -0.15 ? C.warn : net > 0.15 ? C.leaf : C.ink3 }}>{word}</p>
                       </div>

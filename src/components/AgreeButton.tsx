@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { agreeToEverything } from "@/app/agree/actions";
+import { FAMILY, look } from "@/lib/brand";
 
 /**
  * One button, at the bottom, after the words.
@@ -22,7 +23,7 @@ export default function AgreeButton() {
       {error && (
         <p
           className="text-sm mb-3 mt-0 rounded-xl px-4 py-3"
-          style={{ background: "#FBE2DC", color: "#9A2C1B" }}
+          style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}
         >
           {error}
         </p>

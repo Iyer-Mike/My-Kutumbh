@@ -19,7 +19,7 @@ type Group = { title: string; order: number; guidance?: Guidance };
 type Rule = { label: string; unit: string; range: LabRange; group?: string; low?: Guidance; high?: Guidance };
 
 const IRON: Guidance = {
-  meaning: "Low iron can cause tiredness and anaemia.",
+  meaning: "Low iron → tiredness, anaemia.",
   favour: [
     "Iron-rich foods: leafy greens, dals, chana, rajma, poha",
     "Pair them with vitamin C (amla, guava, lemon) to absorb more iron",
@@ -29,7 +29,7 @@ const IRON: Guidance = {
 };
 
 const SUGAR: Guidance = {
-  meaning: "Your blood sugar is above the healthy range. HbA1c, the 3-month average, of 5.7–6.4% is prediabetes; 6.5% or more is diabetes.",
+  meaning: "HbA1c: normal < 5.7 · prediabetes 5.7–6.4 · diabetes 6.5+.",
   favour: [
     "Millets and whole grains in place of some white rice and maida",
     "Dal, vegetables and fibre with every meal",
@@ -40,28 +40,28 @@ const SUGAR: Guidance = {
 };
 
 const LIPIDS: Guidance = {
-  meaning: "Your blood fats are above the healthy range, which raises heart risk.",
+  meaning: "High · raises heart risk.",
   favour: ["Fibre: oats, dals, vegetables and fruit", "Cooking with less oil; nuts in small portions"],
   limit: ["Fried snacks like vada and murukku", "Ghee and butter in large amounts", "Sweets and refined flour — these raise triglycerides most"],
   nutrient: "fiber_g", direction: "more", lowSugarOnly: true,
 };
 
 const KIDNEY: Guidance = {
-  meaning: "A kidney marker is raised.",
+  meaning: "Kidney marker raised.",
   favour: ["Moderate, balanced portions", "Enough water, unless your doctor has limited fluids"],
   limit: ["Extra salt, pickles, papad and salty snacks", "Very high-protein diets unless advised"],
   nutrient: "sodium_mg", direction: "less",
 };
 
 const LIVER: Guidance = {
-  meaning: "Raised liver enzymes can signal strain on the liver.",
+  meaning: "Raised liver enzymes → liver strain.",
   favour: ["Vegetables, fruit and whole grains"],
   limit: ["Fried and very oily food", "Sugar and sweets", "Alcohol"],
   nutrient: null, direction: "less",
 };
 
 const INFLAMMATION: Guidance = {
-  meaning: "Raised CRP points to inflammation somewhere in the body. Your doctor should find the cause; food can help calm it.",
+  meaning: "Raised CRP = Inflammation. Consult Doctor.",
   favour: ["Vegetables, fruit, dals and whole grains every day", "Turmeric, ginger and garlic in everyday cooking"],
   limit: ["Fried food and repeatedly heated oil", "Sugar, sweets and refined flour"],
   nutrient: "fiber_g", direction: "more", lowSugarOnly: true,
@@ -90,7 +90,7 @@ export const LAB_RULES: Record<string, Rule> = {
   vldl:                 { label: "VLDL", unit: "mg/dL", range: { high: 30 }, group: "lipids", high: LIPIDS },
   hdl: {
     label: "HDL", unit: "mg/dL", range: { low: 40 }, group: "lipids",
-    low: { meaning: "Low HDL (the protective cholesterol) raises heart risk.", favour: ["Daily physical activity", "Nuts and seeds in small portions"], limit: ["Refined carbs and sweets"], nutrient: null, direction: "more" },
+    low: { meaning: "Low HDL (protective cholesterol) → heart risk.", favour: ["Daily physical activity", "Nuts and seeds in small portions"], limit: ["Refined carbs and sweets"], nutrient: null, direction: "more" },
   },
 
   hemoglobin: { label: "Haemoglobin", unit: "g/dL", range: { low: 12, high: 17 }, group: "iron", low: IRON },
@@ -98,7 +98,7 @@ export const LAB_RULES: Record<string, Rule> = {
   ferritin:   {
     label: "Ferritin", unit: "ng/mL", range: { low: 20, high: 300 }, group: "iron",
     low: IRON,
-    high: { meaning: "High ferritin can reflect inflammation or too much iron.", favour: [], limit: ["Iron supplements unless prescribed"], nutrient: null, direction: "less" },
+    high: { meaning: "High ferritin → inflammation or excess iron.", favour: [], limit: ["Iron supplements unless prescribed"], nutrient: null, direction: "less" },
   },
 
   crp: { label: "CRP", unit: "mg/L", range: { high: 3 }, group: "inflammation", high: INFLAMMATION },
@@ -113,7 +113,7 @@ export const LAB_RULES: Record<string, Rule> = {
   vitamin_b12: {
     label: "Vitamin B12", unit: "pg/mL", range: { low: 211, high: 911 },
     low: {
-      meaning: "Low B12 affects energy, nerves and blood; it's common on vegetarian diets.",
+      meaning: "Low B12 → tiredness, nerve and blood effects; common in vegetarians.",
       favour: ["Dairy every day: curd, buttermilk, paneer, milk", "Ask your doctor about a B12 supplement — vegetarian food alone often isn't enough"],
       limit: [], nutrient: "vitamin_b12_mcg", direction: "more",
     },
@@ -121,37 +121,37 @@ export const LAB_RULES: Record<string, Rule> = {
   vitamin_d: {
     label: "Vitamin D", unit: "ng/mL", range: { low: 30, high: 100 },
     low: {
-      meaning: "Low vitamin D weakens bones and immunity.",
+      meaning: "Low vitamin D → weak bones, low immunity.",
       favour: ["15–20 minutes of morning sun on arms and face", "Vitamin D–fortified milk or curd", "Ask your doctor about a supplement — food alone rarely corrects a deficiency"],
       limit: [], nutrient: null, direction: "more",
     },
   },
   folate: {
     label: "Folate", unit: "ng/mL", range: { low: 4 },
-    low: { meaning: "Low folate can cause anaemia and tiredness.", favour: ["Leafy greens, dals, chickpeas, sprouts"], limit: [], nutrient: "folate_mcg", direction: "more" },
+    low: { meaning: "Low folate → anaemia, tiredness.", favour: ["Leafy greens, dals, chickpeas, sprouts"], limit: [], nutrient: "folate_mcg", direction: "more" },
   },
   calcium: {
     label: "Calcium", unit: "mg/dL", range: { low: 8.5, high: 10.5 },
-    low: { meaning: "Low calcium affects bones and muscles.", favour: ["Curd, milk, paneer, ragi, sesame"], limit: [], nutrient: "calcium_mg", direction: "more" },
+    low: { meaning: "Low calcium → bone and muscle weakness.", favour: ["Curd, milk, paneer, ragi, sesame"], limit: [], nutrient: "calcium_mg", direction: "more" },
   },
   tsh: {
     label: "TSH", unit: "mIU/L", range: { low: 0.4, high: 4.5 },
     high: {
-      meaning: "High TSH can mean an underactive thyroid.",
+      meaning: "High TSH → possible underactive thyroid.",
       favour: ["Take thyroid medicine on an empty stomach, 30–60 minutes before food", "Iodised salt in normal amounts"],
       limit: ["Calcium- or iron-rich foods and tea within 4 hours of thyroid medicine"],
       nutrient: null, direction: "less",
     },
-    low: { meaning: "Low TSH can mean an overactive thyroid. Please discuss with your doctor.", favour: [], limit: [], nutrient: null, direction: "less" },
+    low: { meaning: "Low TSH → possible overactive thyroid. Consult Doctor.", favour: [], limit: [], nutrient: null, direction: "less" },
   },
   uric_acid: {
     label: "Uric acid", unit: "mg/dL", range: { high: 7 },
-    high: { meaning: "High uric acid can lead to gout.", favour: ["Plenty of water", "Fruit and low-fat dairy"], limit: ["Sugary drinks", "Alcohol"], nutrient: null, direction: "less" },
+    high: { meaning: "High uric acid → gout risk.", favour: ["Plenty of water", "Fruit and low-fat dairy"], limit: ["Sugary drinks", "Alcohol"], nutrient: null, direction: "less" },
   },
   potassium: {
     label: "Potassium", unit: "mEq/L", range: { low: 3.5, high: 5.1 },
-    high: { meaning: "High potassium needs medical attention.", favour: [], limit: ["Bananas, coconut water and potassium-rich foods until you've spoken to your doctor"], nutrient: "potassium_mg", direction: "less" },
-    low: { meaning: "Low potassium can cause weakness and cramps.", favour: ["Bananas, coconut water, potatoes, dals"], limit: [], nutrient: "potassium_mg", direction: "more" },
+    high: { meaning: "High potassium → needs medical attention.", favour: [], limit: ["Bananas, coconut water and potassium-rich foods until you've spoken to your doctor"], nutrient: "potassium_mg", direction: "less" },
+    low: { meaning: "Low potassium → weakness, cramps.", favour: ["Bananas, coconut water, potatoes, dals"], limit: [], nutrient: "potassium_mg", direction: "more" },
   },
 };
 
@@ -314,7 +314,7 @@ export function evaluateLabs(
     if (!base) {
       flags.push({
         key: b.key, label: b.title, readings: b.readings, known: false,
-        meaning: "These have no specific food advice. Ask your doctor what they mean for you.",
+        meaning: "No food advice for these. Ask your doctor.",
         favour: [], limit: [], nutrient: null, favourFoods: [], intakeNote: null,
       });
       continue;

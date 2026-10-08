@@ -7,6 +7,7 @@ import {
   CUISINES, DIETS, DISH_TYPES, INDIAN_CUISINES, dietsAllowed,
   type Cuisine, type Diet, type DishType,
 } from "@/lib/food-taxonomy";
+import { FAMILY, fieldLook } from "@/lib/brand";
 
 // A. Cuisine ("indian" = every Indian region) → B. Diet (show dishes up to
 // this diet) → C. Dish type ("" = all types). mealOnly keeps the list to
@@ -76,9 +77,7 @@ export function DietMark({ diet }: { diet: string | null | undefined }) {
   );
 }
 
-const selectStyle = {
-  border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none",
-} as const;
+const selectStyle = fieldLook(FAMILY.amber);
 
 export default function FoodFilterBar({ value, onChange, idPrefix, slot }: {
   value: FoodFilter; onChange: (f: FoodFilter) => void; idPrefix: string; slot: string;

@@ -11,7 +11,7 @@ import { createHash } from "node:crypto";
  * ── On the writing ───────────────────────────────────────────────
  *
  * Plain language is not decoration here. Most of what these documents
- * describe is uncomfortable — that a Prime Member reads a member's
+ * describe is uncomfortable — that a Key Member reads a member's
  * blood report, that food and lab values are sent to Anthropic, that
  * one person runs this and it may one day stop. A family cannot weigh
  * any of that if it is buried in hedged nouns, so the awkward parts
@@ -46,7 +46,7 @@ export const PRIVACY: Doc = {
   lede:
     "In short: your food, your body, and your lab reports. Nothing is sold, nothing is " +
     "advertised, and nobody outside your family reads it.",
-  version: "2026-09-29",
+  version: "2026-10-05",
   sections: [
     {
       heading: "What you give it",
@@ -61,7 +61,7 @@ export const PRIVACY: Doc = {
       heading: "Who can see it",
       body: [
         "**You** — all of it.",
-        "**Your Prime Member** — the person who keeps your Kutumbh sees the family's reports " +
+        "**Your Key Member** — the person who keeps your Kutumbh sees the family's reports " +
           "and insights. You share a kitchen; advice about food only works if someone can see " +
           "the whole table.",
         "**Everyone in your Kutumbh** — the day's menu and what was cooked. Not your lab values.",
@@ -100,7 +100,7 @@ export const PRIVACY: Doc = {
     {
       heading: "Children",
       body: [
-        "A Prime Member who adds someone under eighteen confirms they are that child's parent " +
+        "A Key Member who adds someone under eighteen confirms they are that child's parent " +
           "or guardian, and agrees to this on the child's behalf.",
       ],
     },
@@ -114,7 +114,7 @@ export const PRIVACY: Doc = {
 export const TERMS: Doc = {
   slug: "terms",
   title: "Using My Kutumbh",
-  version: "2026-09-29",
+  version: "2026-10-05",
   sections: [
     {
       heading: "This is not medical advice",
@@ -136,13 +136,13 @@ export const TERMS: Doc = {
       heading: "The app is invited, not open",
       body: [
         "You are here because someone let you in. The Admin may decline a registration or " +
-          "remove an account; a Prime Member may remove someone from their Kutumbh.",
+          "remove an account; a Key Member may remove someone from their Kutumbh.",
       ],
     },
     {
       heading: "Your Kutumbh is shared",
       body: [
-        "What you log, your family sees. Your Prime Member sees your reports. Enter nothing you " +
+        "What you log, your family sees. Your Key Member sees your reports. Enter nothing you " +
           "would not say at your own table.",
       ],
     },

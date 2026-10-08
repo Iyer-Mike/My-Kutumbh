@@ -1,5 +1,6 @@
 "use client";
 
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { useState, useTransition } from "react";
 import { handOverPrime, claimPrime, reclaimPrime } from "@/app/(app)/family/prime-actions";
 import { QUIET_DAYS } from "@/lib/prime";
@@ -41,13 +42,12 @@ export default function PrimeRole({
   // ── The one who was away, on returning ──
   if (canReclaim) {
     return (
-      <section className="rounded-2xl px-4 py-4" style={{ background: "#FFFBF2", border: "1px solid #EBD9B4" }}>
+      <section className="rounded-2xl px-4 py-4" style={look(FAMILY.gold)}>
         <p className="text-sm font-semibold m-0" style={{ color: "#241C33" }}>
           Welcome back
         </p>
         <p className="text-xs mt-1 mb-3" style={{ color: "#6A6180" }}>
-          While you were away, someone else took on looking after the Kutumbh, so the family
-          wasn&apos;t left waiting. You can take it back whenever you like.
+          Someone took over while you were away. You can take it back anytime.
         </p>
         {error && <p className="text-xs mb-2" style={{ color: "#B0453A" }}>{error}</p>}
         <button
@@ -62,17 +62,16 @@ export default function PrimeRole({
     );
   }
 
-  // ── A member, when the Prime Member has gone quiet ──
+  // ── A member, when the Key Member has gone quiet ──
   if (canClaim) {
     return (
-      <section className="rounded-2xl px-4 py-4" style={{ background: "#FFFBF2", border: "1px solid #EBD9B4" }}>
+      <section className="rounded-2xl px-4 py-4" style={look(FAMILY.gold)}>
         <p className="text-sm font-semibold m-0" style={{ color: "#241C33" }}>
           Nobody is looking after the Kutumbh
         </p>
         <p className="text-xs mt-1 mb-3" style={{ color: "#6A6180" }}>
-          {primeName ?? "The Prime Member"} hasn&apos;t opened the app for{" "}
-          {quietDays === null ? `over ${QUIET_DAYS} days` : `${quietDays} days`}. You can take the role
-          on so the family isn&apos;t stuck — and they can take it back for a fortnight after they return.
+          {primeName ?? "The Key Member"} inactive for{" "}
+          {quietDays === null ? `over ${QUIET_DAYS} days` : `${quietDays} days`}. You can take over; they can reclaim it for 14 days after returning.
         </p>
         {error && <p className="text-xs mb-2" style={{ color: "#B0453A" }}>{error}</p>}
         <button
@@ -87,16 +86,15 @@ export default function PrimeRole({
     );
   }
 
-  // ── The Prime Member, handing on ──
+  // ── The Key Member, handing on ──
   if (!isPrime || members.length < 2) return null;
 
   if (confirm) {
     return (
-      <section className="rounded-2xl px-4 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+      <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
         <p className="text-sm m-0 mb-3" style={{ color: "#241C33" }}>
-          Hand the Kutumbh to <span className="font-semibold">{confirm.full_name ?? "this member"}</span>?
-          They will complete the family dishes, invite new members and keep the family photograph.
-          You stay in the family as a member.
+          Hand over to <span className="font-semibold">{confirm.full_name ?? "this member"}</span>?
+          They&apos;ll manage dishes, invitations and the family photo. You stay as a member.
         </p>
         {error && <p className="text-xs mb-2" style={{ color: "#B0453A" }}>{error}</p>}
         <div className="flex gap-2">
@@ -121,7 +119,7 @@ export default function PrimeRole({
   }
 
   return (
-    <section className="rounded-2xl px-4 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+    <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
       <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#6A6180" }}>
         Looking after the Kutumbh
       </p>
@@ -129,8 +127,7 @@ export default function PrimeRole({
       {!choosing ? (
         <>
           <p className="text-xs mt-2 mb-3" style={{ color: "#6A6180" }}>
-            You hold this role. If you are away for a week, any member can take it on so the family
-            isn&apos;t left waiting — and you can take it back when you return.
+            If you&apos;re away 7+ days, a member can take over; you can reclaim it on return.
           </p>
           <button
             onClick={() => setChoosing(true)}
@@ -149,7 +146,7 @@ export default function PrimeRole({
                 key={m.user_id}
                 onClick={() => setConfirm(m)}
                 className="w-full text-left text-sm px-3 py-2 rounded-xl"
-                style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241C33" }}
+                style={fieldLook(FAMILY.violet)}
               >
                 {m.full_name ?? "Family member"}
               </button>

@@ -81,17 +81,14 @@ export function summarizeAyurveda(entries: LogEntry[], primaryDosha: string | nu
 
   for (const d of summary.primaryDoshas) {
     if (summary.aggravatingShare[d] >= 0.35) {
-      summary.notes.push(`${pct(summary.aggravatingShare[d])} of what you ate tends to aggravate ${label(d)}, your dominant dosha.`);
+      summary.notes.push(`${pct(summary.aggravatingShare[d])} of intake aggravates ${label(d)} (your dominant dosha).`);
     }
   }
   if (summary.primaryDoshas.includes("pitta") && summary.virya.heating >= 0.5) {
-    summary.notes.push(`Heating foods made up ${pct(summary.virya.heating)} of your intake; cooling foods help balance Pitta.`);
+    summary.notes.push("Pitta: add cooling foods.");
   }
   if ((summary.primaryDoshas.includes("vata") || summary.primaryDoshas.includes("kapha")) && summary.virya.cooling >= 0.5) {
-    summary.notes.push(`Cooling foods made up ${pct(summary.virya.cooling)} of your intake; warming foods suit your constitution better.`);
-  }
-  if (summary.missingTastes.length) {
-    summary.notes.push(`Missing or rare tastes: ${summary.missingTastes.join(", ")}. Ayurveda suggests all six tastes each day.`);
+    summary.notes.push("Vata/Kapha: favour warming foods.");
   }
   return summary;
 }

@@ -49,7 +49,7 @@ const SYSTEM = `You estimate nutrition and Ayurvedic properties for home-cooked 
 
 Base nutrient figures on Indian Food Composition Tables (IFCT 2017) and standard references, reasoning from the listed ingredients and preparation method. Report every nutrient per 100 g of the dish as served (cooked, with its water). Include typical home salt in sodium unless the preparation says otherwise; account for oil or ghee in the method.
 
-The Prime Member has already chosen the cuisine, diet, dish type and serving unit. Use them as given: they say what kind of dish this is and how it is served, so reason from them together with the ingredients. Work out what the dish is from the ingredients and method, then work out how many grams one serving in the chosen unit weighs (serving_weight_g), from the amounts listed and the dish's total yield. Where no unit is chosen, pick the one a household would naturally use (e.g. sambar: bowl ≈ 150 g; idli: piece ≈ 40 g; rice: cup ≈ 150 g). Repeat the chosen cuisine, diet, dish type and serving unit unchanged in the result.
+The Key Member has already chosen the cuisine, diet, dish type and serving unit. Use them as given: they say what kind of dish this is and how it is served, so reason from them together with the ingredients. Work out what the dish is from the ingredients and method, then work out how many grams one serving in the chosen unit weighs (serving_weight_g), from the amounts listed and the dish's total yield. Where no unit is chosen, pick the one a household would naturally use (e.g. sambar: bowl ≈ 150 g; idli: piece ≈ 40 g; rice: cup ≈ 150 g). Repeat the chosen cuisine, diet, dish type and serving unit unchanged in the result.
 
 Where the family has not chosen them, classify the dish: category is its dish type (${DISH_TYPES.map((d) => `${d.key} = ${d.hint}`).join("; ")}). cuisine is its regional cuisine (${CUISINES.map((c) => `${c.key}: ${c.examples}`).join("; ")}). diet is the strictest diet it fits from the ingredients: vegan (no animal products), veg (dairy allowed), egg, or nonveg (meat, fish, seafood).
 
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "AI estimation isn't configured on the server" }, { status: 503 });
   }
 
-  // Only a Prime Member completes Family Dishes, so only they may call this
+  // Only a Key Member completes Family Dishes, so only they may call this
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Please sign in" }, { status: 401 });
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     .limit(1)
     .maybeSingle();
   if (membership?.role !== "owner") {
-    return NextResponse.json({ error: "Only the Prime Member can estimate dishes" }, { status: 403 });
+    return NextResponse.json({ error: "Only the Key Member can estimate dishes" }, { status: 403 });
   }
 
   let body: { name?: string; ingredients?: string; preparation?: string; cuisine?: string; diet?: string; category?: string; serving_unit?: string };

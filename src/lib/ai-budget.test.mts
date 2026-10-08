@@ -74,7 +74,7 @@ describe("the ceiling", () => {
     const v = await checkBudget(ledger([20], [DAY_PERSON_RUPEES]), "u1", "k1");
     assert.equal(v.ok, false);
     if (v.ok) return;
-    assert.match(v.message, /₹50 of AI for today/);
+    assert.match(v.message, new RegExp(`₹${DAY_PERSON_RUPEES} of AI for today`));
     assert.match(v.message, /rest of the family/);
   });
 

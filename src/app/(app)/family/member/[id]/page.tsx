@@ -7,6 +7,7 @@ import { signedFaces } from "@/lib/faces";
 import { SLOTS, slotLabel } from "@/lib/meal-slots";
 import { daysAgoLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
+import { FAMILY, look } from "@/lib/brand";
 
 type Log = {
   id: string;
@@ -27,7 +28,7 @@ function dayLabel(iso: string, tz: string) {
   });
 }
 
-// Prime Member only: what a family member has eaten over the last 7 days.
+// Key Member only: what a family member has eaten over the last 7 days.
 export default async function MemberConsumptionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: memberId } = await params;
   const supabase = await createClient();
@@ -118,7 +119,7 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
         {days.map((day) => {
           const over = goal != null && day.kcal > goal;
           return (
-            <section key={day.date} className="rounded-2xl overflow-hidden" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+            <section key={day.date} className="rounded-2xl overflow-hidden" style={look(FAMILY.blue)}>
               <div className="flex items-center justify-between px-4 py-3">
                 <p className="text-sm font-semibold" style={{ color: "#241C33" }}>{dayLabel(day.date, timeZone)}</p>
                 <p className="text-xs font-semibold" style={{ color: day.logs.length ? (over ? "#C8632A" : "#6B46B8") : "#A79BC0" }}>
@@ -127,12 +128,12 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
               </div>
 
               {day.logs.length > 0 && (
-                <div style={{ borderTop: "1px solid #EDE7F7" }}>
+                <div style={{ borderTop: `1px solid ${FAMILY.blue.line}` }}>
                   {[...SLOTS.map((s) => s.key as string), "other"].map((slot) => {
                     const slotLogs = day.logs.filter((l) => l.meal_slot === slot);
                     if (!slotLogs.length) return null;
                     return (
-                      <div key={slot} className="px-4 py-2" style={{ borderBottom: "1px solid #F3EEFA" }}>
+                      <div key={slot} className="px-4 py-2" style={{ borderBottom: `1px solid ${FAMILY.blue.line}` }}>
                         <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "#6A6180" }}>
                           {slot === "other" ? "Other" : slotLabel(slot)}
                         </p>

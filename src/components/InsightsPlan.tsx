@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Action, Gap, Plan } from "@/lib/insights/actions";
+import { FAMILY, look } from "@/lib/brand";
 
 /**
  * The three things a reader should see first: what not to eat at all,
@@ -21,7 +22,7 @@ const C = {
 function Avoid({ items }: { items: Action[] }) {
   if (!items.length) return null;
   return (
-    <section className="rounded-2xl px-4 py-4" style={{ background: "#FDF3F2", border: "1px solid #E8C4BF" }}>
+    <section className="rounded-2xl px-4 py-4" style={look(FAMILY.red)}>
       <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-2" style={{ color: C.warn }}>
         Avoid
       </p>
@@ -125,7 +126,7 @@ export default function InsightsPlan({
 
       {/* ── What to change ── */}
       {plan.actions.length > 0 && (
-        <section className="rounded-2xl px-4 py-4" style={{ background: C.card, border: `1px solid ${C.rule}` }}>
+        <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
           <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: C.ink3 }}>
             What to change this week
           </p>
@@ -140,7 +141,7 @@ export default function InsightsPlan({
       )}
 
       {/* ── Where you stand ── */}
-      <section className="rounded-2xl px-4 py-4" style={{ background: C.card, border: `1px solid ${C.rule}` }}>
+      <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
         <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-2" style={{ color: C.ink3 }}>
           Where {viewingOther ? `${firstName} stands` : "you stand"}
         </p>
@@ -168,7 +169,7 @@ export default function InsightsPlan({
 
       {/* ── For a doctor, not the kitchen ── */}
       {plan.doctor.length > 0 && (
-        <section className="rounded-2xl px-4 py-4" style={{ background: "#FFFBF2", border: "1px solid #EBD9B4" }}>
+        <section className="rounded-2xl px-4 py-4" style={look(FAMILY.gold)}>
           <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-2" style={{ color: C.gold }}>
             Worth asking a doctor
           </p>
@@ -182,7 +183,7 @@ export default function InsightsPlan({
       )}
 
       {nothingWrong && (
-        <section className="rounded-2xl px-4 py-4" style={{ background: C.card, border: `1px solid ${C.rule}` }}>
+        <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
           <p className="text-sm m-0" style={{ color: C.leaf }}>
             Nothing is off at the moment. Eating as {viewingOther ? `${firstName} is` : "you are"}.
           </p>

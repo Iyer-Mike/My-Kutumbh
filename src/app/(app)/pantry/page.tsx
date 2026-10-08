@@ -3,9 +3,9 @@ import PageNav from "@/components/PageNav";
 import PantryView, { type PantryItem, type ShoppingItem } from "@/components/PantryView";
 import LiveFamily from "@/components/LiveFamily";
 import { BRAND as B } from "@/lib/brand";
-import { daysAheadLocal, todayLocal } from "@/lib/dates";
+import { dayLabel, daysAheadLocal, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
-import { haveIt, ingredientNames } from "@/lib/ingredients";
+import { ingredientNames } from "@/lib/ingredients";
 
 export default async function PantryPage() {
   const supabase = await createClient();
@@ -26,7 +26,7 @@ export default async function PantryPage() {
 
   let items: PantryItem[] = [];
   let shopping: ShoppingItem[] = [];
-  let needed: { name: string; dishes: string[] }[] = [];
+  let menuDays: { date: string; label: string; dishes: { name: string; ings: string[] }[] }[] = [];
   const names: Record<string, string> = {};
 
   if (kutumbhId) {
@@ -35,7 +35,7 @@ export default async function PantryPage() {
         .select("id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note")
         .eq("kutumbh_id", kutumbhId).order("name"),
       supabase.from("shopping_items")
-        .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at")
+        .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at, bought_at")
         .eq("kutumbh_id", kutumbhId).order("created_at", { ascending: false }).limit(120),
       supabase.from("family_roster")
         .select("id, full_name")
@@ -47,13 +47,15 @@ export default async function PantryPage() {
       names[p.id] = p.full_name?.split(" ")[0] ?? "Family";
     }
 
-    // What the next three days' menu needs that the shelf hasn't got
+    // The next seven days' menu, dish by dish, with each dish's ingredients.
+    // The shelf is compared in the browser so it stays live.
     const { data: plans } = await supabase
       .from("meal_plans")
-      .select("food_name, food_items(recipe_id)")
+      .select("planned_date, food_name, food_items(recipe_id)")
       .eq("kutumbh_id", kutumbhId)
       .gte("planned_date", today)
-      .lte("planned_date", daysAheadLocal(2, timeZone));
+      .lte("planned_date", daysAheadLocal(6, timeZone))
+      .order("planned_date");
 
     const recipeIds = [...new Set(
       (plans ?? [])
@@ -61,30 +63,25 @@ export default async function PantryPage() {
         .filter((id): id is number => id != null),
     )];
 
+    const byRecipe = new Map<number, string[]>();
     if (recipeIds.length) {
       const { data: recipes } = await supabase
         .from("recipes").select("id, name, ingredients").in("id", recipeIds);
-
-      const onShelf = items.map((i) => i.name);
-      const openNames = shopping.filter((s) => s.status === "open").map((s) => s.name);
-      const wanted = new Map<string, Set<string>>();
-
-      for (const r of recipes ?? []) {
-        for (const ing of ingredientNames(r.ingredients)) {
-          if (haveIt(ing, onShelf) || haveIt(ing, openNames)) continue;   // have it, or already listed
-          const key = ing.toLowerCase();
-          if (!wanted.has(key)) wanted.set(key, new Set());
-          wanted.get(key)!.add(r.name);
-        }
-      }
-      needed = [...wanted.entries()]
-        .map(([key, dishes]) => ({
-          name: key.charAt(0).toUpperCase() + key.slice(1),
-          dishes: [...dishes],
-        }))
-        .sort((a, b) => b.dishes.length - a.dishes.length || a.name.localeCompare(b.name))
-        .slice(0, 30);
+      for (const r of recipes ?? []) byRecipe.set(r.id as number, ingredientNames(r.ingredients));
     }
+
+    const days = new Map<string, Map<string, string[]>>();
+    for (const p of plans ?? []) {
+      const rid = (p.food_items as unknown as { recipe_id: number | null } | null)?.recipe_id;
+      const day = days.get(p.planned_date as string) ?? new Map<string, string[]>();
+      day.set(p.food_name as string, rid != null ? (byRecipe.get(rid) ?? []) : []);
+      days.set(p.planned_date as string, day);
+    }
+    menuDays = [...days.entries()].map(([date, dishes]) => ({
+      date,
+      label: dayLabel(date, timeZone),
+      dishes: [...dishes.entries()].map(([name, ings]) => ({ name, ings })),
+    }));
   }
 
   return (
@@ -92,9 +89,9 @@ export default async function PantryPage() {
       <header className="px-5 pt-safe pb-5" style={{ background: B.headerGradient }}>
         <PageNav />
         <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>{kutumbhName}</p>
-        <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Pantry Shelf</h1>
+        <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Pantry</h1>
         <p className="text-xs mt-1" style={{ color: B.gold }}>
-          {isPrime ? "You keep the shelf · anyone can flag what's running low" : "Flag anything running low for the Prime Member"}
+          {isPrime ? "You keep the shelf · all can flag low items" : "Flag low items for the Key Member"}
         </p>
       </header>
 
@@ -108,14 +105,14 @@ export default async function PantryPage() {
             isPrime={isPrime}
             initialItems={items}
             initialShopping={shopping}
-            fromMenu={needed}
+            menuDays={menuDays}
             memberNames={names}
             today={today}
           />
           </>
         ) : (
           <p className="text-sm text-center py-10" style={{ color: B.muted }}>
-            Join or start a Kutumbh first — the shelf belongs to the family.
+            Join or start a Kutumbh first.
           </p>
         )}
       </main>

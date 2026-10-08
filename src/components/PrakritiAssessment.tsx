@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { FAMILY, look } from "@/lib/brand";
 
 // ── Prakriti questionnaire ───────────────────────────────
 // Each question has 3 options: [Vata, Pitta, Kapha]
@@ -188,7 +189,7 @@ export default function PrakritiAssessment({ userId }: Props) {
 
           {QUESTIONS.map((item, qi) => (
             <div key={qi} className="rounded-2xl overflow-hidden"
-              style={{ background: "#FAF7FE", border: `1.5px solid ${answers[qi] >= 0 ? "#6B46B8" : "#E0D4F2"}` }}>
+              style={look(answers[qi] >= 0 ? FAMILY.green : FAMILY.violet)}>
               <div className="px-4 pt-3 pb-2">
                 <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#6A6180" }}>
                   Q{qi + 1}
@@ -226,7 +227,7 @@ export default function PrakritiAssessment({ userId }: Props) {
 
           {/* Fixed bottom bar */}
           <div className="fixed bottom-0 left-0 right-0 px-5 py-4"
-            style={{ background: "#F3EEFA", borderTop: "1px solid #E0D4F2" }}>
+            style={{ background: FAMILY.violet.bg, borderTop: `2.5px solid ${FAMILY.violet.edge}` }}>
             <button
               onClick={submit}
               disabled={!allAnswered}
@@ -253,7 +254,7 @@ export default function PrakritiAssessment({ userId }: Props) {
 
           {/* Score bars */}
           <div className="rounded-2xl px-5 py-4 space-y-4"
-            style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+            style={look(FAMILY.violet)}>
             <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
               Dosha Balance
             </p>
@@ -279,7 +280,7 @@ export default function PrakritiAssessment({ userId }: Props) {
 
           {/* Brief description */}
           <div className="rounded-2xl px-5 py-4"
-            style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}>
+            style={look(FAMILY.violet)}>
             <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#6B46B8" }}>
               What this means
             </p>

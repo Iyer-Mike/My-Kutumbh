@@ -8,10 +8,9 @@ import AtTheDoor from "@/components/AtTheDoor";
 import { MONTH_APP_RUPEES, MONTH_FAMILY_RUPEES } from "@/lib/ai-budget";
 import { familyOf } from "@/lib/family";
 import { canSendMail } from "@/lib/mail";
+import { FAMILY, look } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
-
-const CARD = { background: "#FAF7FE", border: "1px solid #E0D4F2" };
 
 /** Green while a family is alive, amber when it goes quiet, red when it never began. */
 function pulse(h: Household) {
@@ -60,7 +59,7 @@ export default async function AdminPage() {
       <main className="flex-1 px-5 py-6 space-y-5">
 
         {/* ── What the app has spent, against its own ceiling ── */}
-        <section className="rounded-2xl px-4 py-4" style={CARD}>
+        <section className="rounded-2xl px-4 py-4" style={look(FAMILY.amber)}>
           <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#6A6180" }}>
             The app&apos;s month
           </p>
@@ -102,12 +101,12 @@ export default async function AdminPage() {
 
         {/* ── What is breaking ── */}
         {desk.faults.length > 0 && (
-          <section className="rounded-2xl px-4 py-4" style={{ background: "#FDF3F2", border: "1px solid #E8C4BF" }}>
+          <section className="rounded-2xl px-4 py-4" style={look(FAMILY.red)}>
             <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-1" style={{ color: "#B0453A" }}>
               Faults · last 30 days
             </p>
             <p className="text-[11px] mt-0 mb-3" style={{ color: "#6A6180" }}>
-              Grouped — twenty of the same fault is one problem, not twenty.
+              Grouped by fault
             </p>
             <div className="space-y-2.5">
               {desk.faults.map((f, n) => (
@@ -129,12 +128,12 @@ export default async function AdminPage() {
 
         {/* ── Anyone who signed up and never got into a family ── */}
         {desk.stranded.length > 0 && (
-          <section className="rounded-2xl px-4 py-4" style={{ background: "#FDF3F2", border: "1px solid #E8C4BF" }}>
+          <section className="rounded-2xl px-4 py-4" style={look(FAMILY.red)}>
             <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#B0453A" }}>
               Signed up, no family · {desk.stranded.length}
             </p>
             <p className="text-[11px] mt-1 mb-3" style={{ color: "#6A6180" }}>
-Admitted to the app but belonging to no family — they should be sent back to name one.
+In the app, no family · Ask them to name one.
             </p>
             {desk.stranded.map((s, n) => (
               <div key={n} className="flex items-baseline justify-between text-sm py-1">
@@ -160,7 +159,7 @@ Admitted to the app but belonging to no family — they should be sent back to n
               const p = pulse(h);
               const share = Math.min(100, Math.round((h.spend_month / MONTH_FAMILY_RUPEES) * 100));
               return (
-                <div key={h.kutumbh_id} className="rounded-2xl px-4 py-3.5" style={CARD}>
+                <div key={h.kutumbh_id} className="rounded-2xl px-4 py-3.5" style={look(FAMILY.blue)}>
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-sm font-semibold m-0 truncate" style={{ color: "#241C33" }}>
                       {h.name ?? "Unnamed Kutumbh"}
@@ -179,7 +178,7 @@ Admitted to the app but belonging to no family — they should be sent back to n
                   </div>
 
                   <p className="text-xs mt-1 mb-2" style={{ color: "#6A6180" }}>
-                    {h.prime_name ?? "no Prime Member"} · {h.members} {h.members === 1 ? "member" : "members"} · joined{" "}
+                    {h.prime_name ?? "no Key Member"} · {h.members} {h.members === 1 ? "member" : "members"} · joined{" "}
                     {since(h.created_at).label}
                   </p>
 
@@ -208,7 +207,7 @@ Admitted to the app but belonging to no family — they should be sent back to n
 
         {/* ── What has been said, both ways ── */}
         {desk.notices.length > 0 && (
-          <section className="rounded-2xl px-4 py-4" style={CARD}>
+          <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
             <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-3" style={{ color: "#6A6180" }}>
               Letters
             </p>
@@ -234,7 +233,7 @@ Admitted to the app but belonging to no family — they should be sent back to n
 
         {/* ── Invitations ── */}
         {desk.invites.length > 0 && (
-          <section className="rounded-2xl px-4 py-4" style={CARD}>
+          <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
             <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-3" style={{ color: "#6A6180" }}>
               Invitations
             </p>
@@ -250,8 +249,7 @@ Admitted to the app but belonging to no family — they should be sent back to n
         )}
 
         <p className="text-[11px] text-center pt-2 pb-4 m-0" style={{ color: "#8A80A0" }}>
-          Counts and timings only. No family&apos;s food, labs, photographs or questions are visible here, to you or to
-          anyone.
+          Counts and timings only · No family&apos;s food, labs, photos or questions are visible.
         </p>
       </main>
     </div>

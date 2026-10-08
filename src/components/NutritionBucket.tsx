@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
 
 type Item = { id: string; name: string; kind: "recipe" | "dish" };
 type Est = {
@@ -99,7 +99,7 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
       {msg && <p className="text-sm rounded-xl px-3 py-2" style={{ background: "#FBE9E4", color: "#A23A1E" }}>{msg}</p>}
 
       {reviewing.map((e) => (
-        <div key={e.id} className="rounded-2xl p-4 grid gap-3" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+        <div key={e.id} className="rounded-2xl p-4 grid gap-3" style={look(FAMILY.amber)}>
           <div>
             <p className="text-sm font-semibold" style={{ color: B.ink }}>{nameOf(e.id)}</p>
             <p className="text-[11px]" style={{ color: B.muted2 }}>
@@ -112,7 +112,7 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
                 {f.label}
                 <input type="number" inputMode="decimal" min={0} step="any" value={e[f.key] as number}
                   onChange={(ev) => edit(e.id, f.key, ev.target.value)}
-                  className="h-11 rounded-xl px-3 text-sm" style={{ border: `1px solid ${B.cardEdge}`, color: B.ink, background: "#fff" }} />
+                  className="h-11 rounded-xl px-3 text-sm" style={{ ...fieldLook(FAMILY.amber), color: B.ink }} />
               </label>
             ))}
           </div>
@@ -130,7 +130,7 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
       ))}
 
       {items.length > 0 && (
-        <div className="rounded-2xl p-4 grid gap-2" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+        <div className="rounded-2xl p-4 grid gap-2" style={look(FAMILY.blue)}>
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold" style={{ color: B.ink }}>Waiting for values ({items.length})</p>
             <button className="text-xs underline min-h-11 px-2" style={{ color: B.muted }}

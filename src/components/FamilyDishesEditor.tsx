@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { CUISINES, DIETS, DISH_TYPES } from "@/lib/food-taxonomy";
 
 type NutrientCol =
@@ -95,7 +96,7 @@ function per100(v: string, weight: number) {
   return round1((n / weight) * 100);
 }
 
-const inputStyle = { border: "1.5px solid #E0D4F2", background: "#FAF7FE", color: "#241C33", outline: "none" } as const;
+const inputStyle = fieldLook(FAMILY.blue);
 
 export default function FamilyDishesEditor({
   initialDishes, creators,
@@ -271,7 +272,7 @@ export default function FamilyDishesEditor({
         const kcal   = d.calories != null ? Math.round((d.calories * w) / 100) : null;
         return (
           <div key={d.id} className="rounded-2xl overflow-hidden"
-            style={{ background: "#FAF7FE", border: `1.5px solid ${d.needs_review ? "#F2B531" : "#E0D4F2"}` }}>
+            style={look(d.needs_review ? FAMILY.gold : FAMILY.blue)}>
             <button onClick={() => open(d)} className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left">
               <div className="min-w-0">
                 <p className="text-sm font-semibold truncate" style={{ color: "#241C33" }}>{d.name}</p>
@@ -288,7 +289,7 @@ export default function FamilyDishesEditor({
             </button>
 
             {isOpen && (
-              <div className="px-4 pb-4 space-y-3" style={{ borderTop: "1px solid #EDE7F7" }}>
+              <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${(d.needs_review ? FAMILY.gold : FAMILY.blue).line}` }}>
                 <div className="pt-3">
                   <label htmlFor={`name-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Dish name</label>
                   <input id={`name-${d.id}`} value={draft.name} onChange={e => set("name", e.target.value)}
@@ -353,7 +354,7 @@ export default function FamilyDishesEditor({
                 </div>
 
                 {/* AI estimate from everything chosen above: ingredients, method, cuisine, diet, dish type and the serving unit */}
-                <div className="rounded-xl px-3 py-2.5" style={{ background: "#F3F0FB", border: "1px solid #DDD5F3" }}>
+                <div className="rounded-xl px-3 py-2.5" style={look(FAMILY.amber)}>
                   <button onClick={fillWithAI} disabled={estimating || !draft.name.trim()}
                     className="w-full py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
                     style={{ background: "#FAF7FE", color: "#4B3B8C", border: "1px solid #C9BDEB" }}>
@@ -382,7 +383,7 @@ export default function FamilyDishesEditor({
                   </div>
                 </div>
 
-                <details className="rounded-xl px-3 py-2" style={{ background: "#F3EEFA" }}>
+                <details className="rounded-xl px-3 py-2" style={look(FAMILY.violet)}>
                   <summary className="text-xs font-semibold cursor-pointer" style={{ color: "#625A75" }}>
                     Minerals &amp; vitamins, per serving (optional)
                   </summary>
@@ -398,7 +399,7 @@ export default function FamilyDishesEditor({
                   </div>
                 </details>
 
-                <details className="rounded-xl px-3 py-2" style={{ background: "#F3EEFA" }}>
+                <details className="rounded-xl px-3 py-2" style={look(FAMILY.violet)}>
                   <summary className="text-xs font-semibold cursor-pointer" style={{ color: "#625A75" }}>
                     Ayurvedic qualities (optional)
                   </summary>
@@ -464,7 +465,7 @@ export default function FamilyDishesEditor({
                 </button>
 
                 {confirmId === d.id ? (
-                  <div className="rounded-xl p-3 space-y-2" style={{ background: "#FBE9E4", border: "1px solid #E9B8AA" }}>
+                  <div className="rounded-xl p-3 space-y-2" style={look(FAMILY.red)}>
                     <p className="text-xs" style={{ color: "#7A2A14" }}>
                       Remove “{d.name}” from the list? Its recipe goes too. Meals already logged keep their name and values; planned meals keep their text.
                     </p>

@@ -25,7 +25,7 @@ const REASONS: Record<string, { message: string; status: number }> = {
   },
   in_another_family: {
     message:
-      "You're already in a Kutumbh with other people. Leave it from your family page first, or ask its Prime Member to remove you.",
+      "You're already in a Kutumbh with other people. Leave it from your family page first, or ask its Key Member to remove you.",
     status: 409,
   },
 };

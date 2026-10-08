@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { inviteFromPath, rememberInvite } from "@/lib/invite";
 import { emailReturnTo } from "@/lib/gate";
 import KutumbhLogo from "@/components/KutumbhLogo";
@@ -18,7 +19,7 @@ function SignupForm() {
   // family later uses a different number entirely.
   const [passcode, setPasscode] = useState("");
   // Someone arriving on a family's invitation does not need a passcode
-  // from the Admin: their Prime Member is vouching for them, and the
+  // from the Admin: their Key Member is vouching for them, and the
   // six-digit number on the next page does the same work.
   const invitedToFamily = !!inviteFromPath(redirectTo);
   const [password, setPassword] = useState("");
@@ -134,7 +135,7 @@ function SignupForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
+            style={fieldLook(FAMILY.amber)}
             placeholder="Mohan Iyer"
           />
         </div>
@@ -150,7 +151,7 @@ function SignupForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
+            style={fieldLook(FAMILY.amber)}
             placeholder="you@email.com"
           />
         </div>
@@ -180,7 +181,7 @@ function SignupForm() {
             placeholder="the code in your letter"
 
             className="w-full px-4 py-3 rounded-xl text-sm tracking-widest focus:outline-none"
-            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
+            style={fieldLook(FAMILY.amber)}
           />
           <p className="text-xs mt-1.5" style={{ color: "#8A80A0" }}>
             The code in the invitation you were sent. It lasts a day.
@@ -200,13 +201,13 @@ function SignupForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-            style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
+            style={fieldLook(FAMILY.amber)}
             placeholder="Min. 8 characters"
           />
         </div>
 
         {error && (
-          <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA" }}>
+          <div className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
             {error}
           </div>
         )}

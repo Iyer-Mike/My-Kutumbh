@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 /**
  * A plain sentence for anything the AI service throws, so a family sees
  * what to do rather than a status code. Out-of-credit is called out by
- * name: it is the one cause the Prime Member can actually fix.
+ * name: it is the one cause the Key Member can actually fix.
  */
 export function aiErrorMessage(error: unknown, what: string): { message: string; status: number } {
   if (error instanceof Anthropic.RateLimitError) {

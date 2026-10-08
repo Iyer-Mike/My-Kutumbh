@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { offerCode } from "@/app/waiting/actions";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 /**
  * One box for whichever code a person happens to be holding.
  *
  * There are two: a passcode from the Admin's letter, and a six-digit
- * number from a Prime Member. A newcomer has no idea these are
+ * number from a Key Member. A newcomer has no idea these are
  * different things, and should not have to. The box tries both.
  */
 export default function EnterAnyCode() {
@@ -35,12 +36,12 @@ export default function EnterAnyCode() {
         onKeyDown={(e) => { if (e.key === "Enter" && value) submit(); }}
         placeholder="paste or type it here"
         className="w-full text-center rounded-xl py-3 font-semibold tracking-widest"
-        style={{ background: "#F0EAFA", border: "1.5px solid #E0D4F2", color: "#241C33" }}
+        style={fieldLook(FAMILY.amber)}
       />
 
       {error && (
         <p className="text-xs mt-2 mb-0 text-center rounded-lg px-3 py-2"
-          style={{ background: "#FBE2DC", color: "#9A2C1B" }}>
+          style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
           {error}
         </p>
       )}

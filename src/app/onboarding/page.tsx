@@ -6,6 +6,7 @@ import { pendingInvite } from "@/lib/invite";
 import { DEFAULT_TIME_ZONE, deviceTimeZone } from "@/lib/dates";
 import { useRouter } from "next/navigation";
 import KutumbhLogo from "@/components/KutumbhLogo";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 // ── Prakriti questions ────────────────────────────────────────────
 const QUESTIONS = [
@@ -118,14 +119,11 @@ const DOSHA_DESC: Record<string, { title: string; desc: string; color: string }>
 
 // ── Shared styles ─────────────────────────────────────────────────
 const inputStyle = {
-  border: "1.5px solid #E0D4F2",
-  background: "#FAF7FE",
-  color: "#241C33",
+  ...fieldLook(FAMILY.amber),
   borderRadius: "12px",
   padding: "10px 14px",
   fontSize: "14px",
   width: "100%",
-  outline: "none",
   appearance: "none" as const,
 };
 
@@ -604,7 +602,7 @@ export default function OnboardingPage() {
         </div>
 
         {error && (
-          <div className="rounded-xl px-4 py-3 text-sm mb-4" style={{ background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA" }}>
+          <div className="rounded-xl px-4 py-3 text-sm mb-4" style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
             {error}
           </div>
         )}

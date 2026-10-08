@@ -2,14 +2,19 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look } from "@/lib/brand";
 import { CUISINES, dietLabel, dishTypeOf } from "@/lib/food-taxonomy";
 import { slotLabel } from "@/lib/meal-slots";
 import PrintRecipe from "@/components/PrintRecipe";
 import RecipeApproval from "@/components/RecipeApproval";
+import CopyRecipeButton from "@/components/CopyRecipeButton";
 import { familyOf } from "@/lib/family";
 
 const DIET_MARK: Record<string, string> = { vegan: "#2F7D32", veg: "#2F7D32", egg: "#C98A0B", nonveg: "#A23A1E" };
+
+// What one serve is, said the way the dish is eaten: a bowl of sambar, a piece of chapati
+const UNIT_PLURAL: Record<string, string> = { bowl: "bowls", plate: "plates", piece: "pieces", glass: "glasses", cup: "cups", katori: "katoris", tbsp: "tbsp" };
+const unitWord = (u: string | null) => (u && u !== "serving" ? u : "portion");
 
 const EFFECT_WORD: Record<string, string> = {
   balances: "settles", aggravates: "raises", neutral: "leaves steady",
@@ -32,7 +37,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
   const supabase = await createClient();
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("id, name, cuisine, source_cuisine, diet, is_jain, dish_type, serves, prep_time, cook_time, blurb, tip, badge, tags, ingredients, method, meal_hint, serving_unit, serving_weight_g, kcal, protein_g, carbs_g, fat_g, fibre_g, iron_mg, calcium_mg, vit_b12_mcg, sodium_mg, nutrition_estimated, status, kutumbh_id, created_by, in_bucket")
+    .select("id, name, cuisine, source_cuisine, diet, is_jain, dish_type, serves, prep_time, cook_time, blurb, tip, badge, tags, ingredients, method, meal_hint, serving_unit, serving_weight_g, kcal, protein_g, carbs_g, fat_g, fibre_g, iron_mg, calcium_mg, vit_b12_mcg, sodium_mg, nutrition_estimated, status, kutumbh_id, created_by, in_bucket, copied_from")
     .eq("id", recipeId)
     .maybeSingle();
 
@@ -46,18 +51,39 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     .limit(1)
     .maybeSingle();
 
-  // A family recipe waits for the Prime Member before the family sees it
+  // A family recipe waits for the Key Member before the family sees it
   const waiting = recipe.status === "draft";
   let canApprove = false;
   let canEdit = false;
+  let canCopy = false;
+  if (!recipe.kutumbh_id) {
+    // A shared recipe is fixed; the Key Member can make the family's own version of it
+    const { data: { user } } = await supabase.auth.getUser();
+    canCopy = user ? (await familyOf(supabase, user.id)).isPrime : false;
+  }
   if (recipe.kutumbh_id) {
     const { data: { user } } = await supabase.auth.getUser();
     canApprove = user ? (await familyOf(supabase, user.id)).isPrime : false;
     canEdit = canApprove || (waiting && !!user && recipe.created_by === user.id);
   }
 
+  // A family version points back to the recipe it came from; the original lists the family's versions
+  let original: { id: number; name: string } | null = null;
+  let variants: { id: number; name: string }[] = [];
+  if (recipe.copied_from) {
+    const { data: o } = await supabase.from("recipes").select("id, name").eq("id", recipe.copied_from).maybeSingle();
+    original = o;
+  } else if (!recipe.kutumbh_id) {
+    const { data: v } = await supabase.from("recipes").select("id, name").eq("copied_from", recipeId).eq("status", "published").order("name");
+    variants = v ?? [];
+  }
+
   const mark = DIET_MARK[recipe.diet] ?? DIET_MARK.veg;
   const macro = (v: number | null, unit: string) => (v == null ? "—" : `${Math.round(v * 10) / 10} ${unit}`);
+  const unit = unitWord(recipe.serving_unit);
+  const makes = recipe.serves
+    ? `${recipe.serves} ${Number(recipe.serves) === 1 ? unit : (UNIT_PLURAL[unit] ?? `${unit}s`)}`
+    : "—";
   const meals = (recipe.meal_hint ?? []).map((m: string) => slotLabel(m));
 
   return (
@@ -79,6 +105,11 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)", lineHeight: 1.2 }}>
           {recipe.name}
         </h1>
+        {original && (
+          <p className="text-xs mt-1.5" style={{ color: B.gold }}>
+            Variant of <Link href={`/recipes/${original.id}`} className="underline">{original.name}</Link>
+          </p>
+        )}
         {recipe.blurb && (
           <p className="text-sm mt-2" style={{ color: B.onDark }}>{recipe.blurb}</p>
         )}
@@ -89,11 +120,20 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
         {/* At a glance */}
         <section className="rounded-2xl px-4 py-4 grid grid-cols-3 gap-3"
-          style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
-          <Fact label="Serves" value={recipe.serves ?? "—"} />
+          style={look(FAMILY.amber)}>
+          <Fact label="Makes" value={makes} />
           <Fact label="Prep" value={recipe.prep_time ?? "—"} />
           <Fact label="Cooking" value={recipe.cook_time ?? "—"} />
         </section>
+
+        {variants.length > 0 && (
+          <section className="rounded-2xl px-4 py-3 grid gap-1.5" style={look(FAMILY.violet)}>
+            <p className="m-0 text-[10px] font-semibold uppercase tracking-wide" style={{ color: B.muted2 }}>Your family&apos;s versions</p>
+            {variants.map((v) => (
+              <Link key={v.id} href={`/recipes/${v.id}`} className="text-sm font-semibold" style={{ color: B.violet }}>{v.name} →</Link>
+            ))}
+          </section>
+        )}
 
         {meals.length > 0 && (
           <p className="text-xs -mt-2 px-1" style={{ color: B.muted }}>
@@ -104,7 +144,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
         {/* Ingredients */}
         <section className="rounded-2xl px-4 py-4 grid gap-2.5"
-          style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+          style={look(FAMILY.blue)}>
           <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>What goes in</h2>
           <ul className="grid gap-1.5 m-0 p-0" style={{ listStyle: "none" }}>
             {(recipe.ingredients ?? []).map((line: string, i: number) => (
@@ -118,7 +158,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
         {/* Method */}
         <section className="rounded-2xl px-4 py-4 grid gap-2.5"
-          style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+          style={look(FAMILY.blue)}>
           <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>How it&apos;s made</h2>
           <ol className="grid gap-2.5 m-0 p-0" style={{ listStyle: "none" }}>
             {(recipe.method ?? []).map((step: string, i: number) => (
@@ -138,18 +178,17 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
         {/* Nutrition */}
         <section className="rounded-2xl px-4 py-4 grid gap-3"
-          style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+          style={look(FAMILY.amber)}>
           <div>
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
-              One serving
+              Per {unit}
             </h2>
             <p className="text-[11px]" style={{ color: B.muted2 }}>
-              {recipe.serving_weight_g ? `About ${Math.round(recipe.serving_weight_g)} g per ${recipe.serving_unit ?? "serving"}` : "Per serving"}
-              {recipe.nutrition_estimated ? " · estimated" : ""}
+              {[recipe.serving_weight_g ? `About ${Math.round(recipe.serving_weight_g)} g` : null, recipe.nutrition_estimated ? "estimated" : null].filter(Boolean).join(" · ")}
             </p>
             {recipe.nutrition_estimated && (
               <p className="text-[11px] mt-0.5" style={{ color: B.muted2 }}>
-                Values are an AI estimate guided by the Indian Food Composition Tables (IFCT), checked by your Prime Member. Approximate.
+                AI estimated as per IFCT tables and reviewed by Key Member.
               </p>
             )}
           </div>
@@ -169,7 +208,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         {/* Ayurveda */}
         {dish?.virya && (
           <section className="rounded-2xl px-4 py-4 grid gap-2"
-            style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+            style={look(FAMILY.violet)}>
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "#B07C12" }}>
               In Ayurveda
             </h2>
@@ -191,6 +230,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
+        {canCopy && <CopyRecipeButton recipeId={recipe.id} recipeName={recipe.name} />}
         {canEdit && (
           <Link href={`/recipes/${recipe.id}/edit`} data-print-hide
             className="w-full py-3 rounded-2xl text-sm font-semibold text-center"
@@ -200,14 +240,14 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         )}
         {recipe.in_bucket && (
           <p data-print-hide className="text-[11px] text-center" style={{ color: B.muted2 }}>
-            In the nutrition bucket, waiting for an estimate.
+            In the nutrition bucket · estimate pending.
           </p>
         )}
 
         <PrintRecipe name={recipe.name} />
 
         <p className="text-[11px] text-center pb-2" style={{ color: B.muted2 }}>
-          Nutrition is for one serving as written. Your own portion is what the Log counts.
+          Values are per {unit} · The Log counts your portion.
         </p>
       </main>
     </div>

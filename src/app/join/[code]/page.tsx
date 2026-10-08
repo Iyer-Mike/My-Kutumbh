@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import EnterJoinCode from "@/components/EnterJoinCode";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look } from "@/lib/brand";
 import RememberInvite from "@/components/RememberInvite";
 import SwitchPerson from "@/components/SwitchPerson";
 
@@ -25,7 +25,7 @@ function Shell({ eyebrow, title, children }: { eyebrow: string; title: string; c
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-5 py-8" style={{ background: B.page }}>
       <div className="w-full rounded-3xl overflow-hidden"
-        style={{ maxWidth: 400, background: B.card, border: `1px solid ${B.cardEdge}`, boxShadow: "0 4px 24px rgba(36,18,56,0.08)" }}>
+        style={{ maxWidth: 400, ...look(FAMILY.violet), boxShadow: "0 4px 24px rgba(36,18,56,0.08)" }}>
         <div className="px-6 pt-8 pb-6" style={{ background: B.headerGradient }}>
           <div className="flex items-center gap-2.5 mb-4">
             <div className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center text-[19px]"
@@ -76,7 +76,7 @@ export default async function JoinPage({ params }: Props) {
     return (
       <Shell eyebrow="An invitation" title="A place has been kept for you in a Kutumbh">
         <RememberInvite code={clean} />
-        <div className="rounded-2xl px-4 py-4 grid gap-3" style={{ background: B.page, border: `1px solid ${B.cardEdge}` }}>
+        <div className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.blue)}>
           <p className="m-0 text-[11px] font-semibold uppercase" style={{ letterSpacing: "0.1em", color: B.muted2 }}>
             What joining gives you
           </p>
@@ -95,7 +95,7 @@ export default async function JoinPage({ params }: Props) {
           <div className="flex gap-3 items-start">
             <Tick />
             <p className="m-0 text-[13px] leading-relaxed" style={{ color: B.ink2 }}>
-              Your medical reports stay yours. Only you and the Prime Member can open them.
+              Your medical reports stay yours. Only you and the Key Member can open them.
             </p>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default async function JoinPage({ params }: Props) {
 
   // Already in this same kutumbh → go straight to family page
   if (existingMember && invite && existingMember.kutumbh_id === invite.kutumbh_id) {
-    // Opened by a person already in this family: the Prime Member trying the
+    // Opened by a person already in this family: the Key Member trying the
     // link, or a family member who was sent it by mistake. The invitation is
     // for a newcomer, so say so and let the newcomer carry on from here.
     const forThem = invite.invited_email && user.email
@@ -204,7 +204,7 @@ export default async function JoinPage({ params }: Props) {
             : "This invite link is no longer active."}
         </p>
         <p className="m-0 text-xs text-center" style={{ color: B.muted2 }}>
-          Ask the Prime Member to send you a fresh link.
+          Ask the Key Member to send you a fresh link.
         </p>
         <Link href="/dashboard" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
           style={{ background: B.button }}>
@@ -224,7 +224,7 @@ export default async function JoinPage({ params }: Props) {
           as <span className="font-semibold">{user.email}</span>.
         </p>
         <p className="m-0 text-xs text-center" style={{ color: B.muted2 }}>
-          Sign in with that address, or ask the Prime Member for an invitation in your own name.
+          Sign in with that address, or ask the Key Member for an invitation in your own name.
         </p>
         <SwitchPerson code={clean} who={invite.invited_email} />
         <Link href="/dashboard" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
@@ -239,7 +239,7 @@ export default async function JoinPage({ params }: Props) {
     return (
       <Shell eyebrow="An invitation" title="You already belong to a Kutumbh">
         <p className="m-0 text-sm text-center" style={{ color: B.muted }}>
-          A person can be part of one family at a time. Ask its Prime Member to remove you first.
+          A person can be part of one family at a time. Ask its Key Member to remove you first.
         </p>
         <Link href="/family" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
           style={{ background: B.button }}>
@@ -255,7 +255,7 @@ export default async function JoinPage({ params }: Props) {
         {primeName ? `${primeName} will have given you a six-digit number.` : "You will have been given a six-digit number."}{" "}
         Type it below and you are in.
       </p>
-      <div className="rounded-2xl px-4 py-4 grid gap-3" style={{ background: B.page, border: `1px solid ${B.cardEdge}` }}>
+      <div className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.blue)}>
         <p className="m-0 text-[11px] font-semibold uppercase" style={{ letterSpacing: "0.1em", color: B.muted2 }}>
           What joining gives you
         </p>
@@ -274,24 +274,24 @@ export default async function JoinPage({ params }: Props) {
         <div className="flex gap-3 items-start">
           <Tick />
           <p className="m-0 text-[13px] leading-relaxed" style={{ color: B.ink2 }}>
-            Your medical reports stay yours. Only you and the Prime Member can open them.
+            Your medical reports stay yours. Only you and the Key Member can open them.
           </p>
         </div>
       </div>
 
       <div className="rounded-2xl px-3.5 py-3 flex gap-2.5 items-start"
-        style={{ background: B.goldTint, border: `1px solid ${B.gold}` }}>
+        style={look(FAMILY.gold)}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={B.goldInk} strokeWidth="1.8"
           strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5" aria-hidden="true">
           <circle cx="12" cy="12" r="9" /><path d="M12 8h.01" /><path d="M11 12h1v4h1" />
         </svg>
         <p className="m-0 text-[12.5px] leading-relaxed" style={{ color: "#7A5A06" }}>
-          The <b>Prime Member</b> of this Kutumbh completes new family dishes and can see everyone&apos;s insights.
+          The <b>Key Member</b> of this Kutumbh completes new family dishes and can see everyone&apos;s insights.
         </p>
       </div>
 
       {aloneInOwn && (
-        <p className="m-0 text-[12.5px] rounded-xl px-3 py-2.5" style={{ background: B.goldTint, color: "#7A5A06" }}>
+        <p className="m-0 text-[12.5px] rounded-xl px-3 py-2.5" style={{ ...look(FAMILY.gold), color: FAMILY.gold.ink }}>
           You set up a Kutumbh of your own with nobody else in it. Joining will close that one and bring you here —
           your meals, reports and insights stay yours.
         </p>

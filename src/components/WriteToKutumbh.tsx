@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { writeToKutumbh } from "@/app/(app)/admin/actions";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 /**
  * A short note to one family. It lands in their app, where the Prime
@@ -64,9 +65,9 @@ export default function WriteToKutumbh({
   };
 
   return (
-    <div className="mt-3 rounded-xl p-3" style={{ background: "#F3EEFA", border: "1px solid #E0D4F2" }}>
+    <div className="mt-3 rounded-xl p-3" style={look(FAMILY.violet)}>
       <p className="text-[11px] m-0 mb-2" style={{ color: "#6A6180" }}>
-        To the Prime Member of {kutumbhName}
+        To the Key Member of {kutumbhName}
       </p>
 
       <input
@@ -75,14 +76,14 @@ export default function WriteToKutumbh({
         placeholder="We miss your cooking"
         maxLength={80}
         className="w-full text-sm rounded-lg px-3 py-2"
-        style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241C33" }}
+        style={fieldLook(FAMILY.violet)}
       />
 
       {/* The line a family reads first. One warm thought, and only one:
           they should feel noticed, not asked to explain themselves. The
           question goes in the letter, where there is room for it. */}
       <p className="text-[11px] mt-1 mb-2 m-0" style={{ color: "#8A80A0" }}>
-        One warm line — the question goes in the letter below.
+        One warm line · Questions go in the letter below.
       </p>
       <textarea
         value={body}
@@ -93,7 +94,7 @@ export default function WriteToKutumbh({
         rows={6}
         maxLength={1200}
         className="w-full text-sm rounded-lg px-3 py-2"
-        style={{ background: "#fff", border: "1px solid #E0D4F2", color: "#241C33" }}
+        style={fieldLook(FAMILY.violet)}
       />
 
       {error && <p className="text-xs mt-2 mb-0" style={{ color: "#B0453A" }}>{error}</p>}

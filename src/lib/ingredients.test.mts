@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { haveIt, ingredientName, ingredientNames } from "./ingredients.ts";
+import { haveIt, ingredientName, ingredientNames, sameThing } from "./ingredients.ts";
 
 describe("reading an ingredient line", () => {
   test("name first, amount after the dash", () => {
@@ -19,7 +19,18 @@ describe("reading an ingredient line", () => {
     assert.equal(ingredientName("1 cup sambar (reheated)"), "Sambar");
     assert.equal(ingredientName("6 idlis (from fermented batter)"), "Idlis");
     assert.equal(ingredientName("3 tbsp coconut chutney"), "Coconut chutney");
-    assert.equal(ingredientName("1 tsp ghee (optional)"), "Ghee");
+    assert.equal(ingredientName("4 tbsp ghee (optional)"), "Ghee");
+  });
+
+  test("tiny amounts and shelf basics are not shopping", () => {
+    assert.equal(ingredientName("Oil — 2 tsp"), null);
+    assert.equal(ingredientName("1 tsp ghee (optional)"), null);
+    assert.equal(ingredientName("Turmeric powder — 1/2 tsp"), null);
+    assert.equal(ingredientName("Turmeric powder — 1 cup"), null);
+    assert.equal(ingredientName("Hing — a pinch"), null);
+    assert.equal(ingredientName("Cumin seeds — 1 tbsp"), null);
+    assert.equal(ingredientName("Cumin seeds — 3 tbsp"), "Cumin seeds");
+    assert.equal(ingredientName("Water — 1 cup"), null);
   });
 
   test("what nobody shops for", () => {
@@ -50,6 +61,23 @@ describe("reading an ingredient line", () => {
     );
   });
 
+  test("chili, chilly, chilli and chillies are one thing", () => {
+    for (const w of ["Red chili", "Red chilly", "Red chillies", "Red chilli", "Red chilies"]) {
+      assert.equal(sameThing(w), "red chilli");
+    }
+    assert.equal(sameThing("Yogurt"), sameThing("Curd"));
+    assert.equal(sameThing("Curry leaves"), sameThing("Curry leaf"));
+  });
+
+  test("hot water and a curd starter are not bought", () => {
+    for (const l of ["Hot water — 1 cup", "Warm water", "Cold water — as needed", "Boiling water"]) {
+      assert.equal(ingredientName(l), null, l);
+    }
+    assert.equal(ingredientName("Yogurt starter culture — 1 tsp"), null);
+    assert.equal(ingredientName("Rose water — 100 ml"), "Rose water");
+    assert.equal(ingredientName("Coconut water — 1 cup"), "Coconut water");
+  });
+
   test("water is never on the list", () => {
     assert.equal(ingredientName("Water to knead — as needed"), null);
     assert.equal(ingredientName("Water — 4 cups"), null);
@@ -63,6 +91,13 @@ describe("is it on the shelf", () => {
     assert.equal(haveIt("Toor dal", shelf), true);
     assert.equal(haveIt("Basmati rice", shelf), true);       // shelf has Rice
     assert.equal(haveIt("Turmeric", shelf), true);
+  });
+
+  test("a bracketed name on the shelf counts, and so does a spice's powder", () => {
+    assert.equal(haveIt("Turmeric powder", shelf), true);
+    assert.equal(haveIt("Haldi", shelf), true);
+    assert.equal(haveIt("Red chilli powder", ["Red chilly powder"]), true);
+    assert.equal(haveIt("Yogurt", ["Curd"]), true);
   });
 
   test("a different dal is not the same dal", () => {

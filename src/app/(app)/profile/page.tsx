@@ -10,6 +10,7 @@ import { familyOf } from "@/lib/family";
 import AiSpendCard from "@/components/AiSpendCard";
 import MyDataCard from "@/components/MyDataCard";
 import { checkBudget } from "@/lib/ai-budget";
+import { FAMILY, look } from "@/lib/brand";
 
 const DOSHA_COLOR: Record<string, string> = {
   vata:          "#7B68EE",
@@ -94,7 +95,7 @@ export default async function ProfilePage() {
 
         {/* ── Your face ── */}
         {kutumbhId && (
-          <section className="rounded-2xl px-4 py-5" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+          <section className="rounded-2xl px-4 py-5" style={look(FAMILY.violet)}>
             <FacePicker
               kutumbhId={kutumbhId}
               subject={{ kind: "member", userId: user!.id }}
@@ -105,7 +106,7 @@ export default async function ProfilePage() {
               label="Add your photo"
             />
             <p className="text-[11px] text-center mt-3 m-0" style={{ color: "#6A6180" }}>
-              Only your Kutumbh can see it.
+              Visible to your Kutumbh only.
             </p>
           </section>
         )}
@@ -129,7 +130,7 @@ export default async function ProfilePage() {
         />
 
         {/* ── Prakriti ── */}
-        <div className="rounded-2xl px-5 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+        <div className="rounded-2xl px-5 py-4" style={look(FAMILY.violet)}>
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
               Prakriti — Dosha Balance
@@ -166,12 +167,12 @@ export default async function ProfilePage() {
             </div>
           ) : (
             <div className="rounded-xl px-4 py-4 text-center"
-              style={{ background: "#F3EEFA", border: "1.5px dashed #CBBDE4" }}>
+              style={look(FAMILY.violet)}>
               <p className="text-sm font-medium mb-1" style={{ color: "#241C33" }}>
-                Discover your Ayurvedic constitution
+                Find your Prakriti (nature)
               </p>
               <p className="text-xs mb-3" style={{ color: "#6A6180" }}>
-                15 questions · takes about 3 minutes
+                15 questions · 3 min
               </p>
               <div className="flex gap-2 justify-center">
                 <Link

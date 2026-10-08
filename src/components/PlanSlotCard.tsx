@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/client";
 import { defaultPoolName } from "@/lib/meal-slots";
 import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
@@ -19,6 +20,7 @@ export type PlanItem = {
   kcal_per_serving: number | null;
 };
 
+export type QuickPick = FoodSuggestion;
 type FoodSuggestion = {
   id: string;
   name: string;
@@ -46,6 +48,11 @@ type Props = {
   initialItems: PlanItem[];
   initialPoolName: string | null;
   memberNames: Record<string, string>;
+  /** Dishes to offer first for this meal (festival dishes, or the family's usual); the search still reaches everything */
+  quickPicks?: QuickPick[];
+  quickLabel?: string;
+  /** Sits inside the meal that is already open: no second header, the picker is open straight away */
+  embedded?: boolean;
 };
 
 function perServingKcal(f: { calories: number | null; serving_weight_g: number | null; serving_unit: string | null }) {
@@ -62,11 +69,11 @@ export function servingHint(item: Pick<PlanItem, "needs_review" | "category" | "
 }
 
 export default function PlanSlotCard({
-  slotKey, plannedDate, name, icon, time, userId, kutumbhId, initialItems, initialPoolName, memberNames,
+  slotKey, plannedDate, name, icon, time, userId, kutumbhId, initialItems, initialPoolName, memberNames, quickPicks, quickLabel, embedded,
 }: Props) {
   const supabase = createClient();
   const [items, setItems]               = useState<PlanItem[]>(initialItems);
-  const [adding, setAdding]             = useState(false);
+  const [adding, setAdding]             = useState(!!embedded);
   const [query, setQuery]               = useState("");
   const [suggestions, setSuggestions]   = useState<FoodSuggestion[]>([]);
   const [searched, setSearched]         = useState("");
@@ -126,6 +133,8 @@ export default function PlanSlotCard({
     setFilter(f => ({ ...f, type: "", mealOnly: true }));
   }
 
+  useEffect(() => { if (embedded) setFilter(f => ({ ...f, type: "", mealOnly: true })); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function cancelAdd() {
     setAdding(false);
     resetPicker();
@@ -142,7 +151,7 @@ export default function PlanSlotCard({
   const newDishReady  = isNewDish && (!kutumbhId || !!newCategory);
   const addCount      = chosen.length + (newDishReady ? 1 : 0);
 
-  // New dish → a Family Dish (family-only), awaiting the Prime Member's details
+  // New dish → a Family Dish (family-only), awaiting the Key Member's details
   async function createFamilyDish(dishName: string, category: DishType) {
     const d = dishTypeOf(category);
     const { data, error } = await supabase
@@ -214,7 +223,7 @@ export default function PlanSlotCard({
       <button key={s.id} type="button" disabled={already} onClick={() => toggleChosen(s)}
         aria-pressed={isOn}
         className="w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-2 disabled:opacity-50"
-        style={{ borderTop: i > 0 ? "1px solid #F0EAFA" : undefined, color: "#241C33", background: isOn ? "#E7DCF7" : undefined }}>
+        style={{ borderTop: i > 0 ? `1px solid ${FAMILY.blue.line}` : undefined, color: "#241C33", background: isOn ? "#E7DCF7" : undefined }}>
         <span className="min-w-0 flex items-center gap-2">
           <span className="shrink-0 w-4 h-4 rounded flex items-center justify-center"
             style={{ background: isOn ? "#6B46B8" : "#fff", border: `2px solid ${isOn ? "#6B46B8" : "#CBBDE4"}` }}>
@@ -265,9 +274,10 @@ export default function PlanSlotCard({
   return (
     <div
       className="rounded-2xl overflow-visible mb-3"
-      style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+      style={{ ...look(FAMILY.blue), boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
     >
-      {/* Slot header */}
+      {/* Slot header (not when the card sits inside an open meal) */}
+      {!embedded && (
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div
@@ -292,6 +302,7 @@ export default function PlanSlotCard({
           {adding ? "✓" : "+"}
         </button>
       </div>
+      )}
 
       {/* Menu name + who planned it */}
       {hasItems && kutumbhId && (
@@ -306,7 +317,7 @@ export default function PlanSlotCard({
                 maxLength={40}
                 aria-label="Menu name"
                 className="flex-1 rounded-lg px-2 py-1 text-xs"
-                style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: "#241C33", outline: "none" }}
+                style={fieldLook(FAMILY.blue)}
               />
               <button onClick={savePoolName} className="text-xs font-semibold" style={{ color: "#6B46B8" }}>Save</button>
               <button onClick={() => setRenaming(false)} className="text-xs" style={{ color: "#6A6180" }}>Cancel</button>
@@ -323,7 +334,7 @@ export default function PlanSlotCard({
 
       {/* Menu items */}
       {hasItems && (
-        <div style={{ borderTop: "1px solid #E7DCF7" }}>
+        <div style={{ borderTop: `1px solid ${FAMILY.blue.line}` }}>
           {items.map((item, i) => {
             const mine = item.user_id === userId;
             const hint = servingHint(item);
@@ -331,7 +342,7 @@ export default function PlanSlotCard({
               <div
                 key={item.id}
                 className="flex items-center justify-between px-4 py-2.5"
-                style={{ borderTop: i > 0 ? "1px solid #F0EAFA" : undefined, background: "#FAF7FE" }}
+                style={{ borderTop: i > 0 ? `1px solid ${FAMILY.blue.line}` : undefined }}
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#6B46B8" }} />
@@ -339,7 +350,7 @@ export default function PlanSlotCard({
                     <p className="text-sm truncate" style={{ color: "#241C33" }}>{item.food_name}</p>
                     {item.needs_review ? (
                       <p className="text-[10px] font-medium" style={{ color: "#8A5A06" }}>
-                        Family dish · awaiting Prime Member&apos;s details{hint ? ` · ${hint}` : ""}
+                        Family dish · awaiting Key Member&apos;s details{hint ? ` · ${hint}` : ""}
                       </p>
                     ) : hint ? (
                       <p className="text-[10px]" style={{ color: "#6A6180" }}>{hint}</p>
@@ -375,7 +386,7 @@ export default function PlanSlotCard({
 
       {/* Add dish panel */}
       {adding && (
-        <div className="px-4 py-3 space-y-2" style={{ borderTop: "1px solid #E7DCF7", background: "#FAF7FE" }}>
+        <div className="px-4 py-3 space-y-2" style={{ borderTop: `1px solid ${FAMILY.blue.line}` }}>
           <input
             ref={inputRef}
             type="text"
@@ -389,14 +400,22 @@ export default function PlanSlotCard({
             placeholder="Search, or type a new dish name"
             aria-label="Dish name"
             className="w-full rounded-xl px-3 py-2 text-sm"
-            style={{ border: "1.5px solid #6B46B8", background: "#FAF7FE", color: "#241C33", outline: "none" }}
+            style={fieldLook(FAMILY.blue)}
           />
 
-          {/* Browse by filters — tick as many as you like */}
-          {!typed && (
+          {/* Quick picks for this meal, or browse by filters when none are given — tick as many as you like */}
+          {!typed && (quickPicks?.length ?? 0) > 0 && (
+            <div className="space-y-1.5">
+              <p className="m-0 text-xs font-bold" style={{ color: "#5A3E00" }}>{quickLabel ?? "Suggested"} · {name}</p>
+              <div className="rounded-xl overflow-y-auto" style={{ ...fieldLook(FAMILY.blue), maxHeight: 340 }}>
+                {quickPicks!.map(dishRow)}
+              </div>
+            </div>
+          )}
+          {!typed && !(quickPicks?.length) && (
             <div className="space-y-2">
               <FoodFilterBar value={filter} onChange={setFilter} idPrefix={`plan-${slotKey}`} slot={slotKey} />
-              <div className="rounded-xl overflow-y-auto" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", maxHeight: 300 }}>
+              <div className="rounded-xl overflow-y-auto" style={{ ...fieldLook(FAMILY.blue), maxHeight: 300 }}>
                 {browse.length === 0
                   ? <p className="text-xs text-center py-3" style={{ color: "#6A6180" }}>No dishes match these filters</p>
                   : browse.map(dishRow)}
@@ -406,7 +425,7 @@ export default function PlanSlotCard({
 
           {/* Search results — also tickable */}
           {typed && suggestions.length > 0 && (
-            <div className="rounded-xl overflow-y-auto" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2", maxHeight: 300 }}>
+            <div className="rounded-xl overflow-y-auto" style={{ ...fieldLook(FAMILY.blue), maxHeight: 300 }}>
               {suggestions.map(dishRow)}
             </div>
           )}
@@ -417,7 +436,7 @@ export default function PlanSlotCard({
               {chosen.map(c => (
                 <button key={c.id} type="button" onClick={() => toggleChosen(c)}
                   className="px-2.5 py-1 rounded-full text-xs font-medium"
-                  style={{ background: "#E7DCF7", color: "#4B2D7A", border: "1px solid #CBB4EE" }}
+                  style={{ background: "#E7DCF7", color: "#4B2D7A", border: `2px solid ${FAMILY.violet.edge}` }}
                   aria-label={`Untick ${c.name}`}>
                   {c.name} ✕
                 </button>
@@ -439,14 +458,14 @@ export default function PlanSlotCard({
                     className="px-2.5 py-1.5 rounded-full text-xs font-medium"
                     style={newCategory === c.key
                       ? { background: "#241238", color: "#fff" }
-                      : { background: "#FAF7FE", color: "#625A75", border: "1px solid #E0D4F2" }}
+                      : { background: "#fff", color: "#625A75", border: `2px solid ${FAMILY.blue.edge}` }}
                   >
                     {c.icon} {c.label}
                   </button>
                 ))}
               </div>
               <p className="text-[11px] mt-1.5" style={{ color: "#8A5A06" }}>
-                Saved as a Family Dish. The Prime Member will add its exact nutrition, ingredients and preparation.
+                Saved as a Family Dish. The Key Member will add its exact nutrition, ingredients and preparation.
               </p>
             </div>
           )}

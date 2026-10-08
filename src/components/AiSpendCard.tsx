@@ -1,3 +1,4 @@
+import { FAMILY, look } from "@/lib/brand";
 import { MONTH_FAMILY_RUPEES, DAY_PERSON_RUPEES } from "@/lib/ai-budget";
 
 /** Whole rupees, always. Anything under one rupee is said in words. */
@@ -13,14 +14,14 @@ export default function AiSpendCard({ familyRupees, myRupees }: { familyRupees: 
   const spent = familyRupees >= MONTH_FAMILY_RUPEES;
 
   return (
-    <section className="rounded-2xl px-4 py-4" style={{ background: "#FAF7FE", border: "1px solid #E0D4F2" }}>
+    <section className="rounded-2xl px-4 py-4" style={look(FAMILY.amber)}>
       <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#6A6180" }}>
         AI this month
       </p>
 
       <p className="text-sm mt-2 mb-2" style={{ color: "#241C33" }}>
         <span className="font-semibold">{rupees(familyRupees)}</span>
-        <span style={{ color: "#6A6180" }}> of {rupees(MONTH_FAMILY_RUPEES)} — the whole Kutumbh</span>
+        <span style={{ color: "#6A6180" }}> of {rupees(MONTH_FAMILY_RUPEES)} · whole Kutumbh</span>
       </p>
 
       <div className="h-2 rounded-full overflow-hidden" style={{ background: "#E7DCF7" }}>
@@ -32,8 +33,8 @@ export default function AiSpendCard({ familyRupees, myRupees }: { familyRupees: 
 
       <p className="text-[11px] mt-3 mb-0" style={{ color: "#6A6180" }}>
         {spent
-          ? "The month's allowance is used. The coach and the photograph readers will be back next month; everything else works as usual."
-          : `You've used ${rupees(myRupees)} of your ${rupees(DAY_PERSON_RUPEES)} for today. This covers the coach, reading bills and plates, and working out a dish — nothing else in the app costs anything.`}
+          ? "Month's AI used up · Returns next month · All else works."
+          : `Today: ${rupees(myRupees)} of ${rupees(DAY_PERSON_RUPEES)} · AI only`}
       </p>
     </section>
   );

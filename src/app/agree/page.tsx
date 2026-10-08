@@ -6,6 +6,7 @@ import LegalDoc from "@/components/LegalDoc";
 import AgreeButton from "@/components/AgreeButton";
 import SignOutButton from "@/components/SignOutButton";
 import { PRIVACY, TERMS } from "@/lib/legal";
+import { FAMILY, look } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -44,14 +45,14 @@ export default async function AgreePage() {
 
         <div
           className="rounded-3xl px-6 py-7 mb-4"
-          style={{ background: "#fff", border: "1px solid #E0D4F2", boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
+          style={{ ...look(FAMILY.violet), boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
         >
           <LegalDoc doc={PRIVACY} compact />
         </div>
 
         <div
           className="rounded-3xl px-6 py-7 mb-6"
-          style={{ background: "#fff", border: "1px solid #E0D4F2", boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
+          style={{ ...look(FAMILY.violet), boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
         >
           <LegalDoc doc={TERMS} compact />
         </div>

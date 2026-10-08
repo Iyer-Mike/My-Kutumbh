@@ -4,6 +4,7 @@ import SignOutButton from "@/components/SignOutButton";
 import { standingOf } from "@/lib/admission";
 import EnterAnyCode from "@/components/EnterAnyCode";
 import { tellAdminIfWaiting } from "@/lib/door-alert";
+import { FAMILY, look } from "@/lib/brand";
 
 /**
  * The waiting room.
@@ -48,7 +49,7 @@ export default async function WaitingPage() {
       <div className="w-full" style={{ maxWidth: 420 }}>
         <div
           className="rounded-3xl px-6 py-7"
-          style={{ background: "#fff", border: "1px solid #E0D4F2", boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
+          style={{ ...look(FAMILY.gold), boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
         >
           <p className="m-0 text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
             My Kutumbh

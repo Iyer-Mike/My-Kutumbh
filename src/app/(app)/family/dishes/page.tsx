@@ -39,7 +39,7 @@ export default async function FamilyDishesPage() {
         style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}
       >
         <PageNav />
-        <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>Prime Member</p>
+        <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>Key Member</p>
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>Family Dishes</h1>
         <p className="text-xs mt-1" style={{ color: "#C9B8E4" }}>
           {pending > 0

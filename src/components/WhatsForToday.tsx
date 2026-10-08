@@ -1,14 +1,16 @@
 "use client";
 
+import { addDays } from "@/lib/weeks";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { FAMILY, look } from "@/lib/brand";
 import { SLOTS } from "@/lib/meal-slots";
 import { dayLabel } from "@/lib/dates";
 import { useFamilyTimeZone } from "@/lib/family-time";
-import { microCells, nutrientCells, scaled, sum, type Nutr } from "@/lib/serving-nutrition";
-import PlanSlotCard, { type PlanItem } from "./PlanSlotCard";
+import { scaled, sum, type Nutr } from "@/lib/serving-nutrition";
+import PlanSlotCard, { type PlanItem, type QuickPick } from "./PlanSlotCard";
 
 export type MealSuggestion = {
   meal_slot: string;
@@ -37,16 +39,22 @@ type Log = {
   n: Nutr | null;
 };
 
+
 type Plan = PlanItem & { meal_slot: string; food_item_id: string | null; n: Nutr | null };
 
 type Props = {
   logs: Log[];
   suggestions: MealSuggestion[];
   dailyKcalGoal: number | null;
+  /** Day needs from the profile (ICMR-NIN): each meal gets a share */
+  targets: Targets;
   day: string;
   today: string;
   tomorrow: string;
   isPrime: boolean;
+  festivalTab: string | null;
+  quickPicks: Record<string, QuickPick[]>;
+  quickLabel: string;
   plans: Plan[];
   poolNames: Record<string, string>;
   memberNames: Record<string, string>;
@@ -63,15 +71,50 @@ function whyText(s: MealSuggestion): string {
   return "Same as last time";
 }
 
+// Quantity: grams for dishes counted per 100 g, otherwise servings (or pieces, bowls…)
+const defQty = (unit: string | null) => (unit === "g" ? 100 : 1);
+const stepOf = (unit: string | null) => (unit === "g" ? 25 : unit === "tbsp" ? 1 : 0.5);
+const timesOf = (l: { quantity_g: number; quantity_unit: string | null }) =>
+  (Number(l.quantity_g) || 1) / (l.quantity_unit === "g" ? 100 : 1);
+const qtyText = (q: number, unit: string | null) => {
+  const n = q === 0.5 ? "½" : q === 1.5 ? "1½" : String(Math.round(q * 10) / 10);
+  const u = unit ?? "serving";
+  return u === "g" || u === "tbsp" || q <= 1 ? `${n} ${u}` : `${n} ${u}s`;
+};
+
 const same = (p: Plan, l: Log) =>
   p.food_item_id && l.food_item_id ? p.food_item_id === l.food_item_id : p.food_name.toLowerCase() === l.food_name.toLowerCase();
 
-const INK = "#241238";
-const PLUM = "#3B1F5C";
-const MUTED = "#5F5473";
+// Two clearly different card families: warm for the day's values, cool for the meals
+export const WARM = { bg: "#FFE9C7", edge: "#C2551F" };
+export const COOL = { bg: "#E8F2FD", edge: "#2E64A0", open: "#D3E6FA" };
+
+type Targets = { kcal: number; p: number; c: number; fi: number; fat: number; fe: number; ca: number; b12: number; na: number; k: number };
+type Row = { name: string; key: keyof Nutr; tkey: keyof Targets; unit: string; limit?: boolean };
+// Five always on show; the rest behind "See more"
+const VALUE_ROWS: Row[] = [
+  { name: "Energy",       key: "kcal", tkey: "kcal", unit: "kcal" },
+  { name: "Protein",      key: "p",    tkey: "p",    unit: "g" },
+  { name: "Carbohydrate", key: "c",    tkey: "c",    unit: "g" },
+  { name: "Fat",          key: "fat",  tkey: "fat",  unit: "g" },
+  { name: "Fibre",        key: "fi",   tkey: "fi",   unit: "g" },
+];
+const MORE_ROWS: Row[] = [
+  { name: "Iron",      key: "fe",  tkey: "fe",  unit: "mg" },
+  { name: "Calcium",   key: "ca",  tkey: "ca",  unit: "mg" },
+  { name: "Vitamin B12", key: "b12", tkey: "b12", unit: "µg" },
+  { name: "Potassium", key: "k",   tkey: "k",   unit: "mg" },
+  { name: "Sodium",    key: "na",  tkey: "na",  unit: "mg", limit: true },
+];
+const num = (x: number, unit: string) => (x >= 100 || unit === "kcal" ? Math.round(x) : Math.round(x * 10) / 10).toLocaleString("en-IN");
+const fmtQ = (x: number, unit: string) => `${num(x, unit)} ${unit}`;
+
+export const INK = "#241238";
+export const PLUM = "#3B1F5C";
+export const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, day, today, tomorrow, isPrime, plans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -81,9 +124,14 @@ export default function WhatsForToday({
   const [logs, setLogs] = useState<Log[]>(serverLogs);
   useEffect(() => setLogs(serverLogs), [serverLogs]);
 
+  // The menu shows a tick at once; the page catches up in the background
+  const [plans, setPlans] = useState<Plan[]>(serverPlans);
+  useEffect(() => setPlans(serverPlans), [serverPlans]);
+  // The festival menu starts open on a festival day, so it is the first thing seen
+
   const [open, setOpen]         = useState<Record<string, boolean>>({});
   const [editing, setEditing]   = useState<Record<string, boolean>>({});
-  const [estimated, setEst]     = useState<Record<string, string>>({});
+  const [seeMore, setSeeMore]   = useState(false);
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [undo, setUndo]         = useState<{ ids: string[]; text: string } | null>(null);
@@ -94,15 +142,12 @@ export default function WhatsForToday({
   const slotPlans = (slot: string) => plans.filter((p) => p.meal_slot === slot);
   const slotLogs  = (slot: string) => logs.filter((l) => l.meal_slot === slot);
   const logFor    = (slot: string, p: Plan) => slotLogs(slot).find((l) => same(p, l));
-  const nOf       = (l: Log) => (l.n ? scaled(l.n, Number(l.quantity_g) || 1) : null);
-  // The key changes whenever what was eaten in a meal changes, which is
-  // when its estimate stops being true
-  const sig = (slot: string) => slotLogs(slot).map((l) => l.id).sort().join(",");
+  const nOf       = (l: Log) => (l.n ? scaled(l.n, timesOf(l)) : null);
 
   function toLog(p: Plan, slot: string) {
     return {
       user_id: userId, food_item_id: p.food_item_id, food_name: p.food_name, meal_slot: slot,
-      quantity_g: 1, quantity_unit: p.serving_unit ?? "serving", calories: p.kcal_per_serving, logged_date: day,
+      quantity_g: defQty(p.serving_unit), quantity_unit: p.serving_unit ?? "serving", calories: p.kcal_per_serving, logged_date: day,
     };
   }
 
@@ -131,6 +176,40 @@ export default function WhatsForToday({
     }
     setBusy(false);
     router.refresh();
+  }
+
+  // How much was eaten: change the quantity and the values follow
+  async function setQty(l: Log, dir: 1 | -1) {
+    if (busy) return;
+    const step = stepOf(l.quantity_unit);
+    const old = Number(l.quantity_g) || defQty(l.quantity_unit);
+    const next = Math.max(step, Math.round((old + dir * step) * 10) / 10);
+    if (next === old) return;
+    const kcal = l.calories != null && old > 0 ? Math.round((Number(l.calories) * next) / old) : null;
+    setLogs((cur) => cur.map((x) => (x.id === l.id ? { ...x, quantity_g: next, calories: kcal } : x)));
+    const { error: err } = await supabase.from("meal_logs").update({ quantity_g: next, calories: kcal }).eq("id", l.id);
+    if (err) {
+      setLogs((cur) => cur.map((x) => (x.id === l.id ? l : x)));
+      setError("Could not change the quantity. Please try again.");
+    } else router.refresh();
+  }
+
+  function Qty({ l }: { l: Log }) {
+    const q = Number(l.quantity_g) || defQty(l.quantity_unit);
+    const btn = "w-11 h-11 rounded-full text-lg font-bold flex items-center justify-center";
+    return (
+      <div className="flex items-center justify-between gap-2 px-1 pt-1" role="group" aria-label={`Quantity of ${l.food_name}`}>
+        <span className="text-xs" style={{ color: MUTED }}>How much?</span>
+        <span className="flex items-center gap-2">
+          <button onClick={() => setQty(l, -1)} className={btn} style={{ background: "#fff", border: `1.5px solid ${PLUM}`, color: PLUM }} aria-label="Less">−</button>
+          <span className="text-sm font-bold min-w-[84px] text-center tabular-nums" style={{ color: INK }}>
+            {qtyText(q, l.quantity_unit)}
+            {l.calories != null && <span className="block text-[11px] font-normal" style={{ color: MUTED }}>{Math.round(Number(l.calories))} kcal</span>}
+          </span>
+          <button onClick={() => setQty(l, 1)} className={btn} style={{ background: "#fff", border: `1.5px solid ${PLUM}`, color: PLUM }} aria-label="More">+</button>
+        </span>
+      </div>
+    );
   }
 
   async function logAll(slot: string) {
@@ -172,95 +251,144 @@ export default function WhatsForToday({
     router.refresh();
   }
 
-  // ── Estimates ──────────────────────────────────────────────────────────
-  const marked  = SLOTS.filter((s) => slotLogs(s.key).length > 0);
-  const pending = marked.filter((s) => estimated[s.key] !== sig(s.key));
-  const isDone  = (key: string) =>
-    (slotPlans(key).length === 0 && slotLogs(key).length === 0) || (slotLogs(key).length > 0 && estimated[key] === sig(key));
-  const dayDone = canLog && marked.length > 0 && SLOTS.every((s) => isDone(s.key));
-
-  function estimate() {
-    const next = { ...estimated };
-    for (const s of marked) next[s.key] = sig(s.key);
-    setEst(next);
-    setOpen((o) => { const m = { ...o }; for (const s of marked) m[s.key] = true; return m; });
-  }
-
-  const allEaten = logs.flatMap((l) => { const n = nOf(l); return n ? [n] : []; });
-  const dayTotal = sum(allEaten);
-  const noValues = logs.filter((l) => !l.n).length;
+  // ── Food values: preloaded from the menu, like the dishes themselves. A
+  // meal counts what you logged once you have logged anything in it; until
+  // then it counts what the menu holds (marked ~). Worked out afresh after
+  // every tap or menu edit.
+  const eatenOf = (slot: string) => sum(slotLogs(slot).flatMap((l) => { const n = nOf(l); return n ? [n] : []; }));
+  const plannedOf = (slot: string) => sum(slotPlans(slot).flatMap((p) => (p.n ? [p.n] : [])));
+  const fromMenu = (slot: string) => !canLog || slotLogs(slot).length === 0;
+  const valueOf = (slot: string) => (fromMenu(slot) ? plannedOf(slot) : eatenOf(slot));
+  const projected = (slot: string) => canLog && slotLogs(slot).length === 0 && slotPlans(slot).length > 0;
+  const anyProjected = SLOTS.some((s) => projected(s.key));
+  const dayTotal = sum(SLOTS.map((s) => valueOf(s.key)));
+  const noValues = SLOTS.reduce((t, s) => t + (fromMenu(s.key)
+    ? slotPlans(s.key).filter((p) => !p.n).length
+    : slotLogs(s.key).filter((l) => !l.n).length), 0);
+  const anything = logs.length > 0 || plans.length > 0;
+  const projectedDay = SLOTS.some((s) => projected(s.key));
 
   const tabBase = "px-3 text-sm min-h-[44px] self-end border-b-[3px] whitespace-nowrap";
   const isToday = day === today;
   const isTomorrow = day === tomorrow;
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", border: "1px solid #E4DBF0" }}>
-      {/* Title bar */}
-      <div className="flex items-stretch gap-0.5 px-1.5 overflow-x-auto" style={{ background: PLUM, height: 48 }}>
-        <Link href="/dashboard" aria-current={isToday ? "page" : undefined} className={tabBase}
-          style={{ display: "flex", alignItems: "center", borderColor: isToday ? "#F5B82E" : "transparent",
-                   color: isToday ? "#fff" : "#C9B8E4", fontWeight: isToday ? 700 : 500 }}>
-          What&apos;s for Today
-        </Link>
-        <Link href={`/dashboard?date=${tomorrow}`} aria-current={isTomorrow ? "page" : undefined} className={tabBase}
-          style={{ display: "flex", alignItems: "center", borderColor: isTomorrow ? "#F5B82E" : "transparent",
-                   color: isTomorrow ? "#fff" : "#C9B8E4", fontWeight: isTomorrow ? 700 : 500 }}>
-          Tomorrow
-        </Link>
-        {!isToday && !isTomorrow && (
-          <span className={tabBase} style={{ display: "flex", alignItems: "center", borderColor: "#F5B82E", color: "#fff", fontWeight: 700 }}>
-            {dayLabel(day, tz)}
-          </span>
+    <div className="flex flex-col gap-3">
+     {/* Intake This Week: today in the middle, three days either side. The chosen day drives everything below. */}
+     <div className="rounded-2xl px-2 py-2" style={{ background: "#fff", border: `2.5px solid ${FAMILY.violet.edge}` }} role="navigation" aria-label="Intake this week">
+        <p className="m-0 mb-1.5 px-1 text-sm font-bold" style={{ color: PLUM }}>Intake This Week</p>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 7 }, (_, i) => {
+            const date = addDays(today, i - 3);
+            const on = date === day;
+            const isNow = date === today;
+            const ahead = date > today;
+            const wd = new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short" });
+            const dd = new Date(`${date}T00:00:00Z`).getUTCDate();
+            return (
+              <Link key={date} href={isNow ? "/dashboard" : `/dashboard?date=${date}`} aria-current={on ? "page" : undefined}
+                aria-label={`${isNow ? "Today, " : ""}${wd} ${dd}`}
+                className="rounded-xl text-center leading-tight min-w-0 flex flex-col items-center justify-center"
+                style={{ minHeight: 56, background: on ? PLUM : ahead ? "#F3EEFA" : "#fff", color: on ? "#fff" : INK,
+                         border: `${on ? 2 : 1.5}px ${ahead && !on ? "dashed" : "solid"} ${on ? PLUM : "#C9BEDD"}` }}>
+                <span className="block text-[10px]" style={{ color: on ? "#F5B82E" : MUTED, fontWeight: isNow ? 800 : 400 }}>{isNow ? "TODAY" : wd}</span>
+                <span className="block text-base font-bold">{dd}</span>
+              </Link>
+            );
+          })}
+        </div>
+        {(day < addDays(today, -3) || day > addDays(today, 3)) && (
+          <p className="m-0 mt-1.5 px-1 text-xs" style={{ color: MUTED }}>
+            Showing {dayLabel(day, tz)} · <Link href="/dashboard" className="font-semibold underline" style={{ color: "#6B46B8" }}>back to today</Link>
+          </p>
         )}
+        {festivalTab && <p className="m-0 mt-1.5 px-1 text-xs" style={{ color: MUTED }}>🪔 {festivalTab}</p>}
       </div>
-      <p className="px-3 py-2 text-xs leading-4" style={{ background: "#F7F3FC", color: MUTED, borderBottom: "1px solid #E4DBF0" }}>
-        {isPrime
-          ? "You create the menu here. The family sees the same menu on their Home."
-          : "The menu set by your Prime Member. Tap a meal, mark what you ate."}
-      </p>
+
+      {/* Food values of the chosen day: what was eaten against the member's own range */}
+      <div className="rounded-2xl px-3 py-3 flex flex-col gap-2" style={{ background: WARM.bg, border: `2.5px solid ${WARM.edge}` }} aria-live="polite">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="m-0 text-sm font-bold" style={{ color: INK }}>
+            Food Values · {isToday ? "Today" : isTomorrow ? "Tomorrow" : new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short" })}
+          </p>
+          <p className="m-0 text-xs" style={{ color: MUTED }}>{new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" })}</p>
+        </div>
+        <table className="w-full text-[13px]" style={{ color: INK, borderCollapse: "collapse" }}>
+          <thead>
+            <tr className="text-left text-[11px]" style={{ color: MUTED, borderBottom: `1.5px solid ${WARM.edge}` }}>
+              <th className="py-1 font-bold">Particulars</th>
+              <th className="py-1 font-bold text-right">Qty</th>
+              <th className="py-1 font-bold text-right">Good Range</th>
+              <th className="py-1 font-bold text-right">Intake %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(seeMore ? [...VALUE_ROWS, ...MORE_ROWS] : VALUE_ROWS).map((row, i, all) => {
+              const have = dayTotal[row.key];
+              const t = targets[row.tkey];
+              const lo = row.limit ? t : t * 0.95;
+              const hi = row.limit ? t : t * 1.05;
+              const pct = lo > 0 ? Math.round((have / lo) * 100) : 0;
+              return (
+                <tr key={row.name} style={{ borderBottom: i < all.length - 1 ? "1px solid rgba(194,85,31,0.25)" : undefined }}>
+                  <td className="py-2 font-bold">{row.name}</td>
+                  <td className="py-2 text-right tabular-nums" style={projectedDay ? { opacity: 0.7 } : undefined}>{projectedDay ? "~" : ""}{fmtQ(have, row.unit)}</td>
+                  <td className="py-2 text-right tabular-nums">{row.limit ? `up to ${fmtQ(t, row.unit)}` : `${num(lo, row.unit)}–${fmtQ(hi, row.unit)}`}</td>
+                  <td className="py-2 text-right font-extrabold tabular-nums">{pct}%</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <button onClick={() => setSeeMore((v) => !v)} aria-expanded={seeMore}
+          className="w-full rounded-xl text-sm font-bold" style={{ minHeight: 44, background: "#fff", border: `1.5px solid ${WARM.edge}`, color: "#8A3A12" }}>
+          {seeMore ? "See less ▴" : "See more ▾"}
+        </button>
+        {!anything && <p className="m-0 text-[11px]" style={{ color: MUTED }}>{canLog ? "Plan or log a dish to see values" : "Add dishes to see values"}</p>}
+        <p className="m-0 text-[11px]" style={{ color: MUTED }}>
+          Good Range is from your profile; Intake % is against its lower number.{anyProjected ? " ~ From the menu · your log replaces it." : ""}
+          {noValues > 0 ? ` ${noValues} ${noValues === 1 ? "dish" : "dishes"} without values · excluded.` : ""} Estimates · IFCT-based
+        </p>
+      </div>
 
       {SLOTS.map(({ key, label, icon, time }) => {
         const ps = slotPlans(key);
         const ls = slotLogs(key);
         const isOpen = !!open[key];
-        const done = estimated[key] === sig(key) && ls.length > 0;
-        const eatenHere = sum(ls.flatMap((l) => { const n = nOf(l); return n ? [n] : []; }));
-        const missing = ls.filter((l) => !l.n).length;
+        const kcalHere = Math.round(valueOf(key).kcal);
         const extra = ls.filter((l) => !ps.some((p) => same(p, l)));
         const sug = suggestions.find((x) => x.meal_slot === key);
-        const eatenCount = ps.filter((p) => logFor(key, p)).length;
-        const summary = ps.length
-          ? (canLog && ls.length ? `${eatenCount + extra.length} of ${ps.length + extra.length} eaten` : `${ps.length} ${ps.length === 1 ? "dish" : "dishes"}`)
-          : (ls.length ? `${ls.length} logged` : "Not planned yet");
+        // The dishes in one line, so a closed card says what is cooking
+        const names = ps.length ? ps.map((p) => p.food_name) : ls.map((l) => l.food_name);
+        const dishLine = names.join(", ");
+        const tot = valueOf(key);
 
         return (
-          <div key={key} style={{ borderBottom: "1px solid #E4DBF0" }}>
+          <div key={key} className="rounded-2xl overflow-hidden" style={{ background: COOL.bg, border: `2.5px solid ${COOL.edge}` }}>
             <button onClick={() => setOpen((o) => ({ ...o, [key]: !o[key] }))} aria-expanded={isOpen}
-              className="w-full flex items-center justify-between gap-2 px-3 text-left"
-              style={{ minHeight: 60, background: isOpen ? "#EFE6FA" : "#fff" }}>
-              <span className="flex items-center gap-3 min-w-0">
-                <span className="text-lg" aria-hidden>{icon}</span>
-                <span className="flex flex-col min-w-0">
-                  <span className="text-sm font-bold" style={{ color: INK }}>{label}</span>
-                  <span className="text-xs" style={{ color: MUTED }}>{summary} · {time}</span>
+              className="w-full flex flex-col px-3 pt-2 pb-2.5 text-left"
+              style={{ minHeight: 60, background: isOpen ? COOL.open : COOL.bg }}>
+              <span className="flex items-center justify-between gap-2 w-full">
+                <span className="text-sm font-bold" style={{ color: INK }}>{label}</span>
+                <span className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-sm font-bold tabular-nums" style={{ color: INK }}>
+                    {canLog
+                      ? (ls.length && Math.round(tot.kcal) ? `${Math.round(tot.kcal)} kcal` : "Not logged")
+                      : (Math.round(tot.kcal) ? `~${Math.round(tot.kcal)} kcal` : "Not planned")}
+                  </span>
+                  <span aria-hidden style={{ color: PLUM, display: "inline-block", transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
                 </span>
               </span>
-              <span className="flex items-center gap-2 flex-shrink-0">
-                {done && <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ background: "#F5B82E", color: INK }}>Estimated</span>}
-                <span aria-hidden style={{ color: PLUM, transform: isOpen ? "rotate(180deg)" : undefined }}>⌄</span>
-              </span>
+              <span className="text-sm leading-5" style={{ color: INK }}>{dishLine || "Not planned yet"}</span>
             </button>
 
             {isOpen && (
               <div className="px-3 pb-3 pt-1 flex flex-col gap-1.5">
-                {ps.length === 0 && ls.length === 0 && (
-                  <p className="text-sm italic py-1" style={{ color: MUTED }}>
-                    {isPrime ? "Nothing here yet. Add the dishes for this meal." : "The Prime Member has not planned this meal yet."}
-                  </p>
+                {!isPrime && ps.length === 0 && ls.length === 0 && (
+                  <p className="text-sm italic py-1" style={{ color: MUTED }}>The Key Member has not planned this meal yet.</p>
                 )}
 
-                {canLog && ps.length > 1 && ps.some((p) => !logFor(key, p)) && (
+                {!(isPrime && editing[key]) && canLog && ps.length > 1 && ps.some((p) => !logFor(key, p)) && (
                   <button onClick={() => logAll(key)} disabled={busy}
                     className="self-start px-4 rounded-full text-sm font-semibold text-white disabled:opacity-50"
                     style={{ background: INK, minHeight: 44 }}>
@@ -268,7 +396,7 @@ export default function WhatsForToday({
                   </button>
                 )}
 
-                {ps.map((p) => {
+                {!(isPrime && editing[key]) && ps.map((p) => {
                   const on = !!logFor(key, p);
                   const body = (
                     <>
@@ -284,31 +412,37 @@ export default function WhatsForToday({
                       )}
                     </>
                   );
+                  const lg = logFor(key, p);
                   return canLog ? (
-                    <button key={p.id} onClick={() => tapDish(key, p)} aria-pressed={on} disabled={busy}
-                      className="flex items-center gap-3 w-full px-2.5 rounded-xl"
-                      style={{ minHeight: 52, border: `1.5px solid ${on ? PLUM : "#D9CBF0"}`, background: on ? "#EDE4F8" : "#fff" }}>
-                      <span className="w-[26px] h-[26px] rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm"
-                        style={{ background: on ? PLUM : "#fff", border: `2px solid ${on ? PLUM : "#8D7FA6"}` }}>{on ? "✓" : ""}</span>
-                      {body}
-                    </button>
+                    <div key={p.id} className="rounded-xl" style={{ border: `2px solid ${on ? PLUM : FAMILY.blue.edge}`, background: on ? "#EDE4F8" : "#fff" }}>
+                      <button onClick={() => tapDish(key, p)} aria-pressed={on} disabled={busy}
+                        className="flex items-center gap-3 w-full px-2.5" style={{ minHeight: 52 }}>
+                        <span className="w-[26px] h-[26px] rounded-lg flex-shrink-0 flex items-center justify-center text-white text-sm"
+                          style={{ background: on ? PLUM : "#fff", border: `2px solid ${on ? PLUM : "#8D7FA6"}` }}>{on ? "✓" : ""}</span>
+                        {body}
+                      </button>
+                      {lg && <div className="px-2.5 pb-2"><Qty l={lg} /></div>}
+                    </div>
                   ) : (
                     <div key={p.id} className="flex items-center gap-3 px-1" style={{ minHeight: 40 }}>{body}</div>
                   );
                 })}
 
                 {extra.map((l) => (
-                  <div key={l.id} className="flex items-center justify-between gap-2 px-2.5 rounded-xl" style={{ minHeight: 44, background: "#F7F3FC" }}>
-                    <span className="text-sm" style={{ color: INK }}>{l.food_name} <span className="text-xs" style={{ color: MUTED }}>· logged by you</span></span>
-                    <button onClick={async () => {
-                      const { error: err } = await supabase.from("meal_logs").delete().eq("id", l.id);
-                      if (err) setError("Could not take this off."); else { setLogs((c) => c.filter((x) => x.id !== l.id)); router.refresh(); }
-                    }} className="text-xs font-semibold underline px-2" style={{ color: PLUM, minHeight: 44 }}>Remove</button>
+                  <div key={l.id} className="rounded-xl pb-2" style={look(FAMILY.green)}>
+                    <div className="flex items-center justify-between gap-2 px-2.5" style={{ minHeight: 44 }}>
+                      <span className="text-sm" style={{ color: INK }}>{l.food_name} <span className="text-xs" style={{ color: MUTED }}>· logged by you</span></span>
+                      <button onClick={async () => {
+                        const { error: err } = await supabase.from("meal_logs").delete().eq("id", l.id);
+                        if (err) setError("Could not take this off."); else { setLogs((c) => c.filter((x) => x.id !== l.id)); router.refresh(); }
+                      }} className="text-xs font-semibold underline px-2" style={{ color: PLUM, minHeight: 44 }}>Remove</button>
+                    </div>
+                    <div className="px-2.5"><Qty l={l} /></div>
                   </div>
                 ))}
 
                 {canLog && ps.length === 0 && ls.length === 0 && sug && sug.items.length > 0 && (
-                  <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: "#F3ECFC" }}>
+                  <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={look(FAMILY.violet)}>
                     <div className="min-w-0 flex-1">
                       <p className="text-[11px] font-semibold" style={{ color: "#6B46B8" }}>{whyText(sug)}</p>
                       <p className="text-sm truncate" style={{ color: INK }}>{sug.items.map((i) => i.food_name).join(", ")}</p>
@@ -338,20 +472,9 @@ export default function WhatsForToday({
                 {isPrime && editing[key] && (
                   <PlanSlotCard key={`${key}-${version}`} slotKey={key} name={label} icon={icon} time={time}
                     userId={userId} kutumbhId={kutumbhId} plannedDate={day}
-                    initialItems={ps} initialPoolName={poolNames[key] ?? null} memberNames={memberNames} />
+                    embedded quickPicks={quickPicks[key]} quickLabel={quickLabel} initialItems={ps} initialPoolName={poolNames[key] ?? null} memberNames={memberNames} />
                 )}
 
-                {done && (
-                  <div className="rounded-xl px-2.5 py-2.5 flex flex-col gap-1.5" style={{ background: "#F7F3FC" }}>
-                    <Values title="Nutrients eaten" color={PLUM} cells={nutrientCells(eatenHere)} />
-                    <Values title="Micronutrients eaten" color="#8A5A06" cells={microCells(eatenHere)} />
-                    {missing > 0 && (
-                      <p className="text-[11px]" style={{ color: MUTED }}>
-                        {missing} {missing === 1 ? "dish has" : "dishes have"} no food values yet, so {missing === 1 ? "it is" : "they are"} left out.
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -360,56 +483,23 @@ export default function WhatsForToday({
 
       {error && <p className="px-3 py-2 text-xs" style={{ color: "#B42318" }}>{error}</p>}
       {undo && (
-        <div className="px-3 flex items-center justify-between text-sm" style={{ background: "#F3ECFC", color: PLUM }}>
+        <div className="px-3 flex items-center justify-between text-sm" style={{ ...look(FAMILY.violet), color: PLUM }}>
           <span>{undo.text}</span>
           <button onClick={undoLog} className="font-bold underline px-3" style={{ minHeight: 44 }}>Undo</button>
         </div>
       )}
 
-      {canLog && (
-        <div className="px-3 py-2.5 flex items-center justify-between gap-3" style={{ background: "#FFF6DD" }}>
-          <span className="text-xs leading-4" style={{ color: "#5A3E00" }}>
-            {dayDone ? "All five meals estimated."
-              : marked.length === 0 ? "Tap each meal, mark what was eaten, then estimate."
-              : `${marked.length} of 5 meals marked. Day’s Total shows once every meal is estimated.`}
-          </span>
-          <button onClick={estimate} disabled={pending.length === 0}
-            className="flex-shrink-0 px-3.5 rounded-full text-sm font-bold"
-            style={{ minHeight: 44, border: 0, background: pending.length ? PLUM : "#E4DBF0", color: pending.length ? "#fff" : "#7D6B9E" }}>
-            Estimate Food Values
-          </button>
-        </div>
-      )}
-
-      {dayDone && (
-        <div className="px-3 py-3 flex flex-col gap-2" style={{ background: INK }}>
-          <p className="text-sm font-bold text-white">Day&apos;s Total</p>
-          <Values title="" color="#C9B8E4" dark cells={nutrientCells(dayTotal)} />
-          <div className="pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}>
-            <Values title="" color="#C9B8E4" dark cells={microCells(dayTotal)} />
-          </div>
-          {dailyKcalGoal ? (
-            <p className="text-xs" style={{ color: "#C9B8E4" }}>
-              {dayTotal.kcal >= dailyKcalGoal
-                ? `${Math.round(dayTotal.kcal - dailyKcalGoal)} kcal over your ${dailyKcalGoal} kcal goal`
-                : `${Math.round(dailyKcalGoal - dayTotal.kcal)} kcal under your ${dailyKcalGoal} kcal goal`}
-            </p>
-          ) : null}
-          {noValues > 0 && <p className="text-[11px]" style={{ color: "#C9B8E4" }}>{noValues} logged {noValues === 1 ? "item has" : "items have"} no food values yet and {noValues === 1 ? "is" : "are"} left out.</p>}
-          <p className="text-[11px]" style={{ color: "#C9B8E4" }}>Estimates, guided by the Indian Food Composition Tables (IFCT). Approximate.</p>
-        </div>
-      )}
     </div>
   );
 }
 
-function Values({ title, color, cells, dark }: { title: string; color: string; cells: { label: string; value: string }[]; dark?: boolean }) {
+export function Values({ title, color, cells, dark }: { title: string; color: string; cells: { label: string; value: string }[]; dark?: boolean }) {
   return (
     <div>
       {title && <p className="text-[11px] font-bold mb-1" style={{ color }}>{title}</p>}
       <div className="grid grid-cols-5 gap-1">
         {cells.map((c) => (
-          <div key={c.label} className="flex flex-col min-w-0">
+          <div key={c.label} className="flex flex-col items-center text-center min-w-0">
             <span className="text-sm font-bold leading-[18px]" style={{ color: dark ? "#fff" : INK }}>{c.value}</span>
             <span className="text-[10px] leading-3" style={{ color: dark ? color : MUTED }}>{c.label}</span>
           </div>

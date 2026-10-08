@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look } from "@/lib/brand";
 
 type Point = { title: string; body: string; tint: string; stroke: string; icon: React.ReactNode };
 
@@ -102,7 +102,7 @@ export default function LandingPage() {
           ))}
 
           <div className="rounded-2xl px-4 py-3 flex gap-3 items-center"
-            style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
+            style={look(FAMILY.violet)}>
             <span className="text-[22px]" style={{ fontFamily: "var(--font-dm-serif)", color: "#B07C12" }} aria-hidden>आ</span>
             <p className="m-0 text-[12.5px] leading-relaxed" style={{ color: B.muted }}>
               <b style={{ color: B.goldInk }}>Ayurvedic approach —</b> every dish also carries its{" "}

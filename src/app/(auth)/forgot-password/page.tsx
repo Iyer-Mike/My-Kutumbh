@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 function ForgotPasswordForm() {
   const searchParams = useSearchParams();
@@ -46,7 +47,7 @@ function ForgotPasswordForm() {
         <div className="space-y-4 text-center">
           <div
             className="rounded-2xl px-5 py-6"
-            style={{ background: "#E7DCF7", border: "1px solid #C6DFBE" }}
+            style={look(FAMILY.green)}
           >
             <p className="text-2xl mb-2">📬</p>
             <p className="font-semibold text-sm" style={{ color: "#241238" }}>Check your inbox</p>
@@ -77,13 +78,13 @@ function ForgotPasswordForm() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{ border: "1.5px solid #E0D4F2", background: "#F0EAFA", color: "#241C33" }}
+                style={fieldLook(FAMILY.amber)}
                 placeholder="you@email.com"
               />
             </div>
 
             {error && (
-              <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA" }}>
+              <div className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
                 {error}
               </div>
             )}

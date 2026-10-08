@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -95,7 +96,7 @@ export default function CoachChat({ memberId, firstName, viewingOther, page, sug
             {suggestions.map((s) => (
               <button key={s} onClick={() => send(s)} disabled={busy}
                 className="text-left text-sm px-3 py-2 rounded-xl disabled:opacity-50"
-                style={{ background: "#EFE8FA", color: "#33215C", border: "1px solid #D3C4EF" }}>
+                style={{ ...look(FAMILY.violet), color: "#33215C" }}>
                 {s}
               </button>
             ))}
@@ -113,7 +114,7 @@ export default function CoachChat({ memberId, firstName, viewingOther, page, sug
               </div>
             ) : (
               <div key={i} className="justify-self-start max-w-[92%] rounded-2xl rounded-bl-md px-3.5 py-2.5"
-                style={{ background: "#F6F2FC", border: "1px solid #DFD3F2" }}>
+                style={look(FAMILY.blue)}>
                 <Reply text={m.content} />
               </div>
             )
@@ -137,7 +138,7 @@ export default function CoachChat({ memberId, firstName, viewingOther, page, sug
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(draft); } }}
           placeholder={viewingOther ? `Ask about ${firstName}…` : "Ask a question…"} maxLength={2000}
           className="flex-1 rounded-xl px-3 py-2 text-sm resize-none"
-          style={{ border: "1.5px solid #D3C4EF", background: "#FAF7FE", color: INK, outline: "none" }} />
+          style={{ ...fieldLook(FAMILY.violet), color: INK }} />
         <button type="submit" disabled={busy || !draft.trim()}
           className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
           style={{ background: "#241238" }}>

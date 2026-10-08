@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
-import { BRAND as B } from "@/lib/brand";
+import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
 import { afterSignIn } from "@/lib/gate";
 import { pendingInvite } from "@/lib/invite";
 import { getSnapshot, parseLastUser, subscribe, writeLastUser } from "@/lib/last-user";
@@ -71,7 +71,7 @@ function LoginForm() {
 
   const signupHref = redirectTo ? `/signup?redirect=${encodeURIComponent(redirectTo)}` : "/signup";
 
-  const fieldStyle = { border: `1.5px solid ${B.cardEdge}`, background: B.field, color: B.ink } as const;
+  const fieldStyle = fieldLook(FAMILY.amber);
 
   return (
     <div className="w-full max-w-sm">
@@ -155,19 +155,19 @@ function LoginForm() {
         </div>
 
         {forgotten && !error && (
-          <div className="rounded-xl px-4 py-3 text-sm" style={{ background: B.goldTint, color: "#7A5A06", border: `1px solid ${B.gold}` }}>
+          <div className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.gold), color: FAMILY.gold.ink }}>
             Your account and everything in it have been removed. Thank you for the time you gave it.
           </div>
         )}
 
         {justChanged && !error && (
-          <div className="rounded-xl px-4 py-3 text-sm" style={{ background: B.goldTint, color: "#7A5A06", border: `1px solid ${B.gold}` }}>
+          <div className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.green), color: FAMILY.green.ink }}>
             Your new password is saved. Sign in with it to carry on.
           </div>
         )}
 
         {error && (
-          <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FBE2DC", color: "#9A2C1B", border: "1px solid #F3C6BB" }}>
+          <div className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
             {error}
           </div>
         )}

@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
 
-  // Only the Prime Member asks for estimates
+  // Only the Key Member asks for estimates
   const { kutumbhId, isPrime } = await familyOf(supabase, user.id);
-  if (!kutumbhId || !isPrime) return NextResponse.json({ error: "Only the Prime Member can ask for estimates." }, { status: 403 });
+  if (!kutumbhId || !isPrime) return NextResponse.json({ error: "Only the Key Member can ask for estimates." }, { status: 403 });
 
   const budget = await checkBudget(supabase, user.id, kutumbhId);
   if (!budget.ok) return NextResponse.json({ error: budget.message }, { status: budget.status });

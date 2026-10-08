@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { makePasscode, decideOn } from "@/app/(app)/admin/door-actions";
+import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 const C = { ink: "#241C33", ink2: "#4A4360", ink3: "#6A6180", rule: "#E0D4F2", leaf: "#2F6B34", warn: "#B0453A", purple: "#6B46B8" };
 
@@ -77,8 +78,7 @@ function NewPasscode({ signature, appUrl }: { signature: string | null; appUrl: 
           {made}
         </p>
         <p className="m-0 mt-2 text-xs" style={{ color: "rgba(255,255,255,0.72)", lineHeight: 1.55 }}>
-          Send this from iyer.mike@gmail.com. The letter below is written already — copy it,
-          paste it into Gmail, and address it to {email || "them"}.
+          Send from iyer.mike@gmail.com · Copy the letter, paste into Gmail, address to {email || "them"}.
         </p>
 
         <pre
@@ -125,27 +125,27 @@ function NewPasscode({ signature, appUrl }: { signature: string | null; appUrl: 
   }
 
   return (
-    <div className="rounded-xl p-3" style={{ background: "#F3EEFA", border: `1px solid ${C.rule}` }}>
+    <div className="rounded-xl p-3" style={look(FAMILY.amber)}>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="their name, as you would say it"
         className="w-full text-sm rounded-lg px-3 py-2 mb-2"
-        style={{ background: "#fff", border: `1px solid ${C.rule}`, color: C.ink }}
+        style={fieldLook(FAMILY.amber)}
       />
       <input
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="their email address"
         className="w-full text-sm rounded-lg px-3 py-2 mb-2"
-        style={{ background: "#fff", border: `1px solid ${C.rule}`, color: C.ink }}
+        style={fieldLook(FAMILY.amber)}
       />
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="a line of your own to add to the letter (optional)"
         className="w-full text-sm rounded-lg px-3 py-2"
-        style={{ background: "#fff", border: `1px solid ${C.rule}`, color: C.ink }}
+        style={fieldLook(FAMILY.amber)}
       />
       {error && <p className="text-xs mt-2 mb-0" style={{ color: C.warn }}>{error}</p>}
       <div className="flex gap-2 mt-3">
@@ -208,7 +208,7 @@ function Knocking({ w }: { w: Waiting }) {
           maxLength={400}
           placeholder="a welcome in your own words — they will read this"
           className="w-full text-sm rounded-lg px-3 py-2 mt-2"
-          style={{ background: "#fff", border: `1px solid ${C.rule}`, color: C.ink }}
+          style={fieldLook(FAMILY.amber)}
         />
       )}
 
@@ -252,8 +252,8 @@ export default function AtTheDoor({
       className="rounded-2xl px-4 py-4"
       style={
         waiting.length
-          ? { background: "#FFFBF2", border: "1px solid #EBD9B4" }
-          : { background: "#FAF7FE", border: `1px solid ${C.rule}` }
+          ? look(FAMILY.gold)
+          : look(FAMILY.violet)
       }
     >
       <div className="flex items-baseline justify-between gap-3">
@@ -264,8 +264,7 @@ export default function AtTheDoor({
 
       {waiting.length === 0 ? (
         <p className="m-0 mt-2 text-xs" style={{ color: C.ink3, lineHeight: 1.55 }}>
-          Nobody is waiting. Write a passcode, put it in a letter with the registration link, and whoever
-          registers will appear here for you to welcome.
+          Nobody waiting · Make a passcode and send it with the registration link; new registrants appear here.
         </p>
       ) : (
         <div className="mt-1">
@@ -280,8 +279,8 @@ export default function AtTheDoor({
       {/* Whether you will be told, or must remember to look */}
       <p className="m-0 mt-3 text-[11px]" style={{ color: alertsOn ? C.leaf : C.warn, lineHeight: 1.5 }}>
         {alertsOn
-          ? "You are emailed once when somebody registers, so this page is not the only way to know."
-          : "Email alerts are off — nobody is told when somebody registers. Add RESEND_API_KEY to switch them on."}
+          ? "You're emailed when someone registers."
+          : "Email alerts off · Add RESEND_API_KEY to enable."}
       </p>
     </section>
   );

@@ -18,9 +18,9 @@ export default function BottomNav() {
       className="fixed bottom-0 bg-(--color-nav) border-t border-white/10"
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        left: "50%",
-        transform: "translateX(-50%)",
-        width: "100%",
+        left: 0,
+        right: 0,
+        marginInline: "auto",
         maxWidth: 480,
       }}
     >

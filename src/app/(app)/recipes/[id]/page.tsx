@@ -9,6 +9,8 @@ import PrintRecipe from "@/components/PrintRecipe";
 import RecipeApproval from "@/components/RecipeApproval";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
 import { familyOf } from "@/lib/family";
+import { dishNames, readingLanguage } from "@/lib/dish-names";
+import DishNameEditor from "@/components/DishNameEditor";
 
 const DIET_MARK: Record<string, string> = { vegan: "#2F7D32", veg: "#2F7D32", egg: "#C98A0B", nonveg: "#A23A1E" };
 
@@ -50,6 +52,12 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     .eq("recipe_id", recipeId)
     .limit(1)
     .maybeSingle();
+
+  // The family's name for this dish, in the language the reader chose
+  const { data: { user: reader } } = await supabase.auth.getUser();
+  const readerFamily = reader ? await familyOf(supabase, reader.id) : null;
+  const lang = reader ? await readingLanguage(supabase, reader.id) : null;
+  const localName = dish ? (await dishNames(supabase, lang, [dish.id]))[dish.id] ?? null : null;
 
   // A family recipe waits for the Key Member before the family sees it
   const waiting = recipe.status === "draft";
@@ -105,6 +113,9 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)", lineHeight: 1.2 }}>
           {recipe.name}
         </h1>
+        {localName && (
+          <p lang={lang ?? undefined} className="text-lg mt-1 m-0" style={{ color: B.onDark }}>{localName}</p>
+        )}
         {original && (
           <p className="text-xs mt-1.5" style={{ color: B.gold }}>
             Variant of <Link href={`/recipes/${original.id}`} className="underline">{original.name}</Link>
@@ -117,6 +128,9 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
 
       <main className="flex-1 px-4 py-5 grid gap-4">
         {waiting && <RecipeApproval recipeId={recipe.id} canApprove={canApprove} />}
+        {lang && dish && reader && readerFamily?.kutumbhId && (
+          <DishNameEditor foodItemId={dish.id} kutumbhId={readerFamily.kutumbhId} userId={reader.id} lang={lang} current={localName} />
+        )}
 
         {/* At a glance */}
         <section className="rounded-2xl px-4 py-4 grid grid-cols-3 gap-3"

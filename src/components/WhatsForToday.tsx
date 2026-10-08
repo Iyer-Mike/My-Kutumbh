@@ -60,6 +60,9 @@ type Props = {
   memberNames: Record<string, string>;
   userId: string;
   kutumbhId: string | null;
+  /** The family's names for dishes in the reader's language, by dish id */
+  localNames?: Record<string, string>;
+  lang?: string | null;
 };
 
 function whyText(s: MealSuggestion): string {
@@ -114,7 +117,7 @@ export const PLUM = "#3B1F5C";
 export const MUTED = "#5F5473";
 
 export default function WhatsForToday({
-  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId,
+  logs: serverLogs, suggestions, dailyKcalGoal, targets, day, today, tomorrow, isPrime, festivalTab, quickPicks, quickLabel, plans: serverPlans, poolNames, memberNames, userId, kutumbhId, localNames = {}, lang = null,
 }: Props) {
   const tz = useFamilyTimeZone();
   const router = useRouter();
@@ -417,6 +420,9 @@ export default function WhatsForToday({
                     <>
                       <span className="flex flex-col min-w-0 text-left">
                         <span className="text-sm" style={{ color: INK }}>{p.food_name}</span>
+                        {p.food_item_id && localNames[p.food_item_id] && (
+                          <span lang={lang ?? undefined} className="text-sm" style={{ color: PLUM }}>{localNames[p.food_item_id]}</span>
+                        )}
                         <span className="text-xs" style={{ color: MUTED }}>
                           {p.kcal_per_serving != null ? `${p.kcal_per_serving} kcal / ${p.serving_unit === "g" ? "100 g" : (p.serving_unit ?? "serving")}` : "No values yet"}
                         </span>

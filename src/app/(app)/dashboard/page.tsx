@@ -6,6 +6,7 @@ import LiveFamily from "@/components/LiveFamily";
 import { redirect } from "next/navigation";
 import { clampDay, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
+import { dishNames, readingLanguage } from "@/lib/dish-names";
 import FestivalMenu, { type Suggestion } from "@/components/FestivalMenu";
 import { starterMenu, type DishInfo } from "@/lib/festival-starter";
 import CouldNotRead from "@/components/CouldNotRead";
@@ -128,6 +129,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       n:                perServing(fi) as Nutr | null,
     };
   });
+
+  // The family's names for today's dishes, in the reader's language
+  const lang = await readingLanguage(supabase, user!.id);
+  const localNames = await dishNames(supabase, lang, [
+    ...plans.map((p) => p.food_item_id),
+    ...((logs ?? []) as MealLog[]).map((l) => l.food_item_id),
+  ]);
 
   const poolNames: Record<string, string> = {};
   for (const p of poolRes.data ?? []) poolNames[p.meal_slot] = p.name;
@@ -329,6 +337,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           memberNames={memberNames}
           userId={user!.id}
           kutumbhId={kutumbhId}
+          localNames={localNames}
+          lang={lang}
         />
         )}
 

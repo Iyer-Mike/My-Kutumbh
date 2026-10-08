@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { familyOf } from "@/lib/family";
+import { dishNames, readingLanguage } from "@/lib/dish-names";
 import PageNav from "@/components/PageNav";
 import RecipeFilters from "@/components/RecipeFilters";
 import { BRAND as B, FAMILY, look } from "@/lib/brand";
@@ -43,6 +44,15 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
   const { data: recipes } = await query;
   const rows = recipes ?? [];
 
+  // The family's names for these dishes, in the reader's language
+  const lang = user ? await readingLanguage(supabase, user.id) : null;
+  const localOf: Record<number, string> = {};
+  if (lang && rows.length) {
+    const { data: fis } = await supabase.from("food_items").select("id, recipe_id").in("recipe_id", rows.map((r) => r.id));
+    const names = await dishNames(supabase, lang, (fis ?? []).map((f) => f.id as string));
+    for (const f of fis ?? []) if (f.recipe_id != null && names[f.id as string]) localOf[f.recipe_id as number] = names[f.id as string];
+  }
+
   return (
     <div className="flex flex-col min-h-screen" style={{ background: B.page }}>
       <header className="px-5 pt-safe pb-5" style={{ background: B.headerGradient }}>
@@ -83,6 +93,7 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
                     </span>
                     <span className="truncate">{r.name}</span>
                   </p>
+                  {localOf[r.id] && <p lang={lang ?? undefined} className="text-xs truncate m-0" style={{ color: B.muted }}>{localOf[r.id]}</p>}
                   <p className="text-[11px] truncate" style={{ color: B.muted2 }}>
                     {CUISINES.find((c) => c.key === r.cuisine)?.label ?? "Indian"} · {dishTypeOf(r.dish_type).label}
                     {r.cook_time ? ` · ${r.cook_time} cooking` : ""}

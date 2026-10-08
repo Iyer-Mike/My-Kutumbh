@@ -1,3 +1,4 @@
+import ReadingLanguageCard from "@/components/ReadingLanguageCard";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
 import PageNav from "@/components/PageNav";
@@ -92,6 +93,8 @@ export default async function ProfilePage() {
       </header>
 
       <main className="flex-1 px-5 py-5 space-y-4">
+
+        <ReadingLanguageCard userId={user!.id} current={(profile as { reading_language?: string | null } | null)?.reading_language ?? null} />
 
         {/* ── Your face ── */}
         {kutumbhId && (

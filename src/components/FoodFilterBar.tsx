@@ -127,11 +127,11 @@ export default function FoodFilterBar({ value, onChange, idPrefix, slot }: {
           </select>
         </div>
       </div>
-      <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }} role="group" aria-label="Dish type">
+      <div className="flex flex-wrap gap-1" role="group" aria-label="Dish type">
         {[{ key: "" as const, label: "All types", icon: "" }, ...DISH_TYPES].map((t) => (
           <button key={t.key || "all"} type="button" onClick={() => onChange({ ...value, type: t.key })}
             aria-pressed={value.type === t.key}
-            className="shrink-0 px-2.5 py-1.5 rounded-full text-xs font-medium"
+            className="px-2.5 py-1.5 rounded-full text-xs font-medium"
             style={value.type === t.key
               ? { background: "#241238", color: "#fff" }
               : { background: "#E0D4F2", color: "#625A75" }}>

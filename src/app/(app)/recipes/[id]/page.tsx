@@ -9,6 +9,9 @@ import PrintRecipe from "@/components/PrintRecipe";
 import RecipeApproval from "@/components/RecipeApproval";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
 import { familyOf } from "@/lib/family";
+import { isLang, langOf } from "@/lib/languages";
+import RecipeLanguageSelect from "@/components/RecipeLanguageSelect";
+import TranslationEditor from "@/components/TranslationEditor";
 
 const DIET_MARK: Record<string, string> = { vegan: "#2F7D32", veg: "#2F7D32", egg: "#C98A0B", nonveg: "#A23A1E" };
 
@@ -29,8 +32,10 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default async function RecipePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function RecipePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lang?: string }> }) {
   const { id } = await params;
+  const { lang: langParam } = await searchParams;
+  const lang = isLang(langParam) ? langParam : null;
   const recipeId = Number(id);
   if (!Number.isInteger(recipeId)) notFound();
 
@@ -50,6 +55,23 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
     .eq("recipe_id", recipeId)
     .limit(1)
     .maybeSingle();
+
+  // The recipe in the chosen language, if it has been written yet
+  type Tr = { name: string; blurb: string | null; ingredients: string[]; method: string[]; status: string };
+  let tr: Tr | null = null;
+  if (lang) {
+    const { data } = await supabase.from("recipe_translations").select("name, blurb, ingredients, method, status").eq("recipe_id", recipeId).eq("lang", lang).maybeSingle();
+    tr = (data as Tr | null) ?? null;
+  }
+  const L = langOf(lang);
+  const { data: { user: viewer } } = await supabase.auth.getUser();
+  const viewerIsKey = viewer ? (await familyOf(supabase, viewer.id)).isPrime : false;
+  const shown = {
+    name: tr?.name ?? recipe.name,
+    blurb: tr ? tr.blurb : recipe.blurb,
+    ingredients: tr && tr.ingredients.length ? tr.ingredients : (recipe.ingredients ?? []),
+    method: tr && tr.method.length ? tr.method : (recipe.method ?? []),
+  };
 
   // A family recipe waits for the Key Member before the family sees it
   const waiting = recipe.status === "draft";
@@ -103,20 +125,35 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           </p>
         </div>
         <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)", lineHeight: 1.2 }}>
-          {recipe.name}
+          {shown.name}
         </h1>
+        {tr && <p className="m-0 mt-1 text-xs" style={{ color: B.gold }}>{recipe.name}</p>}
         {original && (
           <p className="text-xs mt-1.5" style={{ color: B.gold }}>
             Variant of <Link href={`/recipes/${original.id}`} className="underline">{original.name}</Link>
           </p>
         )}
-        {recipe.blurb && (
-          <p className="text-sm mt-2" style={{ color: B.onDark }}>{recipe.blurb}</p>
+        {shown.blurb && (
+          <p lang={tr ? lang ?? undefined : undefined} className="text-sm mt-2" style={{ color: B.onDark }}>{shown.blurb}</p>
         )}
+        <div className="mt-3"><RecipeLanguageSelect current={lang} /></div>
       </header>
 
       <main className="flex-1 px-4 py-5 grid gap-4">
         {waiting && <RecipeApproval recipeId={recipe.id} canApprove={canApprove} />}
+        {L && !tr && (
+          <p className="text-xs rounded-xl px-3 py-2 m-0" style={{ background: B.goldTint, color: B.goldInk }}>
+            Not yet written in {L.name} · showing English.
+          </p>
+        )}
+        {L && tr && tr.status !== "checked" && (
+          <p className="text-xs rounded-xl px-3 py-2 m-0" style={{ background: B.goldTint, color: B.goldInk }}>
+            Draft translation · not yet checked.
+          </p>
+        )}
+        {L && tr && viewerIsKey && viewer && (
+          <TranslationEditor recipeId={recipe.id} lang={lang!} userId={viewer.id} t={tr} />
+        )}
 
         {/* At a glance */}
         <section className="rounded-2xl px-4 py-4 grid grid-cols-3 gap-3"
@@ -147,8 +184,8 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           style={look(FAMILY.blue)}>
           <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>What goes in</h2>
           <ul className="grid gap-1.5 m-0 p-0" style={{ listStyle: "none" }}>
-            {(recipe.ingredients ?? []).map((line: string, i: number) => (
-              <li key={i} className="flex gap-2.5 text-sm" style={{ color: B.ink2 }}>
+            {shown.ingredients.map((line: string, i: number) => (
+              <li key={i} lang={tr ? lang ?? undefined : undefined} className="flex gap-2.5 text-sm" style={{ color: B.ink2 }}>
                 <span aria-hidden style={{ color: B.gold }}>•</span>
                 <span>{line}</span>
               </li>
@@ -161,8 +198,8 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           style={look(FAMILY.blue)}>
           <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>How it&apos;s made</h2>
           <ol className="grid gap-2.5 m-0 p-0" style={{ listStyle: "none" }}>
-            {(recipe.method ?? []).map((step: string, i: number) => (
-              <li key={i} className="flex gap-3 text-sm leading-relaxed" style={{ color: B.ink2 }}>
+            {shown.method.map((step: string, i: number) => (
+              <li key={i} lang={tr ? lang ?? undefined : undefined} className="flex gap-3 text-sm leading-relaxed" style={{ color: B.ink2 }}>
                 <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
                   style={{ background: B.tint, color: B.violet }}>{i + 1}</span>
                 <span>{step}</span>
@@ -244,7 +281,7 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
           </p>
         )}
 
-        <PrintRecipe name={recipe.name} />
+        <PrintRecipe name={shown.name} />
 
         <p className="text-[11px] text-center pb-2" style={{ color: B.muted2 }}>
           Values are per {unit} · The Log counts your portion.

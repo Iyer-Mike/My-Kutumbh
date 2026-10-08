@@ -4,6 +4,7 @@ import { familyOf } from "@/lib/family";
 import PageNav from "@/components/PageNav";
 import RecipeFilters from "@/components/RecipeFilters";
 import { BRAND as B, FAMILY, look } from "@/lib/brand";
+import { langOf } from "@/lib/languages";
 import { CUISINES, DIETS, INDIAN_CUISINES, dishTypeOf } from "@/lib/food-taxonomy";
 
 type Search = { q?: string; cuisine?: string; diet?: string; type?: string };
@@ -42,6 +43,13 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
 
   const { data: recipes } = await query;
   const rows = recipes ?? [];
+
+  // Which of these recipes have a written translation (and is it checked yet)?
+  const { data: tr } = rows.length
+    ? await supabase.from("recipe_translations").select("recipe_id, lang, status").in("recipe_id", rows.map((r) => r.id))
+    : { data: [] as { recipe_id: number; lang: string; status: string }[] };
+  const translated = new Map<number, { lang: string; status: string }[]>();
+  for (const t of tr ?? []) translated.set(t.recipe_id, [...(translated.get(t.recipe_id) ?? []), t]);
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: B.page }}>
@@ -88,6 +96,13 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
                     {r.cook_time ? ` · ${r.cook_time} cooking` : ""}
                   </p>
                 </div>
+                {(translated.get(r.id) ?? []).map((t) => (
+                  <span key={t.lang} className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                    title={`${langOf(t.lang)?.name} · ${t.status === "checked" ? "checked" : "draft"}`}
+                    style={{ background: "#FFFFFF", color: B.ink, border: `1px ${t.status === "checked" ? "solid" : "dashed"} ${B.muted2}` }}>
+                    {langOf(t.lang)?.native}{t.status === "checked" ? " ✓" : ""}
+                  </span>
+                ))}
                 <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>
                   {r.kcal != null ? `${Math.round(r.kcal)} kcal` : ""}
                 </span>

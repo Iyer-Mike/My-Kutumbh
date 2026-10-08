@@ -1,7 +1,7 @@
 "use client";
 
 import { addDays } from "@/lib/weeks";
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -133,6 +133,7 @@ export default function WhatsForToday({
   const [editing, setEditing]   = useState<Record<string, boolean>>({});
   const [seeMore, setSeeMore]   = useState(false);
   const [busy, setBusy]         = useState(false);
+  const [pending, setPending]   = useState<Set<string>>(new Set());
   const [error, setError]       = useState<string | null>(null);
   const [undo, setUndo]         = useState<{ ids: string[]; text: string } | null>(null);
 
@@ -163,24 +164,38 @@ export default function WhatsForToday({
     return ids;
   }
 
+  // A tick shows at once; the database and the page catch up in the background.
+  // Only this dish waits for its own answer, so the next tap never has to.
   async function tapDish(slot: string, p: Plan) {
-    if (!canLog || busy) return;
-    setBusy(true); setError(null); setUndo(null);
+    const k = `${slot}:${p.id}`;
+    if (!canLog || pending.has(k)) return;
+    setPending((s) => new Set(s).add(k));
+    setError(null); setUndo(null);
+    const done = () => setPending((s) => { const n = new Set(s); n.delete(k); return n; });
     const have = logFor(slot, p);
     if (have) {
+      setLogs((cur) => cur.filter((l) => l.id !== have.id));
       const { error: err } = await supabase.from("meal_logs").delete().eq("id", have.id);
-      if (err) setError("Could not take this off. Please try again.");
-      else setLogs((cur) => cur.filter((l) => l.id !== have.id));
+      if (err) { setLogs((cur) => [...cur, have]); setError("Could not take this off. Please try again."); }
     } else {
-      await insertRows([toLog(p, slot)], [p.n], slot, [p.recipe_id]);
+      const row = toLog(p, slot);
+      const tmp = `tmp-${Date.now()}-${p.id}`;
+      setLogs((cur) => [...cur, {
+        id: tmp, food_item_id: row.food_item_id, food_name: row.food_name, meal_slot: slot,
+        quantity_g: row.quantity_g, quantity_unit: row.quantity_unit, calories: row.calories,
+        nutrition_estimated: false, recipe_id: p.recipe_id ?? null, n: p.n,
+      }]);
+      const { data, error: err } = await supabase.from("meal_logs").insert(row).select("id").single();
+      if (err || !data) { setLogs((cur) => cur.filter((l) => l.id !== tmp)); setError("Could not log this. Please try again."); }
+      else setLogs((cur) => cur.map((l) => (l.id === tmp ? { ...l, id: data.id as string } : l)));
     }
-    setBusy(false);
-    router.refresh();
+    done();
+    startTransition(() => router.refresh());
   }
 
   // How much was eaten: change the quantity and the values follow
   async function setQty(l: Log, dir: 1 | -1) {
-    if (busy) return;
+    if (busy || l.id.startsWith("tmp-")) return;
     const step = stepOf(l.quantity_unit);
     const old = Number(l.quantity_g) || defQty(l.quantity_unit);
     const next = Math.max(step, Math.round((old + dir * step) * 10) / 10);

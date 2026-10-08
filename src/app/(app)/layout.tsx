@@ -21,7 +21,13 @@ export default async function AppLayout({
   // Two doors. This is the first: has the Admin let them into My
   // Kutumbh at all? Someone still waiting sees the waiting room and
   // nothing else — no family, no logging, no coach.
-  const standing = await standingOf(supabase, user.id);
+  // The three questions do not depend on one another, so they are asked
+  // together; the doors below still open in the same order.
+  const [standing, consents, family] = await Promise.all([
+    standingOf(supabase, user.id),
+    pendingConsents(supabase, user.id),
+    familyOf(supabase, user.id),
+  ]);
   // Anything but a plain "admitted" waits outside. A person whose
   // passcode never landed has no row at all, and must not simply
   // wander in because of it.
@@ -36,11 +42,11 @@ export default async function AppLayout({
   //
   // This re-asks whenever the wording changes, not only the first
   // time — see pendingConsents.
-  if ((await pendingConsents(supabase, user.id)).length > 0) {
+  if (consents.length > 0) {
     redirect("/agree");
   }
 
-  const { kutumbhId, timeZone } = await familyOf(supabase, user.id);
+  const { kutumbhId, timeZone } = family;
 
   // Admitted, but belonging to no family. It should not be possible —
   // and one account in five was in exactly this state, left there by an

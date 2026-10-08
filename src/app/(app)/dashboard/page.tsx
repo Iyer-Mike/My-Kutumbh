@@ -80,9 +80,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
   // Asked for on its own, so a page still opens where the photo store has
   // not been made yet
-  const { data: faceRow } = await supabase.from("profiles").select("photo_path").eq("id", user!.id).maybeSingle();
-  const myPath: string | null = faceRow?.photo_path ?? null;
-  const myFace = (await signedFaces(supabase, [myPath]))[myPath ?? ""];
+  // Started now, read at the end: the photo no longer holds up the page
+  const facePromise = (async () => {
+    const { data: faceRow } = await supabase.from("profiles").select("photo_path").eq("id", user!.id).maybeSingle();
+    const myPath: string | null = faceRow?.photo_path ?? null;
+    return (await signedFaces(supabase, [myPath]))[myPath ?? ""];
+  })();
 
   const plansQuery = supabase
     .from("meal_plans")
@@ -234,6 +237,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const festivalTab = festivalName
     ? `${shortFestivalName(festivalName)} · ${new Date(`${day}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
     : null;
+
+  const myFace = await facePromise;
 
   return (
     <>

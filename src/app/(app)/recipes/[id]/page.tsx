@@ -9,7 +9,7 @@ import PrintRecipe from "@/components/PrintRecipe";
 import RecipeApproval from "@/components/RecipeApproval";
 import CopyRecipeButton from "@/components/CopyRecipeButton";
 import { familyOf } from "@/lib/family";
-import { isLang, langOf } from "@/lib/languages";
+import { LANGS, isLang, langOf } from "@/lib/languages";
 import RecipeLanguageSelect from "@/components/RecipeLanguageSelect";
 import TranslationEditor from "@/components/TranslationEditor";
 
@@ -63,6 +63,9 @@ export default async function RecipePage({ params, searchParams }: { params: Pro
     const { data } = await supabase.from("recipe_translations").select("name, blurb, ingredients, method, status").eq("recipe_id", recipeId).eq("lang", lang).maybeSingle();
     tr = (data as Tr | null) ?? null;
   }
+  // Which languages this recipe has been written in: the dropdown offers only those, plus English
+  const { data: have } = await supabase.from("recipe_translations").select("lang").eq("recipe_id", recipeId);
+  const available = LANGS.map((l) => l.code).filter((c) => (have ?? []).some((h: { lang: string }) => h.lang === c));
   const L = langOf(lang);
   const { data: { user: viewer } } = await supabase.auth.getUser();
   const viewerIsKey = viewer ? (await familyOf(supabase, viewer.id)).isPrime : false;
@@ -136,7 +139,7 @@ export default async function RecipePage({ params, searchParams }: { params: Pro
         {shown.blurb && (
           <p lang={tr ? lang ?? undefined : undefined} className="text-sm mt-2" style={{ color: B.onDark }}>{shown.blurb}</p>
         )}
-        <div className="mt-3"><RecipeLanguageSelect current={lang} /></div>
+        <div className="mt-3"><RecipeLanguageSelect current={lang} available={available} /></div>
       </header>
 
       <main className="flex-1 px-4 py-5 grid gap-4">

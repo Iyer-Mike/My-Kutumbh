@@ -187,7 +187,7 @@ export default async function RecipePage({ params, searchParams }: { params: Pro
             {shown.ingredients.map((line: string, i: number) => (
               <li key={i} lang={tr ? lang ?? undefined : undefined} className="flex gap-2.5 text-sm" style={{ color: B.ink2 }}>
                 <span aria-hidden style={{ color: B.gold }}>•</span>
-                <span>{line}</span>
+                <span className="min-w-0">{line}</span>
               </li>
             ))}
           </ul>
@@ -202,7 +202,7 @@ export default async function RecipePage({ params, searchParams }: { params: Pro
               <li key={i} lang={tr ? lang ?? undefined : undefined} className="flex gap-3 text-sm leading-relaxed" style={{ color: B.ink2 }}>
                 <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
                   style={{ background: B.tint, color: B.violet }}>{i + 1}</span>
-                <span>{step}</span>
+                <span className="min-w-0">{step}</span>
               </li>
             ))}
           </ol>

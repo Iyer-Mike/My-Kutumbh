@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
-import PantryView, { type PantryItem, type ShoppingItem } from "@/components/PantryView";
+import PantryView, { type PantryItem, type Purchase, type ShoppingItem } from "@/components/PantryView";
 import LiveFamily from "@/components/LiveFamily";
 import { BRAND as B } from "@/lib/brand";
 import { dayLabel, daysAheadLocal, todayLocal } from "@/lib/dates";
@@ -26,11 +26,12 @@ export default async function PantryPage() {
 
   let items: PantryItem[] = [];
   let shopping: ShoppingItem[] = [];
+  let purchases: Purchase[] = [];
   let menuDays: { date: string; label: string; dishes: { name: string; ings: string[] }[] }[] = [];
   const names: Record<string, string> = {};
 
   if (kutumbhId) {
-    const [{ data: pantry }, { data: list }, { data: people }] = await Promise.all([
+    const [{ data: pantry }, { data: list }, { data: people }, { data: bought }] = await Promise.all([
       supabase.from("pantry_items")
         .select("id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note")
         .eq("kutumbh_id", kutumbhId).order("name"),
@@ -40,7 +41,11 @@ export default async function PantryPage() {
       supabase.from("family_roster")
         .select("id, full_name")
         .eq("kutumbh_id", kutumbhId),
+      supabase.from("pantry_purchases")
+        .select("id, pantry_item_id, quantity, unit, bought_on, shop")
+        .eq("kutumbh_id", kutumbhId).order("bought_on", { ascending: false }).order("created_at", { ascending: false }).limit(600),
     ]);
+    purchases = (bought ?? []) as Purchase[];
     items = (pantry ?? []) as PantryItem[];
     shopping = (list ?? []) as ShoppingItem[];
     for (const p of people ?? []) {
@@ -98,13 +103,14 @@ export default async function PantryPage() {
       <main className="flex-1 px-4 py-5">
         {kutumbhId ? (
           <>
-          <LiveFamily kutumbhId={kutumbhId} tables="shopping_items,pantry_items" />
+          <LiveFamily kutumbhId={kutumbhId} tables="shopping_items,pantry_items,pantry_purchases" />
           <PantryView
             kutumbhId={kutumbhId}
             userId={user!.id}
             isPrime={isPrime}
             initialItems={items}
             initialShopping={shopping}
+            initialPurchases={purchases}
             menuDays={menuDays}
             memberNames={names}
             today={today}

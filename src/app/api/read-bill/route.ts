@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       .slice(0, 40)
       .map((i) => ({
         name: i.name.trim().slice(0, 60),
-        quantity: i.quantity != null && i.quantity > 0 ? Math.round(i.quantity * 100) / 100 : null,
+        quantity: i.quantity != null && i.quantity > 0 ? Math.round(i.quantity * 1000) / 1000 : null,
         unit: i.unit,
         category: i.category,
       }));

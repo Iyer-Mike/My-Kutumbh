@@ -43,7 +43,7 @@ const KIND_LOOK: Record<Kind, { bg: string; edge: string; ink: string }> = {
 };
 
 const amount = (q: number | null, u: Unit | null) =>
-  q == null ? "" : `${Number.isInteger(q) ? q : q.toFixed(2).replace(/0$/, "")} ${u ?? ""}`.trim();
+  q == null ? "" : `${Number.isInteger(q) ? q : String(Math.round(q * 1000) / 1000)} ${u ?? ""}`.trim();
 
 /** A line read off a bill, waiting to be checked before it touches the shelf. */
 type BillLine = {
@@ -72,7 +72,7 @@ function inShelfUnit(qty: number, from: Unit | null, to: Unit | null): number | 
   const f: Record<string, number> = { g: 1, kg: 1000, ml: 1, l: 1000 };
   const massOrVolume = (u: Unit) => (u === "g" || u === "kg" ? "m" : u === "ml" || u === "l" ? "v" : null);
   if (massOrVolume(from) && massOrVolume(from) === massOrVolume(to)) {
-    return Math.round(((qty * f[from]) / f[to]) * 100) / 100;
+    return Math.round(((qty * f[from]) / f[to]) * 1000) / 1000;
   }
   return null;
 }
@@ -498,7 +498,7 @@ export default function PantryView({
             <div className="grid gap-1.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Bought now?</p>
               <div className="flex gap-1.5">
-                <input type="number" inputMode="decimal" min="0" step="0.25" value={boughtDraft}
+                <input type="number" inputMode="decimal" min="0" step="any" value={boughtDraft}
                   onChange={(e) => setBoughtDraft(e.target.value)} placeholder="How much"
                   aria-label={`Amount of ${item.name} bought`}
                   className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
@@ -524,13 +524,13 @@ export default function PantryView({
                 <div className="grid grid-cols-2 gap-1.5">
                   <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
                     Current stock ({item.unit ?? "—"})
-                    <input type="number" inputMode="decimal" min="0" step="0.25" value={stockDraft.quantity}
+                    <input type="number" inputMode="decimal" min="0" step="any" value={stockDraft.quantity}
                       onChange={(e) => setStockDraft({ ...stockDraft, quantity: e.target.value })}
                       className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
                   </label>
                   <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
                     Low at ({item.unit ?? "—"})
-                    <input type="number" inputMode="decimal" min="0" step="0.25" value={stockDraft.low_when}
+                    <input type="number" inputMode="decimal" min="0" step="any" value={stockDraft.low_when}
                       onChange={(e) => setStockDraft({ ...stockDraft, low_when: e.target.value })}
                       className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
                   </label>
@@ -816,7 +816,7 @@ export default function PantryView({
                                 <p className="text-sm truncate m-0" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
                                 <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
                                   {shelf.name}{shelf.kind !== "sundry" && add != null
-                                    ? ` · ${amount(shelf.quantity, shelf.unit) || "0"} → ${amount(Math.round(((shelf.quantity ?? 0) + add) * 100) / 100, shelf.unit)}`
+                                    ? ` · ${amount(shelf.quantity, shelf.unit) || "0"} → ${amount(Math.round(((shelf.quantity ?? 0) + add) * 1000) / 1000, shelf.unit)}`
                                     : ""}
                                 </p>
                               </div>
@@ -919,7 +919,7 @@ export default function PantryView({
                   <div className="grid gap-1">
                     <label htmlFor="p-qty" className="text-xs font-medium" style={{ color: B.muted }}>How much</label>
                     <div className="flex gap-1.5">
-                      <input id="p-qty" type="number" inputMode="decimal" min="0" step="0.25" value={draft.quantity}
+                      <input id="p-qty" type="number" inputMode="decimal" min="0" step="any" value={draft.quantity}
                         onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
                         className="w-full min-w-0 rounded-xl px-3 py-2 text-sm"
                         style={fieldLook(FAMILY.amber)} />
@@ -938,7 +938,7 @@ export default function PantryView({
                   <label htmlFor="p-low" className="text-xs font-medium" style={{ color: B.muted }}>
                     Low at (turns red here)
                   </label>
-                  <input id="p-low" type="number" inputMode="decimal" min="0" step="0.25" value={draft.low_when}
+                  <input id="p-low" type="number" inputMode="decimal" min="0" step="any" value={draft.low_when}
                     onChange={(e) => setDraft({ ...draft, low_when: e.target.value })}
                     placeholder={`e.g. 1 ${draft.unit}`}
                     className="rounded-xl px-3 py-2 text-sm"
@@ -1091,7 +1091,7 @@ export default function PantryView({
                   </div>
                   {ticking && (
                     <div className="flex gap-1.5 pl-9">
-                      <input type="number" inputMode="decimal" min="0" step="0.25" value={tickQty} autoFocus
+                      <input type="number" inputMode="decimal" min="0" step="any" value={tickQty} autoFocus
                         onChange={(e) => setTickQty(e.target.value)} placeholder="How much? (optional)"
                         aria-label={`Amount of ${s.name} bought`}
                         className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.green)} />

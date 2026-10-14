@@ -7,10 +7,12 @@ import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { writeLastUser } from "@/lib/last-user";
+import PasswordRules, { ConfirmHint, passwordOk } from "@/components/PasswordRules";
 
 export default function ResetPasswordPage() {
   const router   = useRouter();
   const supabase = createClient();
+  const [pwTouched, setPwTouched] = useState(false);
   const [password, setPassword]     = useState("");
   const [confirm, setConfirm]       = useState("");
   const [error, setError]           = useState<string | null>(null);
@@ -28,7 +30,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+    if (!passwordOk(password)) {
       setError("Use at least 8 characters, with both letters and digits.");
       return;
     }
@@ -105,10 +107,12 @@ export default function ResetPasswordPage() {
             required
             value={password}
             onChange={e => setPassword(e.target.value)}
+            onBlur={() => setPwTouched(true)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
             style={fieldLook(FAMILY.amber)}
             placeholder="8+ characters, letters and digits"
           />
+          <PasswordRules password={password} touched={pwTouched} />
         </div>
 
         <div>
@@ -124,7 +128,9 @@ export default function ResetPasswordPage() {
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
             style={fieldLook(FAMILY.amber)}
             placeholder="••••••••"
+            onFocus={() => setPwTouched(true)}
           />
+          <ConfirmHint password={password} confirm={confirm} />
         </div>
 
         {error && (

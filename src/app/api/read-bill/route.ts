@@ -33,6 +33,8 @@ For each line give:
 - name: the plain item name, title case, no brand or pack code
 - quantity and unit: the amount bought, in kg, g, l, ml, packet, piece, bunch or dozen. A line like "2 x 1KG" is 2 kg. When the bill shows only a price and no amount, leave both null.
 - category: grain, dal, flour, oil, spice, vegetable, fruit, dairy, dry_fruit, ready, or other
+  Fresh things are vegetable, even when they flavour food: ginger, garlic, green chilli, curry leaves, coriander leaves, mint, lemon is fruit.
+  spice is only for dry spices: powders, seeds and whole dry spices (haldi, jeera, mustard seeds, dry red chilli, cardamom).
 - is_food: false for soap, detergent, bags, and anything else that does not belong in a kitchen shelf
 
 Skip totals, taxes, discounts, and anything you cannot read with confidence. At most 40 items, in the order they appear. Give the shop's name and the bill date (YYYY-MM-DD) when they are printed; otherwise null.`;

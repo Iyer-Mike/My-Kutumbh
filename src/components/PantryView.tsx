@@ -97,7 +97,7 @@ export default function PantryView({
   const [tab, setTab] = useState<"staple" | "veg" | "dairy" | "spice">("staple");
   const [purchases, setPurchases] = useState(initialPurchases);
   const [openId, setOpenId] = useState<string | null>(null);              // the shelf item opened for detail
-  const [stockDraft, setStockDraft] = useState({ quantity: "", low_when: "" });
+  const [stockDraft, setStockDraft] = useState({ quantity: "", low_when: "", category: "" });
   const [boughtDraft, setBoughtDraft] = useState("");                      // "bought today" amount in the detail panel
   const [tickId, setTickId] = useState<string | null>(null);               // the list line being ticked bought
   const [tickQty, setTickQty] = useState("");
@@ -216,8 +216,18 @@ export default function PantryView({
   async function saveStock(item: PantryItem) {
     const q = stockDraft.quantity.trim() === "" ? null : parseFloat(stockDraft.quantity);
     const l = stockDraft.low_when.trim() === "" ? null : parseFloat(stockDraft.low_when);
-    const next = { ...item, quantity: q, low_when: l };
-    await patch(item.id, { quantity: q, low_when: l, status: isLow({ ...next, status: "ok" }) ? item.status : "ok" });
+    const category = stockDraft.category || item.category;
+    const kind = kindOf(category);
+    const moved = kind !== item.kind;
+    const changes: Partial<PantryItem> = kind === "sundry"
+      ? { category, kind, quantity: null, unit: null, low_when: null }
+      : {
+          category, kind, quantity: q, low_when: l,
+          unit: item.unit ?? (category === "dairy" ? "l" : "kg"),
+          ...(moved && kind === "fresh" ? { bought_on: today, use_within_days: SHELF_LIFE[category] ?? 5 } : {}),
+        };
+    const next = { ...item, ...changes };
+    await patch(item.id, { ...changes, status: isLow({ ...next, status: "ok" }) ? item.status : "ok" });
     setOpenId(null);
   }
 
@@ -410,9 +420,9 @@ export default function PantryView({
         if (error || !data) return fail("add that item", error?.message ?? "unknown");
         shelf = data as PantryItem;
       }
-      const qty = line.quantity != null && shelf.kind !== "sundry"
-        ? inShelfUnit(line.quantity, line.unit, shelf.unit) ?? (shelf.unit ? null : line.quantity)
-        : null;
+      const qty = line.quantity == null ? null
+        : shelf.kind === "sundry" ? line.quantity                       // kept in the history; spices aren't weighed on the shelf
+        : inShelfUnit(line.quantity, line.unit, shelf.unit) ?? (shelf.unit ? null : line.quantity);
       const err = await recordPurchase(shelf, qty, bill.shop);
       if (err) return fail("record the bill", err);
     }
@@ -476,31 +486,14 @@ export default function PantryView({
   function openDetail(item: PantryItem) {
     if (openId === item.id) { setOpenId(null); return; }
     setOpenId(item.id);
-    setStockDraft({ quantity: item.quantity != null ? String(item.quantity) : "", low_when: item.low_when != null ? String(item.low_when) : "" });
+    setStockDraft({ quantity: item.quantity != null ? String(item.quantity) : "", low_when: item.low_when != null ? String(item.low_when) : "", category: item.category });
     setBoughtDraft("");
   }
 
-  function RegisterRow({ item }: { item: PantryItem }) {
+  /** The opened item: record a purchase, correct the shelf, see its history. */
+  function detailPanel(item: PantryItem) {
     const bought = boughtOf(item.id);
-    const left = item.kind === "fresh" ? daysLeft(item.bought_on, item.use_within_days, today) : null;
-    const opened = openId === item.id;
     return (
-      <div style={{ borderTop: `1px solid ${B.cardEdge}` }}>
-        <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 items-center py-2">
-          <button onClick={() => openDetail(item)} className="min-w-0 text-left" aria-expanded={opened}>
-            <span className="block text-sm font-medium truncate" style={{ color: B.ink }}>{item.name}</span>
-            <span className="block text-[10px] truncate" style={{ color: left != null && left <= 1 ? RED.fg : B.muted2 }}>
-              {left != null
-                ? (left < 0 ? "past its days" : left === 0 ? "use today" : `use within ${left}d`)
-                : item.low_when != null ? `low at ${amount(item.low_when, item.unit)}` : categoryLabel(item.category)}
-            </span>
-          </button>
-          <BoughtCell p={bought[1]} />
-          <BoughtCell p={bought[0]} />
-          <StockCell item={item} />
-        </div>
-
-        {opened && (
           <div className="rounded-xl px-3 py-3 mb-2 grid gap-3" style={{ background: "#FFFFFF", border: `1px solid ${B.cardEdge}` }}>
             <div className="grid gap-1.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Bought now?</p>
@@ -520,6 +513,14 @@ export default function PantryView({
             {isPrime && (
               <div className="grid gap-1.5">
                 <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Correct the shelf</p>
+                <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
+                  Kind (which tab it sits in)
+                  <select value={stockDraft.category} onChange={(e) => setStockDraft({ ...stockDraft, category: e.target.value })}
+                    className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
+                    {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                  </select>
+                </label>
+                {kindOf(stockDraft.category || item.category) !== "sundry" && (
                 <div className="grid grid-cols-2 gap-1.5">
                   <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
                     Current stock ({item.unit ?? "—"})
@@ -534,6 +535,7 @@ export default function PantryView({
                       className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
                   </label>
                 </div>
+                )}
                 <div className="flex gap-2">
                   <button onClick={() => saveStock(item)} disabled={busy}
                     className="flex-1 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>
@@ -557,7 +559,30 @@ export default function PantryView({
               ))}
             </div>
           </div>
-        )}
+    );
+  }
+
+  function RegisterRow({ item }: { item: PantryItem }) {
+    const bought = boughtOf(item.id);
+    const left = item.kind === "fresh" ? daysLeft(item.bought_on, item.use_within_days, today) : null;
+    const opened = openId === item.id;
+    return (
+      <div style={{ borderTop: `1px solid ${B.cardEdge}` }}>
+        <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 items-center py-2">
+          <button onClick={() => openDetail(item)} className="min-w-0 text-left" aria-expanded={opened}>
+            <span className="block text-sm font-medium truncate" style={{ color: B.ink }}>{item.name}</span>
+            <span className="block text-[10px] truncate" style={{ color: left != null && left <= 1 ? RED.fg : B.muted2 }}>
+              {left != null
+                ? (left < 0 ? "past its days" : left === 0 ? "use today" : `use within ${left}d`)
+                : item.low_when != null ? `low at ${amount(item.low_when, item.unit)}` : categoryLabel(item.category)}
+            </span>
+          </button>
+          <BoughtCell p={bought[1]} />
+          <BoughtCell p={bought[0]} />
+          <StockCell item={item} />
+        </div>
+
+        {opened && detailPanel(item)}
       </div>
     );
   }
@@ -657,7 +682,21 @@ export default function PantryView({
             {tabRows.length === 0 ? (
               <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
             ) : current.key === "spice" ? (
-              <div className="flex flex-wrap gap-2 pt-1">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
+              <div className="grid gap-2 pt-1">
+                <div className="flex flex-wrap gap-2">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
+                {isPrime && (
+                  <label className="text-[11px] grid gap-1" style={{ color: B.muted2 }}>
+                    Open one to correct it or move it to another tab
+                    <select value={tabRows.some((i) => i.id === openId) ? openId! : ""}
+                      onChange={(e) => { const it = tabRows.find((i) => i.id === e.target.value); if (it) openDetail(it); else setOpenId(null); }}
+                      className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
+                      <option value="">Choose a spice…</option>
+                      {tabRows.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    </select>
+                  </label>
+                )}
+                {(() => { const it = tabRows.find((i) => i.id === openId); return it ? detailPanel(it) : null; })()}
+              </div>
             ) : (
               <div className="grid">
                 <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wide"

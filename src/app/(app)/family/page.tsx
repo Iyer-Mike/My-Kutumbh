@@ -1,6 +1,7 @@
 import { FAMILY, look } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
+import { BRAND as B } from "@/lib/brand";
 import Face from "@/components/Face";
 import FacePicker from "@/components/FacePicker";
 import { signedFaces } from "@/lib/faces";
@@ -182,7 +183,7 @@ export default async function FamilyPage() {
         style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 70%, #4E3080 100%)" }}
       >
         <PageNav />
-        <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>My Kutumb Bhojan</p>
+        <p className="text-lg mb-1.5 leading-tight" style={{ color: B.gold, fontFamily: "var(--font-dm-serif)", letterSpacing: "0.02em" }}>My Kutumb Bhojan</p>
         <h1
           className="flex flex-wrap items-baseline gap-x-2 text-xl text-white"
           style={{ fontFamily: "var(--font-dm-serif)" }}

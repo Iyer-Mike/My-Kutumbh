@@ -22,6 +22,7 @@ export default function LiveFamily({ kutumbhId, tables }: { kutumbhId: string; t
     let timer: ReturnType<typeof setTimeout> | null = null;
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let stopped = false;
+    let live = false;                         // the socket is up: no need to keep re-reading on a timer
 
     // Several rows often change together (adding four dishes at once),
     // so wait a moment and re-read once.
@@ -50,17 +51,20 @@ export default function LiveFamily({ kutumbhId, tables }: { kutumbhId: string; t
       }
       // Quiet when all is well; says so when the connection is refused
       c.subscribe((status) => {
+        live = status === "SUBSCRIBED";
         if (status !== "SUBSCRIBED" && status !== "CLOSED") console.warn(`[live] ${status}`);
       });
       channel = c;
     })();
 
     // Phones suspend sockets in the background; catch up on return
-    const onWake = () => { if (document.visibilityState === "visible") router.refresh(); };
+    // (focus and visibilitychange often fire together: one re-read, not two)
+    const onWake = () => { if (document.visibilityState === "visible") refreshSoon(); };
     document.addEventListener("visibilitychange", onWake);
     window.addEventListener("focus", onWake);
 
-    const beat = setInterval(onWake, CHECK_EVERY_MS);
+    // Each re-read rebuilds the whole page on the server, so the timer only runs while the socket is down
+    const beat = setInterval(() => { if (!live) onWake(); }, CHECK_EVERY_MS);
 
     return () => {
       stopped = true;

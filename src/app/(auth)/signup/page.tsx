@@ -9,6 +9,7 @@ import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { inviteFromPath, rememberInvite } from "@/lib/invite";
 import { emailReturnTo } from "@/lib/gate";
 import KutumbhLogo from "@/components/KutumbhLogo";
+import PasswordRules, { passwordOk } from "@/components/PasswordRules";
 
 function SignupForm() {
   const searchParams = useSearchParams();
@@ -22,6 +23,7 @@ function SignupForm() {
   // from the Admin: their Key Member is vouching for them, and the
   // six-digit number on the next page does the same work.
   const invitedToFamily = !!inviteFromPath(redirectTo);
+  const [pwTouched, setPwTouched] = useState(false);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,10 @@ function SignupForm() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+    if (!passwordOk(password)) {
+      setError("Use at least 8 characters, with both letters and digits.");
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -200,10 +206,12 @@ function SignupForm() {
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onBlur={() => setPwTouched(true)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
             style={fieldLook(FAMILY.amber)}
-            placeholder="Min. 8 characters"
+            placeholder="8+ characters, letters and digits"
           />
+          <PasswordRules password={password} touched={pwTouched} />
         </div>
 
         {error && (

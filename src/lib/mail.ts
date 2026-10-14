@@ -1,7 +1,7 @@
 /**
  * The one letter the app sends.
  *
- * My Kutumbh deliberately sends almost nothing: there is no verified
+ * My Kutumb Bhojan deliberately sends almost nothing: there is no verified
  * sending domain, so Resend will only deliver to the account owner's
  * own address. Anything written to a family member would be accepted
  * by the API and then quietly dropped — worse than not writing at all.
@@ -18,7 +18,7 @@ const ENDPOINT = "https://api.resend.com/emails";
 
 /** Who can be written to, and who it comes from. */
 export const ADMIN_EMAIL = process.env.MY_KUTUMBH_ADMIN_EMAIL ?? "iyer.mike@gmail.com";
-const FROM = process.env.MY_KUTUMBH_MAIL_FROM ?? "My Kutumbh <onboarding@resend.dev>";
+const FROM = process.env.MY_KUTUMBH_MAIL_FROM ?? "My Kutumb Bhojan <onboarding@resend.dev>";
 
 /** No key, no post. Checked before anything is claimed or marked done. */
 export function canSendMail(): boolean {
@@ -93,8 +93,8 @@ export async function tellAdminSomebodyWaits(
   const subject = name ? `At the door: ${name}` : "Someone is at the door";
 
   const opening = name
-    ? `${name} has registered with My Kutumbh, using ${email}, and is waiting at the door.`
-    : `Someone has registered with My Kutumbh, using ${email}, and is waiting at the door — no name was given.`;
+    ? `${name} has registered with My Kutumb Bhojan, using ${email}, and is waiting at the door.`
+    : `Someone has registered with My Kutumb Bhojan, using ${email}, and is waiting at the door — no name was given.`;
 
   const closing = name
     ? `Welcome ${name} in, or decline, at the Admin Desk:`
@@ -110,12 +110,12 @@ export async function tellAdminSomebodyWaits(
     closing,
     `    ${desk}`,
     "",
-    "— My Kutumbh",
+    "— My Kutumb Bhojan",
   ].filter((l): l is string => l !== null);
 
   const openHtml = name
-    ? `<strong>${esc(name)}</strong> has registered with My Kutumbh, using ${esc(email)}, and is waiting at the door.`
-    : `Someone has registered with My Kutumbh, using ${esc(email)}, and is waiting at the door — no name was given.`;
+    ? `<strong>${esc(name)}</strong> has registered with My Kutumb Bhojan, using ${esc(email)}, and is waiting at the door.`
+    : `Someone has registered with My Kutumb Bhojan, using ${esc(email)}, and is waiting at the door — no name was given.`;
 
   const html = `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:15px;line-height:1.6;color:#241C33;max-width:34rem">
   <p style="margin:0 0 1rem">${openHtml}</p>
@@ -123,7 +123,7 @@ export async function tellAdminSomebodyWaits(
   <p style="margin:0 0 1.5rem;color:#4A4360">Nothing can happen until you decide. A waiting account has no Kutumbh, no logging and no coach.</p>
   <p style="margin:0 0 0.9rem"><a href="${esc(desk)}" style="background:#241238;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;display:inline-block;font-weight:600;font-size:14px">Open the Admin Desk</a></p>
   <p style="margin:0 0 1.5rem;color:#6A6180;font-size:13px">${esc(closing.replace(/:$/, "."))}</p>
-  <p style="margin:0;color:#8A80A0;font-size:13px">— My Kutumbh</p>
+  <p style="margin:0;color:#8A80A0;font-size:13px">— My Kutumb Bhojan</p>
 </div>`;
 
   return send(ADMIN_EMAIL, subject, lines.join("\n"), html);

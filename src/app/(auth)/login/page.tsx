@@ -84,7 +84,7 @@ function LoginForm() {
             </div>
             <div className="grid">
               <span className="text-[19px] leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
-                My Kutumbh
+                My Kutumb Bhojan
               </span>
               <span className="text-[11px] tracking-wide" style={{ color: B.onDarkFaint }}>मेरा कुटुम्ब</span>
             </div>
@@ -183,7 +183,7 @@ function LoginForm() {
       </form>
 
       <p className="text-center text-sm mt-6" style={{ color: B.muted }}>
-        New to My Kutumbh?{" "}
+        New to My Kutumb Bhojan?{" "}
         <Link href={signupHref} className="font-semibold" style={{ color: B.violetLink }}>
           Create account
         </Link>
@@ -193,7 +193,7 @@ function LoginForm() {
       <p className="text-center text-xs mt-4 mb-0" style={{ color: B.muted }}>
         <Link href="/privacy" style={{ color: B.violetLink }}>What the app knows about you</Link>
         <span className="mx-1.5">·</span>
-        <Link href="/terms" style={{ color: B.violetLink }}>Using My Kutumbh</Link>
+        <Link href="/terms" style={{ color: B.violetLink }}>Using My Kutumb Bhojan</Link>
       </p>
     </div>
   );

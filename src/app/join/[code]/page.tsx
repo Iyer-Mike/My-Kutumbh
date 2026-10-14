@@ -33,7 +33,7 @@ function Shell({ eyebrow, title, children }: { eyebrow: string; title: string; c
               क
             </div>
             <div className="grid">
-              <span className="text-[19px] leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>My Kutumbh</span>
+              <span className="text-[19px] leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>My Kutumb Bhojan</span>
               <span className="text-[11px] tracking-wide" style={{ color: B.onDarkFaint }}>मेरा कुटुम्ब</span>
             </div>
           </div>

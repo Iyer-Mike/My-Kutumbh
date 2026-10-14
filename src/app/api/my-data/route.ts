@@ -31,7 +31,7 @@ export async function GET() {
 
   const bundle = {
     what_this_is:
-      "Everything My Kutumbh holds about one person, as it stood when this file was made. " +
+      "Everything My Kutumb Bhojan holds about one person, as it stood when this file was made. " +
       "Dates are as recorded. Money is in rupees. Anything shared with your family — dishes, " +
       "the pantry, the shopping list — belongs to the family and is not copied here.",
     made_on: new Date().toISOString(),
@@ -60,7 +60,7 @@ export async function GET() {
   return new NextResponse(JSON.stringify(bundle, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="my-kutumbh-${stamp}.json"`,
+      "Content-Disposition": `attachment; filename="my-kutumb-bhojan-${stamp}.json"`,
       "Cache-Control": "no-store",
     },
   });

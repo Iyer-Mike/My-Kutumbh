@@ -16,7 +16,7 @@ export default function KutumbhLogo({ size = 40 }: KutumbhLogoProps) {
         height: size,
       }}
       role="img"
-      aria-label="My Kutumbh"
+      aria-label="My Kutumb Bhojan"
     >
       🌿
     </span>

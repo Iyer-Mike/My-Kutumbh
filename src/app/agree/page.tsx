@@ -39,7 +39,7 @@ export default async function AgreePage() {
         </p>
 
         <p className="m-0 mb-5 text-sm text-center" style={{ color: "#4A4360", lineHeight: 1.65 }}>
-          My Kutumbh will hold what you eat and what your lab reports say. Two short
+          My Kutumb Bhojan will hold what you eat and what your lab reports say. Two short
           pages, and then you are in.
         </p>
 

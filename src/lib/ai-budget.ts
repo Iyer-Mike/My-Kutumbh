@@ -105,7 +105,7 @@ export async function checkBudget(
       ok: false,
       status: 429,
       message:
-        "My Kutumbh has reached its own AI limit for this month, across all the families using it. " +
+        "My Kutumb Bhojan has reached its own AI limit for this month, across all the families using it. " +
         "Everything the app works out by itself carries on as usual. If this is your app, raising the " +
         "limit is a one-line change on the server.",
     };

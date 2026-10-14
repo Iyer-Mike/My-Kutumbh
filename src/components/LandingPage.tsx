@@ -57,7 +57,7 @@ export default function LandingPage() {
             </div>
             <div className="grid">
               <span className="text-[19px] leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
-                My Kutumbh
+                My Kutumb Bhojan
               </span>
               <span className="text-[11px] tracking-wide" style={{ color: B.onDarkFaint }}>मेरा कुटुम्ब</span>
             </div>
@@ -132,7 +132,7 @@ export default function LandingPage() {
               <rect x="6" y="2" width="12" height="20" rx="3" /><path d="M12 6v7" /><path d="M9 10l3 3 3-3" />
             </svg>
             <p className="m-0 text-xs leading-snug" style={{ color: B.ink2 }}>
-              <b>Add to Home Screen</b> to use My Kutumbh like an app, even offline.
+              <b>Add to Home Screen</b> to use My Kutumb Bhojan like an app, even offline.
             </p>
           </div>
 

@@ -138,7 +138,7 @@ function Wrap({ step, children }: { step: number; children: React.ReactNode }) {
             <KutumbhLogo size={30} />
             <div>
               <p className="text-base text-white leading-tight" style={{ fontFamily: "var(--font-dm-serif)" }}>
-                My Kutumbh
+                My Kutumb Bhojan
               </p>
               <p className="text-xs leading-tight" style={{ color: "#C9B8E4" }}>मेरा कुटुम्ब</p>
             </div>
@@ -613,7 +613,7 @@ export default function OnboardingPage() {
           className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
           style={{ background: "#241238" }}
         >
-          {saving ? "Setting up your Kutumbh…" : "Enter My Kutumbh →"}
+          {saving ? "Setting up your Kutumbh…" : "Enter My Kutumb Bhojan →"}
         </button>
       </Wrap>
     );

@@ -64,7 +64,7 @@ function SignupForm() {
       }
 
       // Knock at the app's own door with the passcode from the letter.
-      // Somebody at My Kutumbh decides; until then they wait.
+      // Somebody at My Kutumb Bhojan decides; until then they wait.
       const { error: claimError } = await supabase.rpc("claim_app_invite", { p_code: passcode.trim() });
 
       if (claimError) {
@@ -233,7 +233,7 @@ function SignupForm() {
       <p className="text-center text-xs mt-4 mb-0" style={{ color: "#6A6180" }}>
         <Link href="/privacy" style={{ color: "#6B46B8" }}>What the app knows about you</Link>
         <span className="mx-1.5">·</span>
-        <Link href="/terms" style={{ color: "#6B46B8" }}>Using My Kutumbh</Link>
+        <Link href="/terms" style={{ color: "#6B46B8" }}>Using My Kutumb Bhojan</Link>
       </p>
     </div>
   );

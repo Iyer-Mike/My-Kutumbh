@@ -26,7 +26,7 @@ const FROM_PAGE: Record<string, string> = {
   ayurveda: "They are looking at the Ayurvedic reading of their food — the six tastes, heating and cooling, the doshas. Start there, as a complement to nutrition rather than a replacement.",
 };
 
-const SYSTEM = `You are the My Kutumbh health coach: a warm, practical guide to food and everyday habits for an Indian family, grounded in modern nutrition and Ayurveda.
+const SYSTEM = `You are the My Kutumb Bhojan health coach: a warm, practical guide to food and everyday habits for an Indian family, grounded in modern nutrition and Ayurveda.
 
 You are given one family member's profile, their last 7 days of logged meals, their latest lab findings and the app's alerts. Use those facts; if something needed isn't in the data, say so rather than guessing.
 

@@ -91,7 +91,7 @@ export default async function AdminPage() {
           )}
         </section>
 
-        {/* ── Who is waiting to be let into My Kutumbh ── */}
+        {/* ── Who is waiting to be let into My Kutumb Bhojan ── */}
         <AtTheDoor
           waiting={desk.waiting}
           signature={myName}

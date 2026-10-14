@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Whether this person has been let into My Kutumbh at all.
+ * Whether this person has been let into My Kutumb Bhojan at all.
  *
  * Two doors: the Admin admits a household to the app, and a Prime
  * Member admits people to their family. This is the first.

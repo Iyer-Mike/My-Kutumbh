@@ -55,11 +55,14 @@ export default function LandingPage() {
               style={{ background: B.gold, color: "#2A1646", fontFamily: "var(--font-dm-serif)" }} aria-hidden>
               क
             </div>
-            <div className="grid">
-              <span className="text-[19px] leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
+            {/* Name + Devanagari line: together exactly as tall as the mark (34px); the Devanagari is centred
+                under the Latin name and spread to its width. */}
+            <div className="grid content-between w-fit h-[34px]">
+              <span className="text-[19px] leading-[22px] text-white whitespace-nowrap" style={{ fontFamily: "var(--font-dm-serif)" }}>
                 My Kutumb Bhojan
               </span>
-              <span className="text-[11px] tracking-wide" style={{ color: B.onDarkFaint }}>मेरा कुटुम्ब</span>
+              <span className="block text-[11px] leading-[12px] text-center whitespace-nowrap"
+                style={{ color: B.onDarkFaint, textAlignLast: "justify", letterSpacing: "0.06em" }}>मेरा कुटुम्ब भोजन</span>
             </div>
           </div>
 

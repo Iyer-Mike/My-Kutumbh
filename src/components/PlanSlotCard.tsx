@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/client";
+import { announceMenu } from "@/lib/menu-notify";
 import { defaultPoolName } from "@/lib/meal-slots";
 import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
 import FoodFilterBar, { applyFoodFilter, dietOr, sortForSlot, useMyFoodFilter, DietMark } from "@/components/FoodFilterBar";
@@ -210,6 +211,7 @@ export default function PlanSlotCard({
         kcal_per_serving: food ? perServingKcal(food) : null,
       };
     })]);
+    announceMenu(kutumbhId, plannedDate, foods.map((f) => `${name}: added ${f?.name ?? typed}`));
     // Stay open so more dishes can be added straight away
     resetPicker();
   }
@@ -248,6 +250,8 @@ export default function PlanSlotCard({
   async function removeItem(id: string) {
     const { error } = await supabase.from("meal_plans").delete().eq("id", id);
     if (error) { alert(`Couldn't remove: ${error.message}`); return; }
+    const gone = items.find(i => i.id === id);
+    if (gone) announceMenu(kutumbhId, plannedDate, [`${name}: removed ${gone.food_name}`]);
     setItems(prev => prev.filter(i => i.id !== id));
   }
 

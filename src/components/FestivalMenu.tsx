@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { announceMenu } from "@/lib/menu-notify";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { SLOTS } from "@/lib/meal-slots";
 import { DISH_TYPES, dishTypeOf, type DishType } from "@/lib/food-taxonomy";
@@ -112,7 +113,11 @@ export default function FestivalMenu(p: Props) {
       { kutumbh_id: kutumbhId, festival_date: day, published_at: on ? new Date().toISOString() : null },
       { onConflict: "kutumbh_id,festival_date" });
     setBusy(false);
-    if (err) setError("Could not change this. Please try again."); else router.refresh();
+    if (err) setError("Could not change this. Please try again.");
+    else {
+      if (on) announceMenu(kutumbhId, day, [`${festival} menu is ready`]);
+      router.refresh();
+    }
   }
 
   async function approve(s: Suggestion, kind?: DishType) {

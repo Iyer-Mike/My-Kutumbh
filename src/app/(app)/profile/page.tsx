@@ -9,6 +9,7 @@ import { signedFaces } from "@/lib/faces";
 import { familyOf } from "@/lib/family";
 import AiSpendCard from "@/components/AiSpendCard";
 import MyDataCard from "@/components/MyDataCard";
+import MenuAlertsToggle from "@/components/MenuAlertsToggle";
 import { checkBudget } from "@/lib/ai-budget";
 import { FAMILY, look } from "@/lib/brand";
 
@@ -196,6 +197,8 @@ export default async function ProfilePage() {
           userId={user!.id}
           initialRecords={medRecords ?? []}
         />
+
+        <MenuAlertsToggle />
 
         {/* ── What we hold about you ── */}
         <MyDataCard />

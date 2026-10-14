@@ -26,3 +26,32 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+// Phone alerts: the Key Member changed the menu
+self.addEventListener("push", (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch { /* plain text */ }
+  event.waitUntil(
+    self.registration.showNotification(d.title || "My Kutumb Bhojan", {
+      body: d.body || "The menu was updated.",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: "menu-update",
+      renotify: true,
+      data: { url: d.url || "/dashboard" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/dashboard";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) { c.navigate(url).catch(() => {}); return c.focus(); }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
+});

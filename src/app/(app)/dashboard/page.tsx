@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import KutumbhLogo from "@/components/KutumbhLogo";
 import WhatsForToday, { type MealSuggestion } from "@/components/WhatsForToday";
 import LiveFamily from "@/components/LiveFamily";
+import MenuUpdateCard, { type MenuChange } from "@/components/MenuUpdateCard";
+import MenuAlertsToggle from "@/components/MenuAlertsToggle";
 import { redirect } from "next/navigation";
 import { clampDay, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
@@ -76,6 +78,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // A festival day can be a long way off; it is opened from the Festival days list
   const day = clampDay(date, 30, fest === "1" ? 400 : 6, timeZone);
   const today = todayLocal(timeZone);
+
+  // What the Key Member changed on the menu since this member last looked (never their own edits)
+  let menuChanges: MenuChange[] = [];
+  if (kutumbhId) {
+    const { data: seen } = await supabase.from("menu_seen").select("seen_at").eq("user_id", user!.id).eq("kutumbh_id", kutumbhId).maybeSingle();
+    const since = seen?.seen_at ?? new Date(Date.now() - 86400000).toISOString();
+    const { data: mc } = await supabase.from("menu_changes").select("planned_date, lines, author_id")
+      .eq("kutumbh_id", kutumbhId).gte("planned_date", today).gt("updated_at", since).neq("author_id", user!.id).order("planned_date").limit(5);
+    menuChanges = (mc ?? []).map((m) => ({ date: m.planned_date, label: longDateFor(m.planned_date), lines: m.lines ?? [] }));
+  }
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
   // Asked for on its own, so a page still opens where the photo store has
@@ -282,13 +294,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </span>
             )}
           </div>
+          {kutumbhId && !isPrime && <div className="mt-2"><MenuAlertsToggle compact /></div>}
         </div>
 
       </header>
 
       {/* ── Tabs + content ── */}
       <main className="flex-1 px-4 py-5">
-        {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools" />}
+        {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools,menu_changes" />}
+        {kutumbhId && menuChanges.length > 0 && <MenuUpdateCard changes={menuChanges} userId={user!.id} kutumbhId={kutumbhId} />}
         {festivalMode && festivalName ? (
           <FestivalMenu
             day={day}

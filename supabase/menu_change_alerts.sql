@@ -1,0 +1,6 @@
+-- Menu-change alerts (applied to the live database as migrations "menu_change_alerts" and "menu_change_lines_order").
+-- push_subscriptions: one row per phone that turned alerts on. menu_changes: one row per kutumbh+day,
+-- the Key Member's latest edits. menu_seen: when each member last dismissed the card.
+-- RPCs: save_push_subscription, record_menu_change (Key Member only; true when a phone alert should go out,
+-- at most one per day-row per 5 minutes), menu_push_targets (Key Member only), drop_push_endpoint.
+-- Full definitions: see the migrations in the Supabase project.

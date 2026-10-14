@@ -45,7 +45,19 @@ export default function MenuAlertsToggle({ compact = false }: { compact?: boolea
       const r = await fetch("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub.toJSON()) });
       if (!r.ok) throw new Error("save");
       setState("on");
+      fetch("/api/push/test", { method: "POST" }).catch(() => {});
+      setNote("Alerts are on. A test alert is on its way.");
     } catch { setNote("Could not switch this on. Please try again."); }
+    finally { setBusy(false); }
+  }
+
+  async function sendTest() {
+    setBusy(true); setNote(null);
+    try {
+      const r = await fetch("/api/push/test", { method: "POST" });
+      const j = await r.json().catch(() => ({}));
+      setNote(r.ok ? "Test alert sent — it should appear within a few seconds." : (j.error ?? "Could not send a test alert."));
+    } catch { setNote("Could not send a test alert."); }
     finally { setBusy(false); }
   }
 
@@ -88,7 +100,11 @@ export default function MenuAlertsToggle({ compact = false }: { compact?: boolea
           {busy ? "One moment…" : state === "on" ? "Turn off on this phone" : "Turn on alerts"}
         </button>
       )}
-      {note && <p className="text-xs mt-2 m-0" style={{ color: "#A23A1E" }}>{note}</p>}
+      {state === "on" && (
+        <button onClick={sendTest} disabled={busy} className="mt-3 ml-2 rounded-xl px-4 min-h-11 text-sm font-semibold"
+          style={{ background: "#6B46B8", color: "#FFFFFF" }}>Send me a test alert</button>
+      )}
+      {note && <p className="text-xs mt-2 m-0" style={{ color: /^(Test alert sent|Alerts are on)/.test(note) ? "#2F7D32" : "#A23A1E" }}>{note}</p>}
     </section>
   );
 }

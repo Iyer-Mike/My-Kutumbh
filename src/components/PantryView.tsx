@@ -368,7 +368,7 @@ export default function PantryView({
 
       const lines: BillLine[] = (data.items ?? []).map((i: Omit<BillLine, "take" | "matchId">) => {
         const match = findMatch(i.name, items);
-        return { ...i, take: true, matchId: match?.id ?? null };
+        return { ...i, take: !!match, matchId: match?.id ?? null };   // new things wait to be confirmed
       });
       if (lines.length === 0) {
         setBillNote("No kitchen items found · Retake it straighter and brighter.");
@@ -738,51 +738,102 @@ export default function PantryView({
                   On the bill{bill.shop ? ` · ${bill.shop}` : ""}
                 </h2>
                 <p className="text-[11px]" style={{ color: B.muted2 }}>
-                  Untick what doesn&apos;t belong, then put away.
+                  Check the amounts, confirm any new items, then record.
                 </p>
               </div>
 
-              <div className="grid">
-                {bill.lines.map((line, idx) => {
-                  const shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
-                  const set = (changes: Partial<BillLine>) =>
-                    setBill((b) => b && { ...b, lines: b.lines.map((l, i) => (i === idx ? { ...l, ...changes } : l)) });
-                  return (
-                    <div key={`${line.name}-${idx}`} className="flex items-center gap-2 py-2"
-                      style={{ borderTop: `1px solid ${FAMILY.violet.line}` }}>
-                      <button onClick={() => set({ take: !line.take })} aria-pressed={line.take}
-                        className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
-                        style={{ background: line.take ? B.violet : "transparent", border: `2px solid ${line.take ? B.violet : FAMILY.violet.edge}` }}
-                        aria-label={`${line.take ? "Skip" : "Keep"} ${line.name}`}>
-                        {line.take && (
-                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm truncate" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
-                        <p className="text-[11px]" style={{ color: B.muted2 }}>
-                          {shelf
-                            ? `Tops up ${shelf.name}${shelf.kind !== "sundry" && line.quantity != null && inShelfUnit(line.quantity, line.unit, shelf.unit) != null
-                                ? ` · ${amount(shelf.quantity, shelf.unit)} → ${amount(Math.round(((shelf.quantity ?? 0) + inShelfUnit(line.quantity, line.unit, shelf.unit)!) * 100) / 100, shelf.unit)}`
-                                : ""}`
-                            : `New · ${categoryLabel(line.category)}`}
+              {(() => {
+                const setLine = (idx: number, changes: Partial<BillLine>) =>
+                  setBill((b) => b && { ...b, lines: b.lines.map((l, i) => (i === idx ? { ...l, ...changes } : l)) });
+                const Tick = ({ line, idx }: { line: BillLine; idx: number }) => (
+                  <button onClick={() => setLine(idx, { take: !line.take })} aria-pressed={line.take}
+                    className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
+                    style={{ background: line.take ? B.violet : "#fff", border: `2px solid ${line.take ? B.violet : FAMILY.violet.edge}` }}
+                    aria-label={`${line.take ? "Skip" : "Take"} ${line.name}`}>
+                    {line.take && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+                );
+                const known = bill.lines.map((l, idx) => ({ l, idx })).filter(({ l }) => l.matchId);
+                const fresh = bill.lines.map((l, idx) => ({ l, idx })).filter(({ l }) => !l.matchId);
+                const allNewOn = fresh.length > 0 && fresh.every(({ l }) => l.take);
+                return (
+                  <>
+                    {known.length > 0 && (
+                      <div className="grid">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider m-0 pb-1" style={{ color: B.violet }}>
+                          Already on the shelf · {known.length}
+                        </p>
+                        {known.map(({ l: line, idx }) => {
+                          const shelf = items.find((i) => i.id === line.matchId)!;
+                          const add = line.quantity != null ? inShelfUnit(line.quantity, line.unit, shelf.unit) : null;
+                          return (
+                            <div key={`k-${idx}`} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${FAMILY.violet.line}` }}>
+                              <Tick line={line} idx={idx} />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm truncate m-0" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
+                                <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
+                                  {shelf.name}{shelf.kind !== "sundry" && add != null
+                                    ? ` · ${amount(shelf.quantity, shelf.unit) || "0"} → ${amount(Math.round(((shelf.quantity ?? 0) + add) * 100) / 100, shelf.unit)}`
+                                    : ""}
+                                </p>
+                              </div>
+                              <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>{amount(line.quantity, line.unit)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {fresh.length > 0 && (
+                      <div className="grid rounded-xl px-3 py-2" style={{ background: B.goldTint }}>
+                        <div className="flex items-center justify-between gap-2 pb-1">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.goldInk }}>
+                            New to the shelf · {fresh.length} — add {fresh.length > 1 ? "these" : "this"}?
+                          </p>
+                          {fresh.length > 1 && (
+                            <button onClick={() => setBill((b) => b && { ...b, lines: b.lines.map((l) => (l.matchId ? l : { ...l, take: !allNewOn })) })}
+                              className="text-[11px] font-semibold shrink-0" style={{ color: B.violetLink }}>
+                              {allNewOn ? "Untick all" : "Tick all"}
+                            </button>
+                          )}
+                        </div>
+                        {fresh.map(({ l: line, idx }) => (
+                          <div key={`n-${idx}`} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${FAMILY.gold.line}` }}>
+                            <Tick line={line} idx={idx} />
+                            <div className="min-w-0 flex-1 grid gap-1">
+                              <p className="text-sm truncate m-0" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
+                              {/* Which tab it lands in */}
+                              <select value={line.category} onChange={(e) => setLine(idx, { category: e.target.value })}
+                                aria-label={`Kind of ${line.name}`} className="rounded-lg px-2 py-1 text-xs w-fit max-w-full"
+                                style={fieldLook(FAMILY.amber)}>
+                                {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                              </select>
+                            </div>
+                            <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>{amount(line.quantity, line.unit)}</span>
+                          </div>
+                        ))}
+                        <p className="text-[10px] m-0 pt-1" style={{ color: B.goldInk }}>
+                          Ticked ones get their own row on the shelf. Unticked ones are left off.
                         </p>
                       </div>
-                      <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>
-                        {amount(line.quantity, line.unit)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                    )}
+                  </>
+                );
+              })()}
 
               <div className="flex gap-2">
                 <button onClick={applyBill} disabled={busy}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
                   style={{ background: B.button }}>
-                  {busy ? "Putting away…" : `Put ${bill.lines.filter((l) => l.take).length} away`}
+                  {busy ? "Putting away…" : (() => {
+                    const k = bill.lines.filter((l) => l.take && l.matchId).length;
+                    const n = bill.lines.filter((l) => l.take && !l.matchId).length;
+                    return [k ? `Record ${k}` : "", n ? `add ${n} new` : ""].filter(Boolean).join(" · ") || "Nothing ticked";
+                  })()}
                 </button>
                 <button onClick={() => setBill(null)} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
                   Cancel

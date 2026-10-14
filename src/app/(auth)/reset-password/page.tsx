@@ -28,8 +28,8 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      setError("Use at least 8 characters, with both letters and digits.");
       return;
     }
     if (password !== confirm) {
@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
             onChange={e => setPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
             style={fieldLook(FAMILY.amber)}
-            placeholder="Min. 8 characters"
+            placeholder="8+ characters, letters and digits"
           />
         </div>
 

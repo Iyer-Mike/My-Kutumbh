@@ -34,6 +34,10 @@ function SignupForm() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      setError("Use at least 8 characters, with both letters and digits.");
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -202,7 +206,7 @@ function SignupForm() {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
             style={fieldLook(FAMILY.amber)}
-            placeholder="Min. 8 characters"
+            placeholder="8+ characters, letters and digits"
           />
         </div>
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BRAND as B } from "@/lib/brand";
 
 export default function PageNav() {
   const router = useRouter();
@@ -21,6 +22,12 @@ export default function PageNav() {
       >
         ⌂ Home
       </Link>
+      {/* The app's name, on every page that has this bar; short form on very narrow phones */}
+      <span className="ml-auto min-w-0 whitespace-nowrap text-[15px] leading-none"
+        style={{ color: B.gold, fontFamily: "var(--font-dm-serif)", letterSpacing: "0.02em" }}>
+        <span className="hidden min-[360px]:inline">My Kutumb Bhojan</span>
+        <span className="min-[360px]:hidden">Kutumb Bhojan</span>
+      </span>
     </div>
   );
 }

@@ -265,10 +265,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <div className="flex items-center gap-3">
             <KutumbhLogo size={38} color="#ffffff" />
             <div>
+              <p className="text-[15px] leading-tight mb-0.5" style={{ color: "#F2B531", fontFamily: "var(--font-dm-serif)", letterSpacing: "0.02em" }}>
+                My Kutumb Bhojan
+              </p>
               <p className="text-xl leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
                 {kutumbhName}
               </p>
-              <p className="text-xs leading-tight" style={{ color: "#C9B8E4" }}>मेरा कुटुम्ब</p>
+              <p className="text-xs leading-tight" style={{ color: "#C9B8E4" }}>मेरा कुटुम्ब भोजन</p>
             </div>
           </div>
           <Link href="/profile" aria-label="Your profile">

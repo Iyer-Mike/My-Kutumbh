@@ -17,13 +17,13 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "My Kutumbh",
+  title: "My Kutumb Bhojan",
   description: "Family food & wellness, rooted in Ayurveda.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "My Kutumbh",
+    title: "My Kutumb Bhojan",
   },
   other: {
     "apple-mobile-web-app-capable": "yes",

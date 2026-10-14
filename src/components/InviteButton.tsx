@@ -51,9 +51,9 @@ export default function InviteButton({ inviterName, kutumbhName }: { inviterName
   }
 
   // A ready-made email. The number is left out on purpose: it goes by a second route (phone or message).
-  const mailSubject = `Join ${kutumbhName ? `our family, ${kutumbhName},` : "our family"} on My-Kutumbh`;
+  const mailSubject = `Join ${kutumbhName ? `our family, ${kutumbhName},` : "our family"} on My Kutumb Bhojan`;
   const mailBody = () =>
-    `Hi,\n\nI've invited you to join ${kutumbhName ?? "our family"} on My-Kutumbh, our family's food and health app.\n\n` +
+    `Hi,\n\nI've invited you to join ${kutumbhName ?? "our family"} on My Kutumb Bhojan, our family's food and health app.\n\n` +
     `1. Open this link: ${baseUrl}/join/${code}\n` +
     `2. When asked, enter the 6-digit number I will tell you separately (by phone or message).\n\n` +
     `The number works once and expires in 24 hours.\n\n${inviterName ? `– ${inviterName}` : "Thanks"}`;

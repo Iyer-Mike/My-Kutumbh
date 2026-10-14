@@ -9,7 +9,7 @@ import { FAMILY, look } from "@/lib/brand";
 /**
  * The waiting room.
  *
- * Somebody has registered and is waiting to be let into My Kutumbh.
+ * Somebody has registered and is waiting to be let into My Kutumb Bhojan.
  * The screen's job is to make waiting feel like a step rather than a
  * fault: what has happened, what happens next, and roughly when.
  */
@@ -52,7 +52,7 @@ export default async function WaitingPage() {
           style={{ ...look(FAMILY.gold), boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
         >
           <p className="m-0 text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
-            My Kutumbh
+            My Kutumb Bhojan
           </p>
 
           <h1 className="mt-2 mb-0 text-2xl" style={{ fontFamily: "var(--font-dm-serif)", color: "#241C33" }}>
@@ -72,7 +72,7 @@ export default async function WaitingPage() {
               <p className="mt-3 mb-0 text-sm" style={{ color: "#4A4360", lineHeight: 1.6 }}>
                 {neverKnocked
                   ? "Your account exists. To go further you need the code you were sent — either the passcode from the letter that invited you, or the six-digit number a family gave you."
-                  : "Your details are safely with us. Someone at My Kutumbh will look at your registration and welcome you in — usually within a day."}
+                  : "Your details are safely with us. Someone at My Kutumb Bhojan will look at your registration and welcome you in — usually within a day."}
               </p>
 
               {!neverKnocked && <div className="mt-5 grid gap-3">

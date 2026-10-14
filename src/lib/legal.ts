@@ -42,7 +42,7 @@ export type Doc = {
 
 export const PRIVACY: Doc = {
   slug: "privacy",
-  title: "What My Kutumbh knows about you",
+  title: "What My Kutumb Bhojan knows about you",
   lede:
     "In short: your food, your body, and your lab reports. Nothing is sold, nothing is " +
     "advertised, and nobody outside your family reads it.",
@@ -113,13 +113,13 @@ export const PRIVACY: Doc = {
 
 export const TERMS: Doc = {
   slug: "terms",
-  title: "Using My Kutumbh",
+  title: "Using My Kutumb Bhojan",
   version: "2026-10-05",
   sections: [
     {
       heading: "This is not medical advice",
       body: [
-        "My Kutumbh reads lab reports and suggests food. It is not a doctor, it does not " +
+        "My Kutumb Bhojan reads lab reports and suggests food. It is not a doctor, it does not " +
           "diagnose, and it cannot know what your doctor knows. Nothing here should change your " +
           "medicine or a doctor's instruction. Where it matters the app says *Ask Your Doctor* " +
           "— please do.",

@@ -39,7 +39,7 @@ function NewPasscode({ signature, appUrl }: { signature: string | null; appUrl: 
   const letter = [
     `Dear ${name.trim() || "friend"},`,
     "",
-    "I have kept a place for you in My Kutumbh — a small app for an Indian household's food:",
+    "I have kept a place for you in My Kutumb Bhojan — a small app for an Indian household's food:",
     "the day's menu, what each person eats, and what the lab report says about it.",
     "",
     "To register:",

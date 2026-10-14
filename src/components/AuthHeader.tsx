@@ -7,14 +7,14 @@ export default function AuthHeader({ subtitle }: { subtitle: string }) {
       <div className="flex justify-center mb-4">
         <span className="w-[46px] h-[46px] rounded-2xl flex items-center justify-center text-[26px]"
           style={{ background: B.gold, color: "#2A1646", fontFamily: "var(--font-dm-serif)" }}
-          role="img" aria-label="My Kutumbh">
+          role="img" aria-label="My Kutumb Bhojan">
           क
         </span>
       </div>
 
       {/* Brand lockup */}
       <p className="text-3xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
-        My Kutumbh
+        My Kutumb Bhojan
       </p>
       <p className="text-base mt-1" style={{ color: B.onDarkFaint }}>
         मेरा कुटुम्ब

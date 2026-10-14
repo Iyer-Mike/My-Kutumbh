@@ -3,7 +3,7 @@ import LegalDoc from "@/components/LegalDoc";
 import { TERMS } from "@/lib/legal";
 import { FAMILY, look } from "@/lib/brand";
 
-export const metadata = { title: "Using My Kutumbh" };
+export const metadata = { title: "Using My Kutumb Bhojan" };
 
 /**
  * Readable without signing in — on purpose.
@@ -21,13 +21,13 @@ export default function TermsPage() {
           style={{ ...look(FAMILY.violet), boxShadow: "0 10px 40px rgba(36,18,56,0.08)" }}
         >
           <p className="m-0 mb-4 text-xs font-semibold uppercase tracking-widest" style={{ color: "#6A6180" }}>
-            My Kutumbh
+            My Kutumb Bhojan
           </p>
           <LegalDoc doc={TERMS} />
         </div>
 
         <p className="text-center mt-5 mb-0 text-sm" style={{ color: "#6A6180" }}>
-          <Link href="/privacy" className="font-semibold" style={{ color: "#6B46B8" }}>What My Kutumbh knows about you</Link>
+          <Link href="/privacy" className="font-semibold" style={{ color: "#6B46B8" }}>What My Kutumb Bhojan knows about you</Link>
           <span className="mx-2">·</span>
           <Link href="/login" className="font-semibold" style={{ color: "#6B46B8" }}>Sign in</Link>
         </p>

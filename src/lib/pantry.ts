@@ -64,11 +64,15 @@ export function daysLeft(boughtOn: string | null, useWithin: number | null, toda
   return Math.round(ms / 86400000);
 }
 
-/** A staple is low when it drops under its own line; others carry a status. */
+/**
+ * Low when it reaches its own line (each item has its own, since dal goes faster than hing),
+ * when a counted item has run to nothing, or when someone has said so.
+ */
 export function isLow(item: { kind: Kind; status: Status; quantity: number | null; low_when: number | null }) {
   if (item.status !== "ok") return true;
-  if (item.kind === "staple" && item.quantity != null && item.low_when != null) {
-    return item.quantity <= item.low_when;
+  if (item.kind !== "sundry" && item.quantity != null) {
+    if (item.low_when != null) return item.quantity <= item.low_when;
+    return item.quantity <= 0;
   }
   return false;
 }

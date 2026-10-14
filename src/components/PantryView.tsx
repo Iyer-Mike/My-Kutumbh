@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { haveIt, sameThing } from "@/lib/ingredients";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
@@ -24,6 +24,11 @@ export type ShoppingItem = {
   bought_at: string | null;
 };
 
+/** One dated purchase of a shelf item, from a bill or a "bought" tick. */
+export type Purchase = {
+  id: string; pantry_item_id: string; quantity: number | null; unit: Unit | null; bought_on: string; shop: string | null;
+};
+
 const STATUS_STYLE: Record<Status, { label: string; bg: string; fg: string }> = {
   ok:  { label: "OK",    bg: "#E3F0E2", fg: "#2F6B33" },
   low: { label: "Low",   bg: B.goldTint, fg: B.goldInk },
@@ -38,7 +43,7 @@ const KIND_LOOK: Record<Kind, { bg: string; edge: string; ink: string }> = {
 };
 
 const amount = (q: number | null, u: Unit | null) =>
-  q == null ? "" : `${Number.isInteger(q) ? q : q.toFixed(2).replace(/0$/, "")} ${u ?? ""}`.trim();
+  q == null ? "" : `${Number.isInteger(q) ? q : String(Math.round(q * 1000) / 1000)} ${u ?? ""}`.trim();
 
 /** A line read off a bill, waiting to be checked before it touches the shelf. */
 type BillLine = {
@@ -67,16 +72,16 @@ function inShelfUnit(qty: number, from: Unit | null, to: Unit | null): number | 
   const f: Record<string, number> = { g: 1, kg: 1000, ml: 1, l: 1000 };
   const massOrVolume = (u: Unit) => (u === "g" || u === "kg" ? "m" : u === "ml" || u === "l" ? "v" : null);
   if (massOrVolume(from) && massOrVolume(from) === massOrVolume(to)) {
-    return Math.round(((qty * f[from]) / f[to]) * 100) / 100;
+    return Math.round(((qty * f[from]) / f[to]) * 1000) / 1000;
   }
   return null;
 }
 
 export default function PantryView({
-  kutumbhId, userId, isPrime, initialItems, initialShopping, menuDays, memberNames, today,
+  kutumbhId, userId, isPrime, initialItems, initialShopping, initialPurchases, menuDays, memberNames, today,
 }: {
   kutumbhId: string; userId: string; isPrime: boolean;
-  initialItems: PantryItem[]; initialShopping: ShoppingItem[];
+  initialItems: PantryItem[]; initialShopping: ShoppingItem[]; initialPurchases: Purchase[];
   menuDays: { date: string; label: string; dishes: { name: string; ings: string[] }[] }[];
   memberNames: Record<string, string>; today: string;
 }) {
@@ -89,7 +94,13 @@ export default function PantryView({
   const [buyName, setBuyName] = useState("");
   const [copied, setCopied] = useState(false);
   const [step, setStep] = useState<null | "shelf" | "menu" | "shop">(null);
-  const [tab, setTab] = useState<"staple" | "spice" | "fruit" | "fresh">("staple");
+  const [tab, setTab] = useState<"staple" | "veg" | "dairy" | "spice">("staple");
+  const [purchases, setPurchases] = useState(initialPurchases);
+  const [openId, setOpenId] = useState<string | null>(null);              // the shelf item opened for detail
+  const [stockDraft, setStockDraft] = useState({ quantity: "", low_when: "", category: "" });
+  const [boughtDraft, setBoughtDraft] = useState("");                      // "bought today" amount in the detail panel
+  const [tickId, setTickId] = useState<string | null>(null);               // the list line being ticked bought
+  const [tickQty, setTickQty] = useState("");
 
   // Reading a shop bill
   const billRef = useRef<HTMLInputElement>(null);
@@ -102,7 +113,7 @@ export default function PantryView({
   const open = shopping.filter((s) => s.status === "open");
 
   // What the next seven days' dishes need that is neither on the shelf nor already on the list
-  const shelfNames = items.map((i) => i.name);
+  const shelfNames = items.filter((i) => !isLow(i)).map((i) => i.name);
   const listedNames = open.map((s) => s.name);
   const ingState = (n: string): "have" | "listed" | "short" =>
     haveIt(n, shelfNames) ? "have" : haveIt(n, listedNames) ? "listed" : "short";
@@ -132,7 +143,7 @@ export default function PantryView({
       kutumbh_id: kutumbhId, name, kind, category,
       quantity: kind === "sundry" ? null : quantity,
       unit: kind === "sundry" ? null : (seed?.unit ?? draft.unit),
-      low_when: kind === "staple" ? (seed?.low_when ?? (draft.low_when ? parseFloat(draft.low_when) : null)) : null,
+      low_when: kind !== "sundry" ? (seed?.low_when ?? (draft.low_when ? parseFloat(draft.low_when) : null)) : null,
       bought_on: kind === "fresh" ? today : null,
       use_within_days: kind === "fresh" ? SHELF_LIFE[category] ?? 5 : null,
       updated_by: userId,
@@ -176,6 +187,80 @@ export default function PantryView({
     setItems((prev) => prev.filter((i) => i.id !== item.id));
   }
 
+  // ── The register: purchases in, stock now ───────────────────
+  const ITEM_COLS = "id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note";
+  const SHOP_COLS = "id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at, bought_at";
+
+  /** Re-read the shelf, the list and the purchases after a change made on the server. */
+  async function reloadAll() {
+    const [a, b, c] = await Promise.all([
+      supabase.from("pantry_items").select(ITEM_COLS).eq("kutumbh_id", kutumbhId).order("name"),
+      supabase.from("shopping_items").select(SHOP_COLS).eq("kutumbh_id", kutumbhId).order("created_at", { ascending: false }).limit(120),
+      supabase.from("pantry_purchases").select("id, pantry_item_id, quantity, unit, bought_on, shop")
+        .eq("kutumbh_id", kutumbhId).order("bought_on", { ascending: false }).order("created_at", { ascending: false }).limit(600),
+    ]);
+    if (a.data) setItems(a.data as PantryItem[]);
+    if (b.data) setShopping(b.data as ShoppingItem[]);
+    if (c.data) setPurchases(c.data as Purchase[]);
+  }
+
+  /** Bought: a dated purchase, stock goes up, the item is OK again and comes off the list. */
+  async function recordPurchase(item: PantryItem, qty: number | null, shop: string | null = null, on: string = today) {
+    const { error } = await supabase.rpc("record_purchase", {
+      p_item: item.id, p_qty: qty, p_unit: item.unit, p_on: on, p_shop: shop,
+    });
+    return error?.message ?? null;
+  }
+
+  /** The Key Member corrects what is on the shelf now, and where "low" begins for this item. */
+  async function saveStock(item: PantryItem) {
+    const q = stockDraft.quantity.trim() === "" ? null : parseFloat(stockDraft.quantity);
+    const l = stockDraft.low_when.trim() === "" ? null : parseFloat(stockDraft.low_when);
+    const category = stockDraft.category || item.category;
+    const kind = kindOf(category);
+    const moved = kind !== item.kind;
+    const changes: Partial<PantryItem> = kind === "sundry"
+      ? { category, kind, quantity: null, unit: null, low_when: null }
+      : {
+          category, kind, quantity: q, low_when: l,
+          unit: item.unit ?? (category === "dairy" ? "l" : "kg"),
+          ...(moved && kind === "fresh" ? { bought_on: today, use_within_days: SHELF_LIFE[category] ?? 5 } : {}),
+        };
+    const next = { ...item, ...changes };
+    await patch(item.id, { ...changes, status: isLow({ ...next, status: "ok" }) ? item.status : "ok" });
+    setOpenId(null);
+  }
+
+  async function boughtNow(item: PantryItem) {
+    if (busy) return;
+    setBusy(true);
+    const q = boughtDraft.trim() === "" ? null : parseFloat(boughtDraft);
+    const err = await recordPurchase(item, q);
+    if (err) return fail("record that", err);
+    await reloadAll();
+    setBoughtDraft("");
+    setBusy(false);
+  }
+
+  /** Ticked on the shopping list: it was bought. The amount is asked, but may be skipped. */
+  async function tickBought(s: ShoppingItem) {
+    if (busy) return;
+    setBusy(true);
+    const q = tickQty.trim() === "" ? null : parseFloat(tickQty);
+    const shelf = (s.pantry_item_id && items.find((i) => i.id === s.pantry_item_id)) || findMatch(s.name, items);
+    if (shelf) {
+      const err = await recordPurchase(shelf, q);
+      if (err) return fail("record that", err);
+    }
+    // Lines not tied to a shelf item (or tied by name only) are closed here
+    await supabase.from("shopping_items")
+      .update({ status: "bought", bought_by: userId, bought_at: new Date().toISOString(), quantity: q ?? s.quantity })
+      .eq("id", s.id).eq("status", "open");
+    await reloadAll();
+    setTickId(null); setTickQty("");
+    setBusy(false);
+  }
+
   // Any member may say something is running low; it lands on the list
   async function flagLow(item: PantryItem) {
     if (busy) return;
@@ -207,6 +292,8 @@ export default function PantryView({
   /** An ingredient the menu needs but the kitchen hasn't got. */
   async function addFromMenu(name: string) {
     if (busy) return;
+    const shelf = findMatch(name, items);
+    if (shelf) return flagLow(shelf);          // tied to the shelf item, so buying it tops the shelf up
     setBusy(true);
     const { data, error } = await supabase.from("shopping_items")
       .insert({ kutumbh_id: kutumbhId, name, source: "menu", requested_by: userId })
@@ -291,7 +378,7 @@ export default function PantryView({
 
       const lines: BillLine[] = (data.items ?? []).map((i: Omit<BillLine, "take" | "matchId">) => {
         const match = findMatch(i.name, items);
-        return { ...i, take: true, matchId: match?.id ?? null };
+        return { ...i, take: !!match, matchId: match?.id ?? null };   // new things wait to be confirmed
       });
       if (lines.length === 0) {
         setBillNote("No kitchen items found · Retake it straighter and brighter.");
@@ -313,190 +400,220 @@ export default function PantryView({
     setBillNote(null);
   }
 
-  /** Put the ticked lines on the shelf: top up what's there, add what isn't. */
+  /** Put the ticked lines on the shelf: each one a dated purchase; new things get a row first. */
   async function applyBill() {
     if (!bill || busy) return;
     const take = bill.lines.filter((l) => l.take);
     if (take.length === 0) { setBill(null); return; }
     setBusy(true);
 
-    const updates: PantryItem[] = [];
-    const inserts: Record<string, unknown>[] = [];
-
     for (const line of take) {
-      const shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
-      if (shelf) {
-        const added = line.quantity != null ? inShelfUnit(line.quantity, line.unit, shelf.unit) : null;
-        updates.push({
-          ...shelf,
-          status: "ok",
-          quantity: shelf.kind === "sundry" ? shelf.quantity
-            : added != null ? Math.round(((shelf.quantity ?? 0) + added) * 100) / 100
-            : shelf.quantity,
-          bought_on: shelf.kind === "fresh" ? today : shelf.bought_on,
-        });
-      } else {
+      let shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
+      if (!shelf) {
         const kind = kindOf(line.category);
-        inserts.push({
+        const { data, error } = await supabase.from("pantry_items").insert({
           kutumbh_id: kutumbhId, name: line.name, kind, category: line.category,
-          quantity: kind === "sundry" ? null : line.quantity,
-          unit: kind === "sundry" ? null : line.unit,
-          bought_on: kind === "fresh" ? today : null,
+          quantity: kind === "sundry" ? null : 0, unit: kind === "sundry" ? null : line.unit,
           use_within_days: kind === "fresh" ? SHELF_LIFE[line.category] ?? 5 : null,
           updated_by: userId,
-        });
+        }).select(ITEM_COLS).single();
+        if (error || !data) return fail("add that item", error?.message ?? "unknown");
+        shelf = data as PantryItem;
       }
+      const qty = line.quantity == null ? null
+        : shelf.kind === "sundry" ? line.quantity                       // kept in the history; spices aren't weighed on the shelf
+        : inShelfUnit(line.quantity, line.unit, shelf.unit) ?? (shelf.unit ? null : line.quantity);
+      const err = await recordPurchase(shelf, qty, bill.shop);
+      if (err) return fail("record the bill", err);
     }
 
-    for (const u of updates) {
-      const { error } = await supabase.from("pantry_items")
-        .update({ quantity: u.quantity, status: u.status, bought_on: u.bought_on, updated_by: userId, updated_at: new Date().toISOString() })
-        .eq("id", u.id);
-      if (error) return fail("update the shelf", error.message);
-    }
-
-    let added: PantryItem[] = [];
-    if (inserts.length) {
-      const { data, error } = await supabase.from("pantry_items").insert(inserts)
-        .select("id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note");
-      if (error) return fail("add those items", error.message);
-      added = (data ?? []) as PantryItem[];
-    }
-
-    setItems((prev) => {
-      const byId = new Map(updates.map((u) => [u.id, u]));
-      return [...prev.map((i) => byId.get(i.id) ?? i), ...added].sort((a, b) => a.name.localeCompare(b.name));
-    });
-
-    // Anything on the shopping list that was just bought comes off it
+    // Anything on the list bought by another name comes off it too
     const boughtNames = new Set(take.map((l) => norm(l.name)));
-    const done = open.filter((s) => boughtNames.has(norm(s.name)) || (s.pantry_item_id && take.some((l) => l.matchId === s.pantry_item_id)));
+    const done = open.filter((s) => boughtNames.has(norm(s.name)));
     if (done.length) {
       await supabase.from("shopping_items")
         .update({ status: "bought", bought_by: userId, bought_at: new Date().toISOString() })
         .in("id", done.map((s) => s.id));
-      setShopping((prev) => prev.map((s) => (done.some((d) => d.id === s.id) ? { ...s, status: "bought" } : s)));
     }
-
+    await reloadAll();
     setBill(null);
-    setBillNote(`${take.length} item${take.length > 1 ? "s" : ""} put on the shelf${done.length ? `, ${done.length} ticked off the list` : ""}.`);
+    setBillNote(`${take.length} item${take.length > 1 ? "s" : ""} recorded on the shelf.`);
     setBusy(false);
   }
 
-  // ── Rows ────────────────────────────────────────────────────
-  function StapleRow({ item }: { item: PantryItem }) {
+  // ── The register ────────────────────────────────────────────
+  const shortDate = (d: string) =>
+    new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
+  const boughtOf = (id: string) => purchases.filter((p) => p.pantry_item_id === id);   // newest first
+  const onList = (item: PantryItem) =>
+    open.some((s) => s.pantry_item_id === item.id || norm(s.name) === norm(item.name));
+  const RED = { bg: "#FBE2DC", fg: "#9A2C1B", edge: "#D2553C" };
+
+  function BoughtCell({ p }: { p?: Purchase }) {
+    if (!p) return <span className="text-xs text-center" style={{ color: B.muted2 }}>—</span>;
+    return (
+      <span className="grid text-center leading-tight">
+        <span className="text-xs tabular-nums" style={{ color: B.ink }}>{p.quantity != null ? amount(p.quantity, p.unit) : "✓"}</span>
+        <span className="text-[10px]" style={{ color: B.muted2 }}>{shortDate(p.bought_on)}</span>
+      </span>
+    );
+  }
+
+  function StockCell({ item }: { item: PantryItem }) {
     const low = isLow(item);
-    const step = item.unit === "g" || item.unit === "ml" ? 100 : item.unit === "kg" || item.unit === "l" ? 0.5 : 1;
-    return (
-      <div className="flex items-center gap-2 py-2.5" style={{ borderTop: `1px solid ${B.cardEdge}` }}>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium truncate" style={{ color: B.ink }}>{item.name}</p>
-          <p className="text-[11px]" style={{ color: low ? B.goldInk : B.muted2 }}>
-            {categoryLabel(item.category)}
-            {item.low_when != null && ` · buy more below ${amount(item.low_when, item.unit)}`}
-          </p>
-        </div>
-        {isPrime ? (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button onClick={() => patch(item.id, { quantity: Math.max(0, (item.quantity ?? 0) - step) })}
-              className="w-7 h-7 rounded-lg text-sm font-bold" style={{ background: B.tint, color: B.violet }}
-              aria-label={`Less ${item.name}`}>−</button>
-            <span className="text-sm tabular-nums min-w-[68px] text-center" style={{ color: B.ink }}>
-              {amount(item.quantity, item.unit) || "—"}
-            </span>
-            <button onClick={() => patch(item.id, { quantity: (item.quantity ?? 0) + step, status: "ok" })}
-              className="w-7 h-7 rounded-lg text-sm font-bold" style={{ background: B.tint, color: B.violet }}
-              aria-label={`More ${item.name}`}>+</button>
-            <button onClick={() => removeItem(item)} className="w-7 h-7 rounded-lg text-xs"
-              style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${item.name}`}>✕</button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm tabular-nums" style={{ color: B.ink }}>{amount(item.quantity, item.unit)}</span>
-            <LowButton item={item} />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function FreshRow({ item }: { item: PantryItem }) {
-    const left = daysLeft(item.bought_on, item.use_within_days, today);
-    const soon = left != null && left <= 1;
-    return (
-      <div className="flex items-center gap-2 py-2.5" style={{ borderTop: `1px solid ${B.cardEdge}` }}>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium truncate" style={{ color: B.ink }}>{item.name}</p>
-          <p className="text-[11px]" style={{ color: soon ? "#9A2C1B" : B.muted2 }}>
-            {amount(item.quantity, item.unit) || categoryLabel(item.category)}
-            {left != null && (left < 0 ? " · past its days" : left === 0 ? " · use today" : ` · use within ${left} day${left === 1 ? "" : "s"}`)}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {isPrime && (
-            <button onClick={() => patch(item.id, { bought_on: today, status: "ok" })}
-              className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold"
-              style={{ background: B.tint, color: B.violet }}>
-              Bought today
-            </button>
-          )}
-          <LowButton item={item} />
-          {isPrime && (
-            <button onClick={() => removeItem(item)} className="w-7 h-7 rounded-lg text-xs"
-              style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${item.name}`}>✕</button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  function SundryChip({ item }: { item: PantryItem }) {
-    const s = STATUS_STYLE[item.status];
-    const next: Status = item.status === "ok" ? "low" : item.status === "low" ? "out" : "ok";
-    return (
-      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
-        style={{ background: s.bg, border: `1px solid ${B.cardEdge}` }}>
-        <span className="text-xs font-medium" style={{ color: s.fg }}>{item.name}</span>
-        {isPrime ? (
-          <button onClick={() => patch(item.id, { status: next })}
-            className="text-[10px] font-bold uppercase" style={{ color: s.fg }}
-            aria-label={`${item.name} is ${s.label}, tap for ${STATUS_STYLE[next].label}`}>
-            {s.label}
-          </button>
-        ) : (
-          <button onClick={() => flagLow(item)} className="text-[10px] font-bold uppercase" style={{ color: s.fg }}>
-            {item.status === "ok" ? "Flag low" : s.label}
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  function LowButton({ item }: { item: PantryItem }) {
-    if (item.status !== "ok") {
-      const s = STATUS_STYLE[item.status];
+    const label = item.quantity != null ? amount(item.quantity, item.unit) : STATUS_STYLE[item.status].label;
+    if (!low) return <span className="text-sm font-semibold tabular-nums text-center" style={{ color: B.ink }}>{label || "—"}</span>;
+    if (onList(item)) {
       return (
-        <span className="px-2 py-1 rounded-full text-[10px] font-bold" style={{ background: s.bg, color: s.fg }}>
-          {s.label}
+        <span className="rounded-lg px-1 py-1 text-center leading-tight" style={{ background: B.goldTint, color: B.goldInk }}>
+          <span className="block text-xs font-semibold tabular-nums">{label}</span>
+          <span className="block text-[10px] font-semibold">on list</span>
         </span>
       );
     }
+    // Red: one tap puts it on the shopping list
     return (
       <button onClick={() => flagLow(item)} disabled={busy}
-        className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold disabled:opacity-50"
-        style={{ background: B.goldTint, color: B.goldInk }}>
-        Running low
+        className="rounded-lg px-1 py-1 text-center leading-tight disabled:opacity-60"
+        style={{ background: RED.bg, color: RED.fg, border: `1.5px solid ${RED.edge}` }}
+        aria-label={`${item.name} is low — add to the shopping list`}>
+        <span className="block text-xs font-bold tabular-nums">{label}</span>
+        <span className="block text-[10px] font-semibold">+ list</span>
       </button>
     );
   }
 
+  function openDetail(item: PantryItem) {
+    if (openId === item.id) { setOpenId(null); return; }
+    setOpenId(item.id);
+    setStockDraft({ quantity: item.quantity != null ? String(item.quantity) : "", low_when: item.low_when != null ? String(item.low_when) : "", category: item.category });
+    setBoughtDraft("");
+  }
+
+  /** The opened item: record a purchase, correct the shelf, see its history. */
+  function detailPanel(item: PantryItem) {
+    const bought = boughtOf(item.id);
+    return (
+          <div className="rounded-xl px-3 py-3 mb-2 grid gap-3" style={{ background: "#FFFFFF", border: `1px solid ${B.cardEdge}` }}>
+            <div className="grid gap-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Bought now?</p>
+              <div className="flex gap-1.5">
+                <input type="number" inputMode="decimal" min="0" step="any" value={boughtDraft}
+                  onChange={(e) => setBoughtDraft(e.target.value)} placeholder="How much"
+                  aria-label={`Amount of ${item.name} bought`}
+                  className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
+                <span className="self-center text-sm" style={{ color: B.muted }}>{item.unit ?? ""}</span>
+                <button onClick={() => boughtNow(item)} disabled={busy}
+                  className="px-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>
+                  Record
+                </button>
+              </div>
+            </div>
+
+            {isPrime && (
+              <div className="grid gap-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Correct the shelf</p>
+                <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
+                  Kind (which tab it sits in)
+                  <select value={stockDraft.category} onChange={(e) => setStockDraft({ ...stockDraft, category: e.target.value })}
+                    className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
+                    {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                  </select>
+                </label>
+                {kindOf(stockDraft.category || item.category) !== "sundry" && (
+                <div className="grid grid-cols-2 gap-1.5">
+                  <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
+                    Current stock ({item.unit ?? "—"})
+                    <input type="number" inputMode="decimal" min="0" step="any" value={stockDraft.quantity}
+                      onChange={(e) => setStockDraft({ ...stockDraft, quantity: e.target.value })}
+                      className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
+                  </label>
+                  <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
+                    Low at ({item.unit ?? "—"})
+                    <input type="number" inputMode="decimal" min="0" step="any" value={stockDraft.low_when}
+                      onChange={(e) => setStockDraft({ ...stockDraft, low_when: e.target.value })}
+                      className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
+                  </label>
+                </div>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={() => saveStock(item)} disabled={busy}
+                    className="flex-1 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>
+                    Save
+                  </button>
+                  <button onClick={() => removeItem(item)} className="px-3 py-2 rounded-xl text-sm font-semibold"
+                    style={{ background: RED.bg, color: RED.fg }}>Remove item</button>
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Purchases</p>
+              {bought.length === 0 ? (
+                <p className="text-xs m-0" style={{ color: B.muted2 }}>None recorded yet.</p>
+              ) : bought.slice(0, 12).map((p) => (
+                <p key={p.id} className="text-xs m-0 flex justify-between gap-2" style={{ color: B.ink }}>
+                  <span>{shortDate(p.bought_on)}{p.shop ? ` · ${p.shop}` : ""}</span>
+                  <span className="tabular-nums">{p.quantity != null ? amount(p.quantity, p.unit) : "—"}</span>
+                </p>
+              ))}
+            </div>
+          </div>
+    );
+  }
+
+  function RegisterRow({ item }: { item: PantryItem }) {
+    const bought = boughtOf(item.id);
+    const left = item.kind === "fresh" ? daysLeft(item.bought_on, item.use_within_days, today) : null;
+    const opened = openId === item.id;
+    return (
+      <div style={{ borderTop: `1px solid ${B.cardEdge}` }}>
+        <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 items-center py-2">
+          <button onClick={() => openDetail(item)} className="min-w-0 text-left" aria-expanded={opened}>
+            <span className="block text-sm font-medium truncate" style={{ color: B.ink }}>{item.name}</span>
+            <span className="block text-[10px] truncate" style={{ color: left != null && left <= 1 ? RED.fg : B.muted2 }}>
+              {left != null
+                ? (left < 0 ? "past its days" : left === 0 ? "use today" : `use within ${left}d`)
+                : item.low_when != null ? `low at ${amount(item.low_when, item.unit)}` : categoryLabel(item.category)}
+            </span>
+          </button>
+          <BoughtCell p={bought[1]} />
+          <BoughtCell p={bought[0]} />
+          <StockCell item={item} />
+        </div>
+
+        {opened && detailPanel(item)}
+      </div>
+    );
+  }
+
+  /** Spices aren't weighed: a chip that is green when fine, red when low or out. */
+  function SundryChip({ item }: { item: PantryItem }) {
+    const low = item.status !== "ok";
+    const listed = low && onList(item);
+    const style = !low ? { background: "#E3F0E2", color: "#2F6B33", border: "1px solid #B9D8B6" }
+      : listed ? { background: B.goldTint, color: B.goldInk, border: `1px solid ${B.goldInk}` }
+      : { background: RED.bg, color: RED.fg, border: `1.5px solid ${RED.edge}` };
+    const last = boughtOf(item.id)[0];
+    return (
+      <button onClick={() => (!listed ? flagLow(item) : undefined)} disabled={busy || listed}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium disabled:opacity-100"
+        style={style}
+        aria-label={!low ? `${item.name} is fine — tap if it is running low` : listed ? `${item.name} is on the list` : `${item.name} is low — add to the list`}>
+        <span>{item.name}</span>
+        <span className="text-[10px] font-bold uppercase">
+          {!low ? (last ? shortDate(last.bought_on) : "OK") : listed ? "on list" : "+ list"}
+        </span>
+      </button>
+    );
+  }
 
   // ── The steps ───────────────────────────────────────────────
   const TABS = [
-    { key: "staple", label: "Staples",        hint: "Rice, dals, atta, oil, sugar — kept by weight",   tone: KIND_LOOK.staple, match: (i: PantryItem) => i.kind === "staple" },
-    { key: "spice",  label: "Spices",         hint: "Nobody weighs haldi — just OK, low or out",       tone: KIND_LOOK.sundry, match: (i: PantryItem) => i.kind === "sundry" },
-    { key: "fruit",  label: "Fruits",         hint: "Bought often, used soon",                         tone: { bg: FAMILY.violet.bg, edge: FAMILY.violet.edge, ink: FAMILY.violet.ink }, match: (i: PantryItem) => i.kind === "fresh" && i.category === "fruit" },
-    { key: "fresh",  label: "Greens & Fresh", hint: "Vegetables, greens, milk and curd — used soon",   tone: KIND_LOOK.fresh,  match: (i: PantryItem) => i.kind === "fresh" && i.category !== "fruit" },
+    { key: "staple", label: "Staples",      hint: "Rice, dals, atta, oil, sugar",                     tone: KIND_LOOK.staple, match: (i: PantryItem) => i.kind === "staple" },
+    { key: "veg",    label: "Veg & Fruits", hint: "Vegetables, greens and fruit — used soon",        tone: KIND_LOOK.fresh,  match: (i: PantryItem) => i.kind === "fresh" && i.category !== "dairy" },
+    { key: "dairy",  label: "Dairy",        hint: "Milk, curd, paneer, butter — bought most days",   tone: { bg: FAMILY.violet.bg, edge: FAMILY.violet.edge, ink: FAMILY.violet.ink }, match: (i: PantryItem) => i.kind === "fresh" && i.category === "dairy" },
+    { key: "spice",  label: "Spices",       hint: "Not weighed · tap one when it runs low",          tone: KIND_LOOK.sundry, match: (i: PantryItem) => i.kind === "sundry" },
   ] as const;
   const lowCount = items.filter((i) => isLow(i) || i.status !== "ok").length;
   const plannedDays = menuDays.filter((d) => d.dishes.length > 0).length;
@@ -565,12 +682,32 @@ export default function PantryView({
             {tabRows.length === 0 ? (
               <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
             ) : current.key === "spice" ? (
-              <div className="flex flex-wrap gap-2 pt-1">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
+              <div className="grid gap-2 pt-1">
+                <div className="flex flex-wrap gap-2">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
+                {isPrime && (
+                  <label className="text-[11px] grid gap-1" style={{ color: B.muted2 }}>
+                    Open one to correct it or move it to another tab
+                    <select value={tabRows.some((i) => i.id === openId) ? openId! : ""}
+                      onChange={(e) => { const it = tabRows.find((i) => i.id === e.target.value); if (it) openDetail(it); else setOpenId(null); }}
+                      className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
+                      <option value="">Choose a spice…</option>
+                      {tabRows.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    </select>
+                  </label>
+                )}
+                {(() => { const it = tabRows.find((i) => i.id === openId); return it ? detailPanel(it) : null; })()}
+              </div>
             ) : (
               <div className="grid">
-                {tabRows.map((i) => current.key === "staple"
-                  ? <StapleRow key={i.id} item={i} />
-                  : <FreshRow key={i.id} item={i} />)}
+                <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wide"
+                  style={{ color: current.tone.ink }}>
+                  <span>Item</span><span className="text-center">Bought 1</span><span className="text-center">Bought 2</span>
+                  <span className="text-center">Current stock</span>
+                </div>
+                {tabRows.map((i) => <Fragment key={i.id}>{RegisterRow({ item: i })}</Fragment>)}
+                <p className="text-[10px] pt-2 m-0" style={{ color: B.muted2 }}>
+                  Tap an item to record a purchase{isPrime ? ", correct its stock or set when it is low" : ""}. Red = low · tap it to add to the list.
+                </p>
               </div>
             )}
           </section>
@@ -640,51 +777,102 @@ export default function PantryView({
                   On the bill{bill.shop ? ` · ${bill.shop}` : ""}
                 </h2>
                 <p className="text-[11px]" style={{ color: B.muted2 }}>
-                  Untick what doesn&apos;t belong, then put away.
+                  Check the amounts, confirm any new items, then record.
                 </p>
               </div>
 
-              <div className="grid">
-                {bill.lines.map((line, idx) => {
-                  const shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
-                  const set = (changes: Partial<BillLine>) =>
-                    setBill((b) => b && { ...b, lines: b.lines.map((l, i) => (i === idx ? { ...l, ...changes } : l)) });
-                  return (
-                    <div key={`${line.name}-${idx}`} className="flex items-center gap-2 py-2"
-                      style={{ borderTop: `1px solid ${FAMILY.violet.line}` }}>
-                      <button onClick={() => set({ take: !line.take })} aria-pressed={line.take}
-                        className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
-                        style={{ background: line.take ? B.violet : "transparent", border: `2px solid ${line.take ? B.violet : FAMILY.violet.edge}` }}
-                        aria-label={`${line.take ? "Skip" : "Keep"} ${line.name}`}>
-                        {line.take && (
-                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm truncate" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
-                        <p className="text-[11px]" style={{ color: B.muted2 }}>
-                          {shelf
-                            ? `Tops up ${shelf.name}${shelf.kind !== "sundry" && line.quantity != null && inShelfUnit(line.quantity, line.unit, shelf.unit) != null
-                                ? ` · ${amount(shelf.quantity, shelf.unit)} → ${amount(Math.round(((shelf.quantity ?? 0) + inShelfUnit(line.quantity, line.unit, shelf.unit)!) * 100) / 100, shelf.unit)}`
-                                : ""}`
-                            : `New · ${categoryLabel(line.category)}`}
+              {(() => {
+                const setLine = (idx: number, changes: Partial<BillLine>) =>
+                  setBill((b) => b && { ...b, lines: b.lines.map((l, i) => (i === idx ? { ...l, ...changes } : l)) });
+                const Tick = ({ line, idx }: { line: BillLine; idx: number }) => (
+                  <button onClick={() => setLine(idx, { take: !line.take })} aria-pressed={line.take}
+                    className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center"
+                    style={{ background: line.take ? B.violet : "#fff", border: `2px solid ${line.take ? B.violet : FAMILY.violet.edge}` }}
+                    aria-label={`${line.take ? "Skip" : "Take"} ${line.name}`}>
+                    {line.take && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden="true">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+                );
+                const known = bill.lines.map((l, idx) => ({ l, idx })).filter(({ l }) => l.matchId);
+                const fresh = bill.lines.map((l, idx) => ({ l, idx })).filter(({ l }) => !l.matchId);
+                const allNewOn = fresh.length > 0 && fresh.every(({ l }) => l.take);
+                return (
+                  <>
+                    {known.length > 0 && (
+                      <div className="grid">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider m-0 pb-1" style={{ color: B.violet }}>
+                          Already on the shelf · {known.length}
+                        </p>
+                        {known.map(({ l: line, idx }) => {
+                          const shelf = items.find((i) => i.id === line.matchId)!;
+                          const add = line.quantity != null ? inShelfUnit(line.quantity, line.unit, shelf.unit) : null;
+                          return (
+                            <div key={`k-${idx}`} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${FAMILY.violet.line}` }}>
+                              <Tick line={line} idx={idx} />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm truncate m-0" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
+                                <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
+                                  {shelf.name}{shelf.kind !== "sundry" && add != null
+                                    ? ` · ${amount(shelf.quantity, shelf.unit) || "0"} → ${amount(Math.round(((shelf.quantity ?? 0) + add) * 1000) / 1000, shelf.unit)}`
+                                    : ""}
+                                </p>
+                              </div>
+                              <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>{amount(line.quantity, line.unit)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {fresh.length > 0 && (
+                      <div className="grid rounded-xl px-3 py-2" style={{ background: B.goldTint }}>
+                        <div className="flex items-center justify-between gap-2 pb-1">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.goldInk }}>
+                            New to the shelf · {fresh.length} — add {fresh.length > 1 ? "these" : "this"}?
+                          </p>
+                          {fresh.length > 1 && (
+                            <button onClick={() => setBill((b) => b && { ...b, lines: b.lines.map((l) => (l.matchId ? l : { ...l, take: !allNewOn })) })}
+                              className="text-[11px] font-semibold shrink-0" style={{ color: B.violetLink }}>
+                              {allNewOn ? "Untick all" : "Tick all"}
+                            </button>
+                          )}
+                        </div>
+                        {fresh.map(({ l: line, idx }) => (
+                          <div key={`n-${idx}`} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${FAMILY.gold.line}` }}>
+                            <Tick line={line} idx={idx} />
+                            <div className="min-w-0 flex-1 grid gap-1">
+                              <p className="text-sm truncate m-0" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
+                              {/* Which tab it lands in */}
+                              <select value={line.category} onChange={(e) => setLine(idx, { category: e.target.value })}
+                                aria-label={`Kind of ${line.name}`} className="rounded-lg px-2 py-1 text-xs w-fit max-w-full"
+                                style={fieldLook(FAMILY.amber)}>
+                                {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                              </select>
+                            </div>
+                            <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>{amount(line.quantity, line.unit)}</span>
+                          </div>
+                        ))}
+                        <p className="text-[10px] m-0 pt-1" style={{ color: B.goldInk }}>
+                          Ticked ones get their own row on the shelf. Unticked ones are left off.
                         </p>
                       </div>
-                      <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>
-                        {amount(line.quantity, line.unit)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                    )}
+                  </>
+                );
+              })()}
 
               <div className="flex gap-2">
                 <button onClick={applyBill} disabled={busy}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
                   style={{ background: B.button }}>
-                  {busy ? "Putting away…" : `Put ${bill.lines.filter((l) => l.take).length} away`}
+                  {busy ? "Putting away…" : (() => {
+                    const k = bill.lines.filter((l) => l.take && l.matchId).length;
+                    const n = bill.lines.filter((l) => l.take && !l.matchId).length;
+                    return [k ? `Record ${k}` : "", n ? `add ${n} new` : ""].filter(Boolean).join(" · ") || "Nothing ticked";
+                  })()}
                 </button>
                 <button onClick={() => setBill(null)} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
                   Cancel
@@ -731,7 +919,7 @@ export default function PantryView({
                   <div className="grid gap-1">
                     <label htmlFor="p-qty" className="text-xs font-medium" style={{ color: B.muted }}>How much</label>
                     <div className="flex gap-1.5">
-                      <input id="p-qty" type="number" inputMode="decimal" min="0" step="0.25" value={draft.quantity}
+                      <input id="p-qty" type="number" inputMode="decimal" min="0" step="any" value={draft.quantity}
                         onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
                         className="w-full min-w-0 rounded-xl px-3 py-2 text-sm"
                         style={fieldLook(FAMILY.amber)} />
@@ -745,12 +933,12 @@ export default function PantryView({
                 )}
               </div>
 
-              {kindOf(draft.category) === "staple" && (
+              {kindOf(draft.category) !== "sundry" && (
                 <div className="grid gap-1">
                   <label htmlFor="p-low" className="text-xs font-medium" style={{ color: B.muted }}>
-                    Tell me to buy more below
+                    Low at (turns red here)
                   </label>
-                  <input id="p-low" type="number" inputMode="decimal" min="0" step="0.25" value={draft.low_when}
+                  <input id="p-low" type="number" inputMode="decimal" min="0" step="any" value={draft.low_when}
                     onChange={(e) => setDraft({ ...draft, low_when: e.target.value })}
                     placeholder={`e.g. 1 ${draft.unit}`}
                     className="rounded-xl px-3 py-2 text-sm"
@@ -882,18 +1070,41 @@ export default function PantryView({
         </div>
 
         {open.length === 0 ? (
-          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Tick what you need on the Menu step.</p>
+          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Tap a red item on the Shelf, or tick what the Menu needs.</p>
         ) : (
           <div className="grid">
-            {open.map((s) => (
-              <div key={s.id} className="flex items-center gap-2 py-2.5" style={{ borderTop: `1px solid ${FAMILY.green.line}` }}>
-                <p className="min-w-0 flex-1 text-sm" style={{ color: B.ink }}>
-                  {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
-                </p>
-                <button onClick={() => removeFromList(s)} className="w-8 h-8 rounded-lg text-sm shrink-0"
-                  style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
-              </div>
-            ))}
+            {open.map((s) => {
+              const shelf = (s.pantry_item_id && items.find((i) => i.id === s.pantry_item_id)) || findMatch(s.name, items);
+              const ticking = tickId === s.id;
+              return (
+                <div key={s.id} className="py-2.5 grid gap-2" style={{ borderTop: `1px solid ${FAMILY.green.line}` }}>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => { setTickId(ticking ? null : s.id); setTickQty(""); }}
+                      className="w-7 h-7 shrink-0 rounded-md flex items-center justify-center text-sm font-bold"
+                      style={{ background: ticking ? FAMILY.green.edge : "#fff", color: ticking ? "#fff" : FAMILY.green.edge, border: `2px solid ${FAMILY.green.edge}` }}
+                      aria-label={`Bought ${s.name}`}>✓</button>
+                    <p className="min-w-0 flex-1 text-sm m-0" style={{ color: B.ink }}>
+                      {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
+                    </p>
+                    <button onClick={() => removeFromList(s)} className="w-8 h-8 rounded-lg text-sm shrink-0"
+                      style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
+                  </div>
+                  {ticking && (
+                    <div className="flex gap-1.5 pl-9">
+                      <input type="number" inputMode="decimal" min="0" step="any" value={tickQty} autoFocus
+                        onChange={(e) => setTickQty(e.target.value)} placeholder="How much? (optional)"
+                        aria-label={`Amount of ${s.name} bought`}
+                        className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.green)} />
+                      <span className="self-center text-sm" style={{ color: B.muted }}>{shelf?.unit ?? s.unit ?? ""}</span>
+                      <button onClick={() => tickBought(s)} disabled={busy}
+                        className="px-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>
+                        Bought
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

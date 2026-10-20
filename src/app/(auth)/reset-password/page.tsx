@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
@@ -10,7 +9,6 @@ import { writeLastUser } from "@/lib/last-user";
 import PasswordRules, { ConfirmHint, passwordOk } from "@/components/PasswordRules";
 
 export default function ResetPasswordPage() {
-  const router   = useRouter();
   const supabase = createClient();
   const [pwTouched, setPwTouched] = useState(false);
   const [password, setPassword]     = useState("");
@@ -64,7 +62,7 @@ export default function ResetPasswordPage() {
     }
 
     await supabase.auth.signOut();
-    router.push("/login?changed=1");
+    window.location.replace("/login?changed=1");
   }
 
   if (sessionOk === false) {

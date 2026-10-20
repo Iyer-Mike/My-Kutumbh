@@ -16,7 +16,7 @@ export default function SwitchPerson({ code, who }: { code: string; who?: string
     setBusy(true);
     await createClient().auth.signOut();
     // A full load, so nothing of the earlier sign-in is left on the page
-    window.location.assign(`/join/${code}`);
+    window.location.replace(`/join/${code}`);
   }
   return (
     <button onClick={go} disabled={busy}

@@ -39,6 +39,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(HOME, request.url));
   }
 
+  // A page with someone's family on it is never kept by the browser, so after
+  // signing out the Back button has to ask again — and is sent to sign in
+  if (user) supabaseResponse.headers.set("Cache-Control", "private, no-store, max-age=0");
+
   return supabaseResponse;
 }
 

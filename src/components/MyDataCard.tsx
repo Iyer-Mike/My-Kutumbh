@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { forgetMe } from "@/app/(app)/profile/forget-actions";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 
@@ -17,7 +16,6 @@ export default function MyDataCard() {
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const router = useRouter();
 
   // Typing the word is not a formality: it is the moment someone
   // realises they meant the other button.
@@ -89,7 +87,7 @@ export default function MyDataCard() {
                   start(async () => {
                     setError(null);
                     const r = await forgetMe();
-                    if (r.ok) router.push("/login?forgotten=1");
+                    if (r.ok) window.location.replace("/login?forgotten=1");
                     else setError(r.error ?? "It didn't work.");
                   })
                 }

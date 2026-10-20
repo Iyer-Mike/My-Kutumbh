@@ -1,15 +1,13 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-
 export default function SignOutButton({ compact = false }: { compact?: boolean }) {
-  const router = useRouter();
-
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    // A full load that replaces this page in the history: Back cannot return to it,
+    // and nothing the app kept in memory from the signed-in pages survives
+    window.location.replace("/login");
   }
 
   if (compact) {

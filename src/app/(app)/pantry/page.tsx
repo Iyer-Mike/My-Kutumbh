@@ -6,8 +6,11 @@ import { BRAND as B } from "@/lib/brand";
 import { dayLabel, daysAheadLocal, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
 import { ingredientNames } from "@/lib/ingredients";
+import { ITEM_COLS, checkPantry, type CheckedItem } from "@/lib/pantry-check";
+import type { MenuUse } from "@/lib/kitchen-library";
 
-export default async function PantryPage() {
+export default async function PantryPage({ searchParams }: { searchParams: Promise<{ step?: string }> }) {
+  const { step } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -27,14 +30,20 @@ export default async function PantryPage() {
   let items: PantryItem[] = [];
   let shopping: ShoppingItem[] = [];
   let purchases: Purchase[] = [];
+  let familySize = 1;
+  let use: MenuUse = {};
   let menuDays: { date: string; label: string; dishes: { name: string; ings: string[] }[] }[] = [];
   const names: Record<string, string> = {};
 
   if (kutumbhId) {
-    const [{ data: pantry }, { data: list }, { data: people }, { data: bought }] = await Promise.all([
-      supabase.from("pantry_items")
-        .select("id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note")
-        .eq("kutumbh_id", kutumbhId).order("name"),
+    // The shelf first: what is short goes on the list before the list is read
+    const { data: pantry } = await supabase.from("pantry_items").select(ITEM_COLS).eq("kutumbh_id", kutumbhId).order("name");
+    const check = await checkPantry(supabase, {
+      kutumbhId, userId: user!.id, timeZone, today, items: (pantry ?? []) as CheckedItem[], sync: true,
+    });
+    familySize = check.familySize;
+    use = check.use;
+    const [{ data: list }, { data: people }, { data: bought }] = await Promise.all([
       supabase.from("shopping_items")
         .select("id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at, bought_at")
         .eq("kutumbh_id", kutumbhId).order("created_at", { ascending: false }).limit(120),
@@ -111,6 +120,10 @@ export default async function PantryPage() {
             initialItems={items}
             initialShopping={shopping}
             initialPurchases={purchases}
+            familySize={familySize}
+            menuUse={use}
+            timeZone={timeZone}
+            initialStep={step === "shop" || step === "shelf" || step === "menu" ? step : null}
             menuDays={menuDays}
             memberNames={names}
             today={today}

@@ -31,7 +31,10 @@ Bills are printed in shorthand: expand it into the plain name a family uses.
 
 For each line give:
 - name: the plain item name, title case, no brand or pack code
-- quantity and unit: the amount bought, in kg, g, l, ml, packet, piece, bunch or dozen. A line like "2 x 1KG" is 2 kg. When the bill shows only a price and no amount, leave both null.
+- quantity and unit: the amount bought, in kg, g, l, ml, packet, piece, bunch or dozen. A line like "2 x 1KG" is 2 kg.
+  When the pack size is printed ("TOOR DAL 500G", "MILK 1L"), give that weight or volume, times the number of packs.
+  When only a count of packs is shown ("1 PKT", "2 NOS") with no size, give the count with unit packet — never guess a weight.
+  When the bill shows only a price and no amount, leave both null.
 - category: grain, dal, flour, oil, spice, vegetable, fruit, dairy, dry_fruit, ready, or other
   Fresh things are vegetable, even when they flavour food: ginger, garlic, green chilli, curry leaves, coriander leaves, mint, lemon is fruit.
   spice is only for dry spices: powders, seeds and whole dry spices (haldi, jeera, mustard seeds, dry red chilli, cardamom).

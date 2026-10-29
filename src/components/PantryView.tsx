@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { haveIt, sameThing } from "@/lib/ingredients";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
@@ -10,16 +10,19 @@ import {
   categoryLabel, daysLeft, isLow, kindOf,
   type Kind, type Status, type Unit,
 } from "@/lib/pantry";
+import { LIBRARY_BY_KEY, convert, estimate, matchLibrary, packToShelf, shelfPlace, type Estimate, type MenuUse } from "@/lib/kitchen-library";
+import { ITEM_COLS as CHECK_COLS, dayIn } from "@/lib/pantry-shared";
 
 export type PantryItem = {
   id: string; name: string; kind: Kind; category: string;
   quantity: number | null; unit: Unit | null; low_when: number | null;
   status: Status; bought_on: string | null; use_within_days: number | null; note: string | null;
+  library_key: string | null; stock_at: string | null; daily_use: number | null;
 };
 
 export type ShoppingItem = {
   id: string; name: string; quantity: number | null; unit: Unit | null;
-  source: "manual" | "low" | "menu"; status: "open" | "bought";
+  source: "manual" | "low" | "menu" | "auto"; status: "open" | "bought";
   pantry_item_id: string | null; requested_by: string | null; created_at: string;
   bought_at: string | null;
 };
@@ -49,6 +52,7 @@ const amount = (q: number | null, u: Unit | null) =>
 type BillLine = {
   name: string; quantity: number | null; unit: Unit | null; category: string;
   take: boolean; matchId: string | null;
+  libKey: string | null;        // in the kitchen library, though not yet on this shelf
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/\(.*?\)/g, " ").replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
@@ -79,8 +83,10 @@ function inShelfUnit(qty: number, from: Unit | null, to: Unit | null): number | 
 
 export default function PantryView({
   kutumbhId, userId, isPrime, initialItems, initialShopping, initialPurchases, menuDays, memberNames, today,
+  familySize, menuUse, timeZone, initialStep = null,
 }: {
-  kutumbhId: string; userId: string; isPrime: boolean;
+  initialStep?: null | "shelf" | "menu" | "shop";
+  kutumbhId: string; userId: string; isPrime: boolean; familySize: number; menuUse: MenuUse; timeZone: string;
   initialItems: PantryItem[]; initialShopping: ShoppingItem[]; initialPurchases: Purchase[];
   menuDays: { date: string; label: string; dishes: { name: string; ings: string[] }[] }[];
   memberNames: Record<string, string>; today: string;
@@ -93,7 +99,7 @@ export default function PantryView({
   const [draft, setDraft] = useState({ name: "", category: "grain", quantity: "", unit: "kg" as Unit, low_when: "" });
   const [buyName, setBuyName] = useState("");
   const [copied, setCopied] = useState(false);
-  const [step, setStep] = useState<null | "shelf" | "menu" | "shop">(null);
+  const [step, setStep] = useState<null | "shelf" | "menu" | "shop">(initialStep);
   const [tab, setTab] = useState<"staple" | "veg" | "dairy" | "spice">("staple");
   const [purchases, setPurchases] = useState(initialPurchases);
   const [openId, setOpenId] = useState<string | null>(null);              // the shelf item opened for detail
@@ -109,11 +115,21 @@ export default function PantryView({
   const [reading, setReading] = useState(false);
   const [billNote, setBillNote] = useState<string | null>(null);
   const [bill, setBill] = useState<{ shop: string | null; lines: BillLine[] } | null>(null);
+  const [askNew, setAskNew] = useState(false);          // the pop-up for bill items the library doesn't know
+
+  // What is probably on the shelf now: last known stock less what the menu cooked since,
+  // or less a day's use for each day for things no dish accounts for
+  const est = useMemo(() => {
+    const m: Record<string, Estimate> = {};
+    for (const i of items) m[i.id] = estimate(i, menuUse, familySize, today, dayIn(i.stock_at, timeZone));
+    return m;
+  }, [items, menuUse, familySize, today, timeZone]);
+  const isShort = (i: PantryItem) => est[i.id]?.short || (i.quantity == null && i.status !== "ok");
 
   const open = shopping.filter((s) => s.status === "open");
 
   // What the next seven days' dishes need that is neither on the shelf nor already on the list
-  const shelfNames = items.filter((i) => !isLow(i)).map((i) => i.name);
+  const shelfNames = items.filter((i) => !isShort(i)).map((i) => i.name);
   const listedNames = open.map((s) => s.name);
   const ingState = (n: string): "have" | "listed" | "short" =>
     haveIt(n, shelfNames) ? "have" : haveIt(n, listedNames) ? "listed" : "short";
@@ -188,7 +204,7 @@ export default function PantryView({
   }
 
   // ── The register: purchases in, stock now ───────────────────
-  const ITEM_COLS = "id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note";
+  const ITEM_COLS = CHECK_COLS;
   const SHOP_COLS = "id, name, quantity, unit, source, status, pantry_item_id, requested_by, created_at, bought_at";
 
   /** Re-read the shelf, the list and the purchases after a change made on the server. */
@@ -207,7 +223,7 @@ export default function PantryView({
   /** Bought: a dated purchase, stock goes up, the item is OK again and comes off the list. */
   async function recordPurchase(item: PantryItem, qty: number | null, shop: string | null = null, on: string = today) {
     const { error } = await supabase.rpc("record_purchase", {
-      p_item: item.id, p_qty: qty, p_unit: item.unit, p_on: on, p_shop: shop,
+      p_item: item.id, p_qty: qty, p_unit: item.unit, p_on: on, p_shop: shop, p_est: est[item.id]?.est ?? null,
     });
     return error?.message ?? null;
   }
@@ -219,16 +235,32 @@ export default function PantryView({
     const category = stockDraft.category || item.category;
     const kind = kindOf(category);
     const moved = kind !== item.kind;
-    const changes: Partial<PantryItem> = kind === "sundry"
+    const tracked = !!item.library_key && item.unit != null;
+    const changes: Partial<PantryItem> = kind === "sundry" && !tracked
       ? { category, kind, quantity: null, unit: null, low_when: null }
       : {
           category, kind, quantity: q, low_when: l,
           unit: item.unit ?? (category === "dairy" ? "l" : "kg"),
           ...(moved && kind === "fresh" ? { bought_on: today, use_within_days: SHELF_LIFE[category] ?? 5 } : {}),
         };
+    if (changes.quantity !== undefined && changes.quantity !== item.quantity) changes.stock_at = new Date().toISOString();
     const next = { ...item, ...changes };
     await patch(item.id, { ...changes, status: isLow({ ...next, status: "ok" }) ? item.status : "ok" });
     setOpenId(null);
+  }
+
+  /** Anyone: "Have plenty", "About half", "Ran out" — the estimate starts again from here. */
+  async function quickStock(item: PantryItem, level: "plenty" | "half" | "out") {
+    if (busy) return;
+    const lib = item.library_key ? LIBRARY_BY_KEY.get(item.library_key) : undefined;
+    const pack = lib ? convert(lib.pack, lib.unit, item.unit ?? lib.unit) : null;
+    const full = Math.max(pack ?? 0, (est[item.id]?.buyBelow ?? 0) * 3, item.quantity ?? 0, 1);
+    const qty = level === "out" ? 0 : level === "half" ? full / 2 : full;
+    setBusy(true);
+    const { error } = await supabase.rpc("set_stock", { p_item: item.id, p_qty: Math.round(qty * 1000) / 1000 });
+    if (error) return fail("save that", error.message);
+    await reloadAll();
+    setBusy(false);
   }
 
   async function boughtNow(item: PantryItem) {
@@ -333,7 +365,29 @@ export default function PantryView({
     setShopping((prev) => prev.filter((x) => x.id !== s.id));
   }
 
-  const listText = open.map((s) => `• ${s.name}${s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}`).join("\n");
+  // The list as one walks the shop: grouped the way the kitchen library groups things
+  const GROUP_ORDER = ["Vegetables", "Leafy greens & herbs", "Fruits", "Dairy & Eggs", "Rice & Grains", "Flours", "Pulses & Millets",
+    "Oils & ghee", "Whole spices & seeds", "Spice powders & masalas", "Salt, sugar & sweeteners", "Nuts & dry fruits", "Pantry & condiments", "Beverages", "Other"];
+  const libOfLine = (s: ShoppingItem) => {
+    const shelf = s.pantry_item_id ? items.find((i) => i.id === s.pantry_item_id) : undefined;
+    return (shelf?.library_key ? LIBRARY_BY_KEY.get(shelf.library_key) : undefined) ?? matchLibrary(s.name) ?? undefined;
+  };
+  const grouped = (() => {
+    const m = new Map<string, ShoppingItem[]>();
+    for (const s of open) { const g = libOfLine(s)?.group ?? "Other"; m.set(g, [...(m.get(g) ?? []), s]); }
+    return GROUP_ORDER.filter((g) => m.has(g)).map((g) => ({ group: g, lines: m.get(g)! }));
+  })();
+  const usual = (s: ShoppingItem) => {
+    if (s.quantity) return amount(s.quantity, s.unit);
+    const lib = libOfLine(s);
+    return lib ? amount(lib.pack, lib.unit) : "";
+  };
+  const listText = grouped.map(({ group, lines }) =>
+    `*${group}*\n` + lines.map((s) => `• ${s.name}${usual(s) ? ` — ${usual(s)}` : ""}`).join("\n")).join("\n\n");
+  const shareOnWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(`🛒 Shopping list\n\n${listText}`)}`;
+    window.open(url, "_blank", "noopener");
+  };
 
   async function copyList() {
     try {
@@ -376,15 +430,20 @@ export default function PantryView({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setBillNote(data.error ?? "Couldn't read that bill."); return; }
 
-      const lines: BillLine[] = (data.items ?? []).map((i: Omit<BillLine, "take" | "matchId">) => {
-        const match = findMatch(i.name, items);
-        return { ...i, take: !!match, matchId: match?.id ?? null };   // new things wait to be confirmed
+      const lines: BillLine[] = (data.items ?? []).map((i: Omit<BillLine, "take" | "matchId" | "libKey">) => {
+        const lib = matchLibrary(i.name);
+        const match = (lib && items.find((s) => s.library_key === lib.key)) || findMatch(i.name, items);
+        const libKey = !match && lib ? lib.key : null;
+        const category = libKey ? shelfPlace(lib!.group).category : i.category;
+        // On the shelf or in the library: recorded as read. Anything else waits to be confirmed.
+        return { ...i, category, take: !!(match || libKey), matchId: match?.id ?? null, libKey };
       });
       if (lines.length === 0) {
         setBillNote("No kitchen items found · Retake it straighter and brighter.");
         return;
       }
       setBill({ shop: data.shop ?? null, lines });
+      if (lines.some((l) => !l.matchId && !l.libKey)) setAskNew(true);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") setBillNote(null);
       else setBillNote(err instanceof Error ? err.message : "Couldn't read that bill.");
@@ -409,20 +468,24 @@ export default function PantryView({
 
     for (const line of take) {
       let shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
+      const lib = line.libKey ? LIBRARY_BY_KEY.get(line.libKey) : shelf?.library_key ? LIBRARY_BY_KEY.get(shelf.library_key) : matchLibrary(line.name);
       if (!shelf) {
-        const kind = kindOf(line.category);
+        // Known to the library: its own name, place, unit and shelf life. Otherwise as the bill says.
+        const place = lib ? shelfPlace(lib.group) : { category: line.category, kind: kindOf(line.category) };
+        const unit = lib?.unit ?? line.unit ?? (place.kind === "sundry" ? "g" : "kg");
         const { data, error } = await supabase.from("pantry_items").insert({
-          kutumbh_id: kutumbhId, name: line.name, kind, category: line.category,
-          quantity: kind === "sundry" ? null : 0, unit: kind === "sundry" ? null : line.unit,
-          use_within_days: kind === "fresh" ? SHELF_LIFE[line.category] ?? 5 : null,
+          kutumbh_id: kutumbhId, name: lib?.name ?? line.name, kind: place.kind, category: place.category,
+          quantity: 0, unit, library_key: lib?.key ?? null,
+          use_within_days: lib?.shelfDays ?? (place.kind === "fresh" ? SHELF_LIFE[place.category] ?? 5 : null),
           updated_by: userId,
         }).select(ITEM_COLS).single();
         if (error || !data) return fail("add that item", error?.message ?? "unknown");
         shelf = data as PantryItem;
       }
-      const qty = line.quantity == null ? null
-        : shelf.kind === "sundry" ? line.quantity                       // kept in the history; spices aren't weighed on the shelf
-        : inShelfUnit(line.quantity, line.unit, shelf.unit) ?? (shelf.unit ? null : line.quantity);
+      // "1 packet" of dal is its usual pack by weight; a weight is converted to the shelf's unit
+      const qty = lib
+        ? packToShelf(line.quantity ?? 1, line.unit, lib, shelf.unit)
+        : line.quantity == null ? null : inShelfUnit(line.quantity, line.unit, shelf.unit) ?? (shelf.unit ? null : line.quantity);
       const err = await recordPurchase(shelf, qty, bill.shop);
       if (err) return fail("record the bill", err);
     }
@@ -460,8 +523,11 @@ export default function PantryView({
   }
 
   function StockCell({ item }: { item: PantryItem }) {
-    const low = isLow(item);
-    const label = item.quantity != null ? amount(item.quantity, item.unit) : STATUS_STYLE[item.status].label;
+    const e = est[item.id];
+    const low = isShort(item);
+    const label = e?.est != null
+      ? (e.est !== item.quantity ? "~" : "") + (amount(e.est, item.unit) || "0")
+      : item.quantity != null ? amount(item.quantity, item.unit) : STATUS_STYLE[item.status].label;
     if (!low) return <span className="text-sm font-semibold tabular-nums text-center" style={{ color: B.ink }}>{label || "—"}</span>;
     if (onList(item)) {
       return (
@@ -495,6 +561,25 @@ export default function PantryView({
     const bought = boughtOf(item.id);
     return (
           <div className="rounded-xl px-3 py-3 mb-2 grid gap-3" style={{ background: "#FFFFFF", border: `1px solid ${B.cardEdge}` }}>
+            {est[item.id]?.est != null && (
+              <div className="grid gap-1.5">
+                <p className="text-[11px] m-0" style={{ color: B.muted }}>
+                  <b style={{ color: B.ink }}>About {amount(est[item.id].est, item.unit) || "0"} left</b>
+                  {est[item.id].byMenu ? " · worked out from the dishes cooked" : " · worked out from usual daily use"}
+                  {est[item.id].buyBelow != null ? ` · buy below ${amount(est[item.id].buyBelow, item.unit)}` : ""}
+                </p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Not right? How much is left</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(["plenty", "half", "out"] as const).map((lv) => (
+                    <button key={lv} onClick={() => quickStock(item, lv)} disabled={busy}
+                      className="py-2 rounded-xl text-xs font-semibold disabled:opacity-50"
+                      style={lv === "out" ? { background: RED.bg, color: RED.fg } : { background: B.tint, color: B.violet }}>
+                      {lv === "plenty" ? "Have plenty" : lv === "half" ? "About half" : "Ran out"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid gap-1.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Bought now?</p>
               <div className="flex gap-1.5">
@@ -564,7 +649,9 @@ export default function PantryView({
 
   function RegisterRow({ item }: { item: PantryItem }) {
     const bought = boughtOf(item.id);
-    const left = item.kind === "fresh" ? daysLeft(item.bought_on, item.use_within_days, today) : null;
+    const e = est[item.id];
+    const shelfDays = item.use_within_days ?? (item.library_key ? LIBRARY_BY_KEY.get(item.library_key)?.shelfDays : null) ?? null;
+    const left = shelfDays != null && shelfDays <= 30 ? (e?.daysLeftFresh ?? daysLeft(item.bought_on, item.use_within_days, today)) : null;
     const opened = openId === item.id;
     return (
       <div style={{ borderTop: `1px solid ${B.cardEdge}` }}>
@@ -574,7 +661,7 @@ export default function PantryView({
             <span className="block text-[10px] truncate" style={{ color: left != null && left <= 1 ? RED.fg : B.muted2 }}>
               {left != null
                 ? (left < 0 ? "past its days" : left === 0 ? "use today" : `use within ${left}d`)
-                : item.low_when != null ? `low at ${amount(item.low_when, item.unit)}` : categoryLabel(item.category)}
+                : e?.buyBelow != null ? `buy below ${amount(e.buyBelow, item.unit)}` : categoryLabel(item.category)}
             </span>
           </button>
           <BoughtCell p={bought[1]} />
@@ -589,7 +676,7 @@ export default function PantryView({
 
   /** Spices aren't weighed: a chip that is green when fine, red when low or out. */
   function SundryChip({ item }: { item: PantryItem }) {
-    const low = item.status !== "ok";
+    const low = isShort(item);
     const listed = low && onList(item);
     const style = !low ? { background: "#E3F0E2", color: "#2F6B33", border: "1px solid #B9D8B6" }
       : listed ? { background: B.goldTint, color: B.goldInk, border: `1px solid ${B.goldInk}` }
@@ -615,7 +702,7 @@ export default function PantryView({
     { key: "dairy",  label: "Dairy",        hint: "Milk, curd, paneer, butter — bought most days",   tone: { bg: FAMILY.violet.bg, edge: FAMILY.violet.edge, ink: FAMILY.violet.ink }, match: (i: PantryItem) => i.kind === "fresh" && i.category === "dairy" },
     { key: "spice",  label: "Spices",       hint: "Not weighed · tap one when it runs low",          tone: KIND_LOOK.sundry, match: (i: PantryItem) => i.kind === "sundry" },
   ] as const;
-  const lowCount = items.filter((i) => isLow(i) || i.status !== "ok").length;
+  const lowCount = items.filter(isShort).length;
   const plannedDays = menuDays.filter((d) => d.dishes.length > 0).length;
 
   const STEPS = [
@@ -660,7 +747,7 @@ export default function PantryView({
           <div role="tablist" className="grid grid-cols-4 gap-1.5">
             {TABS.map((t) => {
               const n = items.filter(t.match).length;
-              const low = items.filter((i) => t.match(i) && (isLow(i) || i.status !== "ok")).length;
+              const low = items.filter((i) => t.match(i) && isShort(i)).length;
               const on = t.key === tab;
               return (
                 <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)}
@@ -681,7 +768,7 @@ export default function PantryView({
             </div>
             {tabRows.length === 0 ? (
               <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
-            ) : current.key === "spice" ? (
+            ) : current.key === "spice" && tabRows.every((i) => i.quantity == null) ? (
               <div className="grid gap-2 pt-1">
                 <div className="flex flex-wrap gap-2">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
                 {isPrime && (
@@ -704,9 +791,13 @@ export default function PantryView({
                   <span>Item</span><span className="text-center">Bought 1</span><span className="text-center">Bought 2</span>
                   <span className="text-center">Current stock</span>
                 </div>
-                {tabRows.map((i) => <Fragment key={i.id}>{RegisterRow({ item: i })}</Fragment>)}
+                {tabRows.filter((i) => i.quantity != null || current.key !== "spice").map((i) => <Fragment key={i.id}>{RegisterRow({ item: i })}</Fragment>)}
+                {current.key === "spice" && tabRows.some((i) => i.quantity == null) && (
+                  <div className="flex flex-wrap gap-2 pt-2">{tabRows.filter((i) => i.quantity == null).map((i) => <SundryChip key={i.id} item={i} />)}</div>
+                )}
                 <p className="text-[10px] pt-2 m-0" style={{ color: B.muted2 }}>
-                  Tap an item to record a purchase{isPrime ? ", correct its stock or set when it is low" : ""}. Red = low · tap it to add to the list.
+                  Current stock is worked out from the dishes cooked and the purchases made. Tap an item to say how much is really left or to record a purchase.
+                  Red = short · it goes on the shopping list by itself.
                 </p>
               </div>
             )}
@@ -796,31 +887,37 @@ export default function PantryView({
                     )}
                   </button>
                 );
-                const known = bill.lines.map((l, idx) => ({ l, idx })).filter(({ l }) => l.matchId);
-                const fresh = bill.lines.map((l, idx) => ({ l, idx })).filter(({ l }) => !l.matchId);
+                const known = bill.lines.map((l, idx) => ({ l, idx })).filter(({ l }) => l.matchId || l.libKey);
+                const fresh = bill.lines.map((l, idx) => ({ l, idx })).filter(({ l }) => !l.matchId && !l.libKey);
                 const allNewOn = fresh.length > 0 && fresh.every(({ l }) => l.take);
                 return (
                   <>
                     {known.length > 0 && (
                       <div className="grid">
                         <p className="text-[11px] font-semibold uppercase tracking-wider m-0 pb-1" style={{ color: B.violet }}>
-                          Already on the shelf · {known.length}
+                          Known items · {known.length}
                         </p>
                         {known.map(({ l: line, idx }) => {
-                          const shelf = items.find((i) => i.id === line.matchId)!;
-                          const add = line.quantity != null ? inShelfUnit(line.quantity, line.unit, shelf.unit) : null;
+                          const shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
+                          const lib = line.libKey ? LIBRARY_BY_KEY.get(line.libKey) : shelf?.library_key ? LIBRARY_BY_KEY.get(shelf.library_key) : undefined;
+                          const unit = shelf?.unit ?? lib?.unit ?? null;
+                          const add = lib ? packToShelf(line.quantity ?? 1, line.unit, lib, unit)
+                            : line.quantity != null && shelf ? inShelfUnit(line.quantity, line.unit, shelf.unit) : null;
+                          const now = shelf ? (est[shelf.id]?.est ?? shelf.quantity ?? 0) : 0;
                           return (
                             <div key={`k-${idx}`} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${FAMILY.violet.line}` }}>
                               <Tick line={line} idx={idx} />
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm truncate m-0" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
                                 <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
-                                  {shelf.name}{shelf.kind !== "sundry" && add != null
-                                    ? ` · ${amount(shelf.quantity, shelf.unit) || "0"} → ${amount(Math.round(((shelf.quantity ?? 0) + add) * 1000) / 1000, shelf.unit)}`
+                                  {shelf ? shelf.name : `New on the shelf · ${lib?.name}`}{add != null
+                                    ? ` · ${amount(now, unit) || "0"} → ${amount(Math.round((now + add) * 1000) / 1000, unit)}`
                                     : ""}
                                 </p>
                               </div>
-                              <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>{amount(line.quantity, line.unit)}</span>
+                              <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>
+                                {line.unit === "packet" && add != null ? `${amount(add, unit)} (${amount(line.quantity ?? 1, "packet")})` : amount(line.quantity, line.unit)}
+                              </span>
                             </div>
                           );
                         })}
@@ -834,7 +931,7 @@ export default function PantryView({
                             New to the shelf · {fresh.length} — add {fresh.length > 1 ? "these" : "this"}?
                           </p>
                           {fresh.length > 1 && (
-                            <button onClick={() => setBill((b) => b && { ...b, lines: b.lines.map((l) => (l.matchId ? l : { ...l, take: !allNewOn })) })}
+                            <button onClick={() => setBill((b) => b && { ...b, lines: b.lines.map((l) => (l.matchId || l.libKey ? l : { ...l, take: !allNewOn })) })}
                               className="text-[11px] font-semibold shrink-0" style={{ color: B.violetLink }}>
                               {allNewOn ? "Untick all" : "Tick all"}
                             </button>
@@ -869,8 +966,8 @@ export default function PantryView({
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
                   style={{ background: B.button }}>
                   {busy ? "Putting away…" : (() => {
-                    const k = bill.lines.filter((l) => l.take && l.matchId).length;
-                    const n = bill.lines.filter((l) => l.take && !l.matchId).length;
+                    const k = bill.lines.filter((l) => l.take && (l.matchId || l.libKey)).length;
+                    const n = bill.lines.filter((l) => l.take && !l.matchId && !l.libKey).length;
                     return [k ? `Record ${k}` : "", n ? `add ${n} new` : ""].filter(Boolean).join(" · ") || "Nothing ticked";
                   })()}
                 </button>
@@ -960,6 +1057,61 @@ export default function PantryView({
           )}
         </section>
       )}
+    </div>
+  );
+
+  // The pop-up: bill items the kitchen library doesn't know, to be confirmed before they join the shelf
+  const newLines = bill ? bill.lines.map((l, idx) => ({ l, idx })).filter(({ l }) => !l.matchId && !l.libKey) : [];
+  const newPopup = askNew && newLines.length > 0 && (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pb-3" style={{ background: "rgba(20,10,40,0.55)" }}
+      role="dialog" aria-modal="true" aria-label="New items on the bill">
+      <div className="w-full max-w-md rounded-2xl px-4 py-4 grid gap-3 max-h-[85vh] overflow-y-auto" style={{ background: "#FFFFFF" }}>
+        <div>
+          <p className="text-base font-bold m-0" style={{ color: B.ink }}>
+            {newLines.length === 1 ? "A new item on the bill" : `${newLines.length} new items on the bill`}
+          </p>
+          <p className="text-xs m-0 mt-1" style={{ color: B.muted }}>
+            Not in the kitchen library yet. Tick what should join your shelf, and say where it belongs.
+          </p>
+        </div>
+        <div className="grid">
+          {newLines.map(({ l: line, idx }) => (
+            <div key={`p-${idx}`} className="flex items-center gap-2 py-2" style={{ borderTop: `1px solid ${B.cardEdge}` }}>
+              <button onClick={() => setBill((b) => b && { ...b, lines: b.lines.map((x, i) => (i === idx ? { ...x, take: !x.take } : x)) })}
+                aria-pressed={line.take} aria-label={`${line.take ? "Leave out" : "Add"} ${line.name}`}
+                className="w-7 h-7 shrink-0 rounded-md flex items-center justify-center text-sm font-bold"
+                style={{ background: line.take ? B.violet : "#fff", color: "#fff", border: `2px solid ${line.take ? B.violet : FAMILY.violet.edge}` }}>
+                {line.take ? "✓" : ""}
+              </button>
+              <div className="min-w-0 flex-1 grid gap-1">
+                <p className="text-sm m-0 truncate" style={{ color: B.ink }}>{line.name}
+                  <span className="text-xs" style={{ color: B.muted }}> · {amount(line.quantity, line.unit) || "amount not on the bill"}</span></p>
+                <select value={line.category} aria-label={`Where ${line.name} belongs`}
+                  onChange={(e) => setBill((b) => b && { ...b, lines: b.lines.map((x, i) => (i === idx ? { ...x, category: e.target.value } : x)) })}
+                  className="rounded-lg px-2 py-1 text-xs w-fit max-w-full" style={fieldLook(FAMILY.amber)}>
+                  {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          {newLines.length > 1 && (
+            <button onClick={() => setBill((b) => b && { ...b, lines: b.lines.map((x) => (!x.matchId && !x.libKey ? { ...x, take: true } : x)) })}
+              className="px-3 py-2.5 rounded-xl text-sm font-semibold" style={{ background: B.tint, color: B.violet }}>
+              Tick all
+            </button>
+          )}
+          <button onClick={() => setAskNew(false)}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: B.button }}>
+            {(() => { const n = newLines.filter(({ l }) => l.take).length; return n ? `Add ${n} to the shelf` : "Add none"; })()}
+          </button>
+        </div>
+        <button onClick={() => { setBill((b) => b && { ...b, lines: b.lines.map((x) => (!x.matchId && !x.libKey ? { ...x, take: false } : x)) }); setAskNew(false); }}
+          className="text-xs font-semibold" style={{ color: B.muted }}>
+          Skip them all
+        </button>
+      </div>
     </div>
   );
 
@@ -1062,18 +1214,29 @@ export default function PantryView({
             Shopping list{open.length ? ` · ${open.length}` : ""}
           </h2>
           {open.length > 0 && (
-            <button onClick={copyList} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
-              style={{ background: B.button }}>
-              {copied ? "Copied ✓" : "Copy list"}
-            </button>
+            <div className="flex gap-1.5 shrink-0">
+              <button onClick={shareOnWhatsApp} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                style={{ background: "#1F8F4E" }}>
+                WhatsApp
+              </button>
+              <button onClick={copyList} className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                style={{ background: "#fff", color: B.ink, border: `1px solid ${FAMILY.green.line}` }}>
+                {copied ? "Copied ✓" : "Copy"}
+              </button>
+            </div>
           )}
         </div>
 
         {open.length === 0 ? (
-          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Tap a red item on the Shelf, or tick what the Menu needs.</p>
+          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Short items come here by themselves.</p>
         ) : (
-          <div className="grid">
-            {open.map((s) => {
+          <div className="grid gap-3">
+            {grouped.map(({ group, lines }) => (
+            <div key={group} className="grid">
+              <p className="text-[11px] font-semibold uppercase tracking-wider m-0 pb-1" style={{ color: FAMILY.green.ink }}>
+                {group} · {lines.length}
+              </p>
+            {lines.map((s) => {
               const shelf = (s.pantry_item_id && items.find((i) => i.id === s.pantry_item_id)) || findMatch(s.name, items);
               const ticking = tickId === s.id;
               return (
@@ -1083,9 +1246,13 @@ export default function PantryView({
                       className="w-7 h-7 shrink-0 rounded-md flex items-center justify-center text-sm font-bold"
                       style={{ background: ticking ? FAMILY.green.edge : "#fff", color: ticking ? "#fff" : FAMILY.green.edge, border: `2px solid ${FAMILY.green.edge}` }}
                       aria-label={`Bought ${s.name}`}>✓</button>
-                    <p className="min-w-0 flex-1 text-sm m-0" style={{ color: B.ink }}>
-                      {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm m-0" style={{ color: B.ink }}>{s.name}</p>
+                      <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
+                        {usual(s) ? `usually ${usual(s)} · ` : ""}
+                        {s.source === "auto" ? "running short" : s.requested_by ? `added by ${memberNames[s.requested_by] ?? "family"}` : "added"}
+                      </p>
+                    </div>
                     <button onClick={() => removeFromList(s)} className="w-8 h-8 rounded-lg text-sm shrink-0"
                       style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
                   </div>
@@ -1105,6 +1272,8 @@ export default function PantryView({
                 </div>
               );
             })}
+            </div>
+            ))}
           </div>
         )}
       </section>
@@ -1149,6 +1318,7 @@ export default function PantryView({
       </div>
 
       {step === "shelf" ? shelfStep : step === "menu" ? menuStep : shopStep}
+      {newPopup}
 
       {next && (
         <button onClick={() => { setStep(next.key); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }}

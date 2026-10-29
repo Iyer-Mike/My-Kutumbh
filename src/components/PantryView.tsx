@@ -11,7 +11,7 @@ import {
   type Kind, type Status, type Unit,
 } from "@/lib/pantry";
 import { LIBRARY_BY_KEY, convert, estimate, matchLibrary, packToShelf, shelfPlace, type Estimate, type MenuUse } from "@/lib/kitchen-library";
-import { ITEM_COLS as CHECK_COLS, dayIn } from "@/lib/pantry-check";
+import { ITEM_COLS as CHECK_COLS, dayIn } from "@/lib/pantry-shared";
 
 export type PantryItem = {
   id: string; name: string; kind: Kind; category: string;
@@ -83,8 +83,9 @@ function inShelfUnit(qty: number, from: Unit | null, to: Unit | null): number | 
 
 export default function PantryView({
   kutumbhId, userId, isPrime, initialItems, initialShopping, initialPurchases, menuDays, memberNames, today,
-  familySize, menuUse, timeZone,
+  familySize, menuUse, timeZone, initialStep = null,
 }: {
+  initialStep?: null | "shelf" | "menu" | "shop";
   kutumbhId: string; userId: string; isPrime: boolean; familySize: number; menuUse: MenuUse; timeZone: string;
   initialItems: PantryItem[]; initialShopping: ShoppingItem[]; initialPurchases: Purchase[];
   menuDays: { date: string; label: string; dishes: { name: string; ings: string[] }[] }[];
@@ -98,7 +99,7 @@ export default function PantryView({
   const [draft, setDraft] = useState({ name: "", category: "grain", quantity: "", unit: "kg" as Unit, low_when: "" });
   const [buyName, setBuyName] = useState("");
   const [copied, setCopied] = useState(false);
-  const [step, setStep] = useState<null | "shelf" | "menu" | "shop">(null);
+  const [step, setStep] = useState<null | "shelf" | "menu" | "shop">(initialStep);
   const [tab, setTab] = useState<"staple" | "veg" | "dairy" | "spice">("staple");
   const [purchases, setPurchases] = useState(initialPurchases);
   const [openId, setOpenId] = useState<string | null>(null);              // the shelf item opened for detail
@@ -364,7 +365,29 @@ export default function PantryView({
     setShopping((prev) => prev.filter((x) => x.id !== s.id));
   }
 
-  const listText = open.map((s) => `• ${s.name}${s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}`).join("\n");
+  // The list as one walks the shop: grouped the way the kitchen library groups things
+  const GROUP_ORDER = ["Vegetables", "Leafy greens & herbs", "Fruits", "Dairy & Eggs", "Rice & Grains", "Flours", "Pulses & Millets",
+    "Oils & ghee", "Whole spices & seeds", "Spice powders & masalas", "Salt, sugar & sweeteners", "Nuts & dry fruits", "Pantry & condiments", "Beverages", "Other"];
+  const libOfLine = (s: ShoppingItem) => {
+    const shelf = s.pantry_item_id ? items.find((i) => i.id === s.pantry_item_id) : undefined;
+    return (shelf?.library_key ? LIBRARY_BY_KEY.get(shelf.library_key) : undefined) ?? matchLibrary(s.name) ?? undefined;
+  };
+  const grouped = (() => {
+    const m = new Map<string, ShoppingItem[]>();
+    for (const s of open) { const g = libOfLine(s)?.group ?? "Other"; m.set(g, [...(m.get(g) ?? []), s]); }
+    return GROUP_ORDER.filter((g) => m.has(g)).map((g) => ({ group: g, lines: m.get(g)! }));
+  })();
+  const usual = (s: ShoppingItem) => {
+    if (s.quantity) return amount(s.quantity, s.unit);
+    const lib = libOfLine(s);
+    return lib ? amount(lib.pack, lib.unit) : "";
+  };
+  const listText = grouped.map(({ group, lines }) =>
+    `*${group}*\n` + lines.map((s) => `• ${s.name}${usual(s) ? ` — ${usual(s)}` : ""}`).join("\n")).join("\n\n");
+  const shareOnWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(`🛒 Shopping list\n\n${listText}`)}`;
+    window.open(url, "_blank", "noopener");
+  };
 
   async function copyList() {
     try {
@@ -1191,18 +1214,29 @@ export default function PantryView({
             Shopping list{open.length ? ` · ${open.length}` : ""}
           </h2>
           {open.length > 0 && (
-            <button onClick={copyList} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
-              style={{ background: B.button }}>
-              {copied ? "Copied ✓" : "Copy list"}
-            </button>
+            <div className="flex gap-1.5 shrink-0">
+              <button onClick={shareOnWhatsApp} className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                style={{ background: "#1F8F4E" }}>
+                WhatsApp
+              </button>
+              <button onClick={copyList} className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                style={{ background: "#fff", color: B.ink, border: `1px solid ${FAMILY.green.line}` }}>
+                {copied ? "Copied ✓" : "Copy"}
+              </button>
+            </div>
           )}
         </div>
 
         {open.length === 0 ? (
-          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Tap a red item on the Shelf, or tick what the Menu needs.</p>
+          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Short items come here by themselves.</p>
         ) : (
-          <div className="grid">
-            {open.map((s) => {
+          <div className="grid gap-3">
+            {grouped.map(({ group, lines }) => (
+            <div key={group} className="grid">
+              <p className="text-[11px] font-semibold uppercase tracking-wider m-0 pb-1" style={{ color: FAMILY.green.ink }}>
+                {group} · {lines.length}
+              </p>
+            {lines.map((s) => {
               const shelf = (s.pantry_item_id && items.find((i) => i.id === s.pantry_item_id)) || findMatch(s.name, items);
               const ticking = tickId === s.id;
               return (
@@ -1212,9 +1246,13 @@ export default function PantryView({
                       className="w-7 h-7 shrink-0 rounded-md flex items-center justify-center text-sm font-bold"
                       style={{ background: ticking ? FAMILY.green.edge : "#fff", color: ticking ? "#fff" : FAMILY.green.edge, border: `2px solid ${FAMILY.green.edge}` }}
                       aria-label={`Bought ${s.name}`}>✓</button>
-                    <p className="min-w-0 flex-1 text-sm m-0" style={{ color: B.ink }}>
-                      {s.name}{s.quantity ? ` — ${amount(s.quantity, s.unit)}` : ""}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm m-0" style={{ color: B.ink }}>{s.name}</p>
+                      <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
+                        {usual(s) ? `usually ${usual(s)} · ` : ""}
+                        {s.source === "auto" ? "running short" : s.requested_by ? `added by ${memberNames[s.requested_by] ?? "family"}` : "added"}
+                      </p>
+                    </div>
                     <button onClick={() => removeFromList(s)} className="w-8 h-8 rounded-lg text-sm shrink-0"
                       style={{ background: "#FBE2DC", color: "#9A2C1B" }} aria-label={`Remove ${s.name}`}>✕</button>
                   </div>
@@ -1234,6 +1272,8 @@ export default function PantryView({
                 </div>
               );
             })}
+            </div>
+            ))}
           </div>
         )}
       </section>

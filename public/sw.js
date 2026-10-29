@@ -36,7 +36,7 @@ self.addEventListener("push", (event) => {
       body: d.body || "The menu was updated.",
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      tag: "menu-update",
+      tag: d.tag || "menu-update",
       renotify: true,
       data: { url: d.url || "/dashboard" },
     })

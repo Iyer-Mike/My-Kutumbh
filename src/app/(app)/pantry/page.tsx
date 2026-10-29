@@ -9,7 +9,8 @@ import { ingredientNames } from "@/lib/ingredients";
 import { ITEM_COLS, checkPantry, type CheckedItem } from "@/lib/pantry-check";
 import type { MenuUse } from "@/lib/kitchen-library";
 
-export default async function PantryPage() {
+export default async function PantryPage({ searchParams }: { searchParams: Promise<{ step?: string }> }) {
+  const { step } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -122,6 +123,7 @@ export default async function PantryPage() {
             familySize={familySize}
             menuUse={use}
             timeZone={timeZone}
+            initialStep={step === "shop" || step === "shelf" || step === "menu" ? step : null}
             menuDays={menuDays}
             memberNames={names}
             today={today}

@@ -5,6 +5,8 @@ import WhatsForToday, { type MealSuggestion } from "@/components/WhatsForToday";
 import LiveFamily from "@/components/LiveFamily";
 import MenuUpdateCard, { type MenuChange } from "@/components/MenuUpdateCard";
 import MenuAlertsToggle from "@/components/MenuAlertsToggle";
+import RunningShort, { type ShortLine } from "@/components/RunningShort";
+import { ITEM_COLS, checkPantry, type CheckedItem } from "@/lib/pantry-check";
 import { redirect } from "next/navigation";
 import { clampDay, daysAheadLocal, daysFromToday, longDateFor, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
@@ -87,6 +89,26 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     const { data: mc } = await supabase.from("menu_changes").select("planned_date, lines, author_id")
       .eq("kutumbh_id", kutumbhId).gte("planned_date", today).gt("updated_at", since).neq("author_id", user!.id).order("planned_date").limit(5);
     menuChanges = (mc ?? []).map((m) => ({ date: m.planned_date, label: longDateFor(m.planned_date), lines: m.lines ?? [] }));
+  }
+
+  // The pantry keeps itself: what has run short goes on the list, and Home says so once a day
+  let shortLines: ShortLine[] = [];
+  let toBuy = 0;
+  if (kutumbhId) {
+    try {
+      const { data: shelf } = await supabase.from("pantry_items").select(ITEM_COLS).eq("kutumbh_id", kutumbhId);
+      if (shelf?.length) {
+        const check = await checkPantry(supabase, { kutumbhId, userId: user!.id, timeZone, today, items: shelf as CheckedItem[], sync: true });
+        const fmt = (q: number | null, u: string | null) => q == null ? "" : `${Math.round(q * 1000) / 1000} ${u ?? ""}`.trim();
+        shortLines = check.short.map((s) => ({
+          name: s.name,
+          note: s.reason === "out" ? "finished" : s.reason === "stale" ? "past its days" : `~${fmt(s.est, s.unit)} left`,
+        }));
+      }
+      const { count } = await supabase.from("shopping_items").select("id", { count: "exact", head: true })
+        .eq("kutumbh_id", kutumbhId).eq("status", "open");
+      toBuy = count ?? 0;
+    } catch { /* Home opens even if the pantry can't be read */ }
   }
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
@@ -306,6 +328,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <main className="flex-1 px-4 py-5">
         {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools,menu_changes" />}
         {kutumbhId && menuChanges.length > 0 && <MenuUpdateCard changes={menuChanges} userId={user!.id} kutumbhId={kutumbhId} />}
+        {kutumbhId && <RunningShort toBuy={toBuy} short={shortLines} today={today} />}
         {festivalMode && festivalName ? (
           <FestivalMenu
             day={day}

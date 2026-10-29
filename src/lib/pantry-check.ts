@@ -1,18 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { LIBRARY_BY_KEY, convert, estimate, menuUse, type Estimate, type MenuDish, type MenuUse } from "./kitchen-library.ts";
 import type { Unit } from "./pantry.ts";
+import { ITEM_COLS, dayIn } from "./pantry-shared.ts";
+import webpush from "web-push";
+
+export { ITEM_COLS, dayIn };
 
 /** How far back the menu is read: a shelf item last counted earlier than this simply loses the older dishes. */
 const MENU_DAYS = 45;
-
-export const ITEM_COLS =
-  "id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note, library_key, stock_at, daily_use";
-
-/** The calendar day of a moment, in the family's own zone. */
-export function dayIn(ts: string | null, timeZone: string): string | null {
-  if (!ts) return null;
-  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ts));
-}
 
 export type CheckedItem = {
   id: string; name: string; kind: string; category: string; quantity: number | null; unit: Unit | null;
@@ -71,7 +66,10 @@ export async function checkPantry(supabase: SupabaseClient<any, any, any>, opts:
     if (e.short) short.push({ id: it.id, name: it.name, reason: e.reason, est: e.est, unit: it.unit });
   }
 
-  if (opts.sync) await syncList(supabase, { kutumbhId, userId, items, short });
+  if (opts.sync) {
+    const added = await syncList(supabase, { kutumbhId, userId, items, short });
+    if (added.length) await tellKeyMember(supabase, kutumbhId, today, short.map((s) => s.name)).catch(() => {});
+  }
   return { familySize, use, estimates, short };
 }
 
@@ -95,7 +93,25 @@ async function syncList(supabase: SupabaseClient<any, any, any>, o: {
   });
   if (add.length) await supabase.from("shopping_items").insert(add);
 
+
   // The app's own suggestions that no longer apply (someone said there is plenty) come off
   const stale = (open ?? []).filter((s) => s.source === "auto" && s.pantry_item_id && !shortIds.has(s.pantry_item_id));
   if (stale.length) await supabase.from("shopping_items").delete().in("id", stale.map((s) => s.id));
+  return add;
+}
+
+/** Once a day, when something has newly run short, the Key Member's phone is told. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function tellKeyMember(supabase: SupabaseClient<any, any, any>, kutumbhId: string, today: string, names: string[]) {
+  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, priv = process.env.VAPID_PRIVATE_KEY;
+  if (!pub || !priv || !names.length) return;
+  const { data: mine } = await supabase.rpc("claim_pantry_alert", { p_kutumbh: kutumbhId, p_today: today });
+  if (!mine) return;
+  const { data: targets } = await supabase.rpc("pantry_push_targets", { p_kutumbh: kutumbhId });
+  if (!targets?.length) return;
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:hello@example.com", pub, priv);
+  const list = names.length > 4 ? `${names.slice(0, 4).join(", ")} and ${names.length - 4} more` : names.join(", ");
+  const payload = JSON.stringify({ title: `Running short (${names.length})`, body: `${list} — on the shopping list.`, url: "/pantry?step=shop", tag: "pantry-short" });
+  await Promise.all((targets as { endpoint: string; p256dh: string; auth: string }[]).map((t) =>
+    webpush.sendNotification({ endpoint: t.endpoint, keys: { p256dh: t.p256dh, auth: t.auth } }, payload, { TTL: 6 * 3600 }).catch(() => {})));
 }

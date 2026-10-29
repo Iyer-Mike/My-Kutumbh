@@ -3,9 +3,9 @@
 
 -- 1. Match the shelf to the kitchen library and fold duplicates together (purchases move with them)
 do $$
-declare K uuid := 'ac6a96a3-8704-4eb5-9944-d88788e0a287'; r record; keeper uuid;
+declare v_fam uuid := 'ac6a96a3-8704-4eb5-9944-d88788e0a287'; r record; keeper uuid;
 begin
-  if exists (select 1 from public.pantry_items where kutumbh_id = K and library_key is not null) then
+  if exists (select 1 from public.pantry_items where kutumbh_id = v_fam and library_key is not null) then
     raise notice 'Already matched — skipping step 1'; return;
   end if;
   create temp table m (old text, key text, nm text, kind text, cat text, unit text, f numeric, buys int, shelf int) on commit drop;
@@ -82,21 +82,21 @@ begin
   for r in select distinct key from m loop
     keeper := null;
     select p.id into keeper from public.pantry_items p join m on m.old = p.name
-     where p.kutumbh_id = K and m.key = r.key order by m.buys desc, p.created_at limit 1;
+     where p.kutumbh_id = v_fam and m.key = r.key order by m.buys desc, p.created_at limit 1;
     if keeper is null then continue; end if;
-    update public.pantry_items k set quantity = (
+    update public.pantry_items tgt set quantity = (
       select case when count(p.quantity) = 0 then null else round(sum(
         p.quantity * m.f * case when m.unit = km.unit then 1
           when m.unit = 'g' and km.unit = 'kg' then 0.001 when m.unit = 'kg' and km.unit = 'g' then 1000
           when m.unit = 'ml' and km.unit = 'l' then 0.001 when m.unit = 'l' and km.unit = 'ml' then 1000 else 1 end), 3) end
       from public.pantry_items p join m on m.old = p.name, m km
-      where p.kutumbh_id = K and m.key = r.key and km.old = (select name from public.pantry_items where id = keeper))
-     where k.id = keeper;
+      where p.kutumbh_id = v_fam and m.key = r.key and km.old = (select name from public.pantry_items where id = keeper))
+     where tgt.id = keeper;
     update public.pantry_purchases set pantry_item_id = keeper
-     where pantry_item_id in (select p.id from public.pantry_items p join m on m.old = p.name where p.kutumbh_id = K and m.key = r.key and p.id <> keeper);
+     where pantry_item_id in (select p.id from public.pantry_items p join m on m.old = p.name where p.kutumbh_id = v_fam and m.key = r.key and p.id <> keeper);
     update public.shopping_items set pantry_item_id = keeper
-     where pantry_item_id in (select p.id from public.pantry_items p join m on m.old = p.name where p.kutumbh_id = K and m.key = r.key and p.id <> keeper);
-    delete from public.pantry_items p using m where m.old = p.name and p.kutumbh_id = K and m.key = r.key and p.id <> keeper;
+     where pantry_item_id in (select p.id from public.pantry_items p join m on m.old = p.name where p.kutumbh_id = v_fam and m.key = r.key and p.id <> keeper);
+    delete from public.pantry_items p using m where m.old = p.name and p.kutumbh_id = v_fam and m.key = r.key and p.id <> keeper;
     update public.pantry_items p set library_key = m.key, name = m.nm, kind = m.kind, category = m.cat, unit = m.unit,
            use_within_days = m.shelf, stock_at = now()
       from m where p.id = keeper and m.old = p.name;

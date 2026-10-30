@@ -10,6 +10,7 @@ import {
   categoryLabel, daysLeft, isLow, kindOf,
   type Kind, type Status, type Unit,
 } from "@/lib/pantry";
+import { SUPPLY_EVERY, supplyText, USUALLY_SUPPLIED } from "@/lib/supply";
 import { GRAMS_PER_BUNCH, friendly, unitChoices, naturalUnit, toShelf, looksTooMuch, categoryUnit } from "@/lib/units";
 import { LIBRARY_BY_KEY, convert, estimate, matchLibrary, packToShelf, shelfPlace, type Estimate, type MenuUse } from "@/lib/kitchen-library";
 import { ITEM_COLS as CHECK_COLS, dayIn } from "@/lib/pantry-shared";
@@ -19,6 +20,7 @@ export type PantryItem = {
   quantity: number | null; unit: Unit | null; low_when: number | null;
   status: Status; bought_on: string | null; use_within_days: number | null; note: string | null;
   library_key: string | null; stock_at: string | null; daily_use: number | null;
+  supply_qty?: number | null; supply_every?: number | null;      // regular supply: milk, curd… delivered on a rhythm
 };
 
 export type ShoppingItem = {
@@ -121,6 +123,8 @@ export default function PantryView({
   const [boughtUnit, setBoughtUnit] = useState<Unit | null>(null);        // the unit "bought now" is given in (null = the usual one)
   const [stockUnit, setStockUnit] = useState<Unit | null>(null);          // likewise for the correct-the-shelf boxes
   const [tickUnit, setTickUnit] = useState<Unit | null>(null);
+  const [supplyOpen, setSupplyOpen] = useState(false);
+  const [supplyDraft, setSupplyDraft] = useState({ qty: "", every: 1, unit: null as Unit | null });
   const [unitTouched, setUnitTouched] = useState(false);                  // the add-item form: has the person picked a unit?
   const [boughtDraft, setBoughtDraft] = useState("");                      // "bought today" amount in the detail panel
   const [tickId, setTickId] = useState<string | null>(null);               // the list line being ticked bought
@@ -142,7 +146,7 @@ export default function PantryView({
     for (const i of items) m[i.id] = estimate(i, menuUse, familySize, today, dayIn(i.stock_at, timeZone));
     return m;
   }, [items, menuUse, familySize, today, timeZone]);
-  const isShort = (i: PantryItem) => est[i.id]?.short || (i.quantity == null && i.status !== "ok");
+  const isShort = (i: PantryItem) => !i.supply_every && (est[i.id]?.short || (i.quantity == null && i.status !== "ok"));
 
   const open = shopping.filter((s) => s.status === "open");
 
@@ -298,6 +302,31 @@ export default function PantryView({
     const next = { ...item, ...changes };
     await patch(item.id, { ...changes, status: isLow({ ...next, status: "ok" }) ? item.status : "ok" });
     setOpenId(null); setStockUnit(null);
+  }
+
+  /** The Key Member says this comes regularly (milk, curd): it stops being counted down and listed. */
+  async function saveSupply(item: PantryItem, stop = false) {
+    if (busy) return;
+    let qty: number | null = null;
+    if (!stop) {
+      const given = asShelf(item, supplyDraft.qty, supplyDraft.unit ?? entryUnit(item));
+      if (given.stop) return;
+      qty = given.qty;
+    }
+    setBusy(true);
+    const changes = stop ? { supply_qty: null, supply_every: null } : { supply_qty: qty, supply_every: supplyDraft.every, status: "ok" as Status };
+    const { error } = await supabase.from("pantry_items")
+      .update({ ...changes, updated_by: userId, updated_at: new Date().toISOString() }).eq("id", item.id);
+    if (error) return fail("save that", error.message);
+    if (!stop) {
+      // What the app had put on the list for it is no longer needed
+      await supabase.from("shopping_items").delete()
+        .eq("kutumbh_id", kutumbhId).eq("pantry_item_id", item.id).eq("status", "open").eq("source", "auto");
+    }
+    autoFlagged.current.delete(item.id);
+    await reloadAll();
+    setSupplyOpen(false);
+    setBusy(false);
   }
 
   /** Anyone: "Have plenty", "About half", "Ran out" — the estimate starts again from here. */
@@ -598,6 +627,9 @@ export default function PantryView({
   function StockCell({ item }: { item: PantryItem }) {
     const e = est[item.id];
     const low = isShort(item);
+    if (item.supply_every) {
+      return <span className="rounded-lg px-1 py-1 text-center text-xs font-semibold leading-tight" style={{ background: B.tint, color: B.violet }}>Regular</span>;
+    }
     const label = e?.est != null
       ? (e.est !== item.quantity ? "~" : "") + (amount(e.est, item.unit) || "0")
       : item.quantity != null ? amount(item.quantity, item.unit) : STATUS_STYLE[item.status].label;
@@ -627,6 +659,8 @@ export default function PantryView({
     setOpenId(item.id);
     setStockDraft({ quantity: item.quantity != null ? String(item.quantity) : "", low_when: item.low_when != null ? String(item.low_when) : "", category: item.category });
     setBoughtDraft(""); setBoughtUnit(null); setStockUnit(null);
+    setSupplyOpen(false);
+    setSupplyDraft({ qty: item.supply_qty != null ? String(item.supply_qty) : "", every: item.supply_every ?? 1, unit: null });
   }
 
   /** The opened item: record a purchase, correct the shelf, see its history. */
@@ -651,6 +685,49 @@ export default function PantryView({
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+            {item.unit && (item.supply_every || isPrime) && (
+              <div className="grid gap-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Regular supply</p>
+                {item.supply_every && !supplyOpen ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm m-0" style={{ color: B.ink }}>
+                      Comes {supplyText(item.supply_qty, item.unit, item.supply_every)}. It is not counted down or put on the shopping list.
+                    </p>
+                    {isPrime && (
+                      <div className="flex gap-1.5 shrink-0">
+                        <button onClick={() => setSupplyOpen(true)} className="px-2.5 py-1.5 rounded-lg text-xs font-semibold" style={{ background: B.tint, color: B.violet }}>Change</button>
+                        <button onClick={() => saveSupply(item, true)} disabled={busy} className="px-2.5 py-1.5 rounded-lg text-xs font-semibold" style={{ background: RED.bg, color: RED.fg }}>Stop</button>
+                      </div>
+                    )}
+                  </div>
+                ) : !supplyOpen ? (
+                  <button onClick={() => { setSupplyOpen(true); if (!supplyDraft.qty && USUALLY_SUPPLIED.test(item.name)) setSupplyDraft((d) => ({ ...d, every: 1 })); }}
+                    className="py-2 rounded-xl text-xs font-semibold" style={{ background: B.tint, color: B.violet }}>
+                    This comes regularly (milk, curd, eggs…)
+                  </button>
+                ) : (
+                  <div className="grid gap-1.5">
+                    <div className="flex gap-1.5">
+                      <input type="number" inputMode="decimal" min="0" step="any" value={supplyDraft.qty}
+                        onChange={(e) => setSupplyDraft({ ...supplyDraft, qty: e.target.value })} placeholder="How much each time"
+                        aria-label={`Amount of ${item.name} supplied each time`}
+                        className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
+                      <UnitPick choices={unitChoices(item.unit)} value={supplyDraft.unit ?? entryUnit(item)}
+                        onChange={(u) => setSupplyDraft({ ...supplyDraft, unit: u })} label="Unit supplied each time" tone={FAMILY.amber} />
+                    </div>
+                    <select value={supplyDraft.every} onChange={(e) => setSupplyDraft({ ...supplyDraft, every: parseInt(e.target.value) })}
+                      aria-label="How often it comes" className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
+                      {SUPPLY_EVERY.map((o) => <option key={o.days} value={o.days}>{o.label}</option>)}
+                    </select>
+                    <div className="flex gap-2">
+                      <button onClick={() => saveSupply(item)} disabled={busy}
+                        className="flex-1 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>Save</button>
+                      <button onClick={() => setSupplyOpen(false)} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: B.tint, color: B.violet }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <div className="grid gap-1.5">
@@ -744,7 +821,9 @@ export default function PantryView({
           <button onClick={() => openDetail(item)} className="min-w-0 text-left" aria-expanded={opened}>
             <span className="block text-sm font-medium truncate" style={{ color: B.ink }}>{item.name}</span>
             <span className="block text-xs truncate" style={{ color: left != null && left <= 1 ? RED.fg : B.muted2 }}>
-              {left != null
+              {item.supply_every
+                ? supplyText(item.supply_qty, item.unit, item.supply_every)
+                : left != null
                 ? (left < 0 ? "past its days" : left === 0 ? "use today" : `use within ${left}d`)
                 : e?.buyBelow != null ? `buy below ${amount(e.buyBelow, item.unit)}` : categoryLabel(item.category)}
             </span>

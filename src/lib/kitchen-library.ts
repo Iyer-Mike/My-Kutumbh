@@ -291,6 +291,7 @@ export function menuUse(dishes: MenuDish[], familySize: number): MenuUse {
 export type ShelfLike = {
   library_key: string | null; quantity: number | null; unit: Unit | null; low_when: number | null;
   stock_at: string | null; bought_on: string | null; use_within_days: number | null; daily_use: number | null;
+  supply_every?: number | null;     // set when it is delivered regularly: never counted down, never short
 };
 
 export type Estimate = {
@@ -309,6 +310,11 @@ export function estimate(item: ShelfLike, use: MenuUse, familySize: number, toda
   const lib = item.library_key ? LIBRARY_BY_KEY.get(item.library_key) : undefined;
   const unit = item.unit ?? lib?.unit ?? null;
   const fam = Math.max(familySize, 1);
+
+  // Delivered on a rhythm (milk, curd): the supply is the stock, so it is never short
+  if (item.supply_every) {
+    return { est: null, buyBelow: null, daysLeftFresh: null, short: false, reason: null, byMenu: false };
+  }
 
   // Freshness: days since it was bought against how long it keeps
   const shelf = item.use_within_days ?? lib?.shelfDays ?? null;

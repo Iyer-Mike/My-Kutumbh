@@ -13,6 +13,7 @@ export type CheckedItem = {
   id: string; name: string; kind: string; category: string; quantity: number | null; unit: Unit | null;
   low_when: number | null; status: string; bought_on: string | null; use_within_days: number | null;
   library_key: string | null; stock_at: string | null; daily_use: number | null;
+  supply_qty?: number | null; supply_every?: number | null;
 };
 
 export type PantryCheck = {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { bodyProblem } from "@/lib/body-check";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 type Props = {
@@ -93,6 +94,12 @@ export default function ProfileEditCard(props: Props) {
   }
 
   async function save() {
+    const problem = bodyProblem({
+      heightCm: heightCm ? parseFloat(heightCm) : null,
+      weightKg: weightKg ? parseFloat(weightKg) : null,
+      dob: dateOfBirth || null,
+    });
+    if (problem) { alert(problem); return; }
     setSaving(true);
     const allergyArr = allergiesText
       .split(",")

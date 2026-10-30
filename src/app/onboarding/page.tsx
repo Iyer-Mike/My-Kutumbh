@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { pendingInvite, forgetInvite } from "@/lib/invite";
 import { DEFAULT_TIME_ZONE, deviceTimeZone } from "@/lib/dates";
 import { useRouter } from "next/navigation";
+import { bodyProblem } from "@/lib/body-check";
 import KutumbhLogo from "@/components/KutumbhLogo";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 
@@ -245,6 +246,13 @@ export default function OnboardingPage() {
 
   function handleProfile(e: React.FormEvent) {
     e.preventDefault();
+    const problem = bodyProblem({
+      heightCm: height ? parseFloat(height) : null,
+      weightKg: weight ? parseFloat(weight) : null,
+      dob: dob || null,
+    });
+    if (problem) { setError(problem); return; }
+    setError(null);
     setStep(3);
   }
 
@@ -523,6 +531,7 @@ export default function OnboardingPage() {
           </select>
         </div>
 
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
           className="w-full py-3 rounded-xl font-semibold text-sm text-white"

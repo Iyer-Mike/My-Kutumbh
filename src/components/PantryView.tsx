@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { haveIt, sameThing } from "@/lib/ingredients";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
@@ -10,6 +11,8 @@ import {
   categoryLabel, daysLeft, isLow, kindOf,
   type Kind, type Status, type Unit,
 } from "@/lib/pantry";
+import { SUPPLY_EVERY, supplyText, USUALLY_SUPPLIED } from "@/lib/supply";
+import { GRAMS_PER_BUNCH, friendly, unitChoices, naturalUnit, toShelf, looksTooMuch, categoryUnit } from "@/lib/units";
 import { LIBRARY_BY_KEY, convert, estimate, matchLibrary, packToShelf, shelfPlace, type Estimate, type MenuUse } from "@/lib/kitchen-library";
 import { ITEM_COLS as CHECK_COLS, dayIn } from "@/lib/pantry-shared";
 
@@ -18,6 +21,8 @@ export type PantryItem = {
   quantity: number | null; unit: Unit | null; low_when: number | null;
   status: Status; bought_on: string | null; use_within_days: number | null; note: string | null;
   library_key: string | null; stock_at: string | null; daily_use: number | null;
+  supply_qty?: number | null; supply_every?: number | null;      // regular supply: milk, curd… delivered on a rhythm
+  made_at_home?: boolean | null;                                  // curd, sambar powder…: made in the kitchen, never bought
 };
 
 export type ShoppingItem = {
@@ -45,8 +50,21 @@ const KIND_LOOK: Record<Kind, { bg: string; edge: string; ink: string }> = {
   sundry: { bg: "#FFE9C7", edge: "#C2551F", ink: "#9A3F10" },   // amber
 };
 
-const amount = (q: number | null, u: Unit | null) =>
-  q == null ? "" : `${Number.isInteger(q) ? q : String(Math.round(q * 1000) / 1000)} ${u ?? ""}`.trim();
+// Shown the way it is bought: 250 g, not 0.25 kg; 1 dozen; 500 ml
+const amount = (q: number | null, u: Unit | null) => friendly(q, u);
+
+/** Pick the unit an amount is given in. A single choice is just shown. */
+function UnitPick({ choices, value, onChange, label, tone }: {
+  choices: Unit[]; value: Unit | null; onChange: (u: Unit) => void; label: string; tone: Parameters<typeof fieldLook>[0];
+}) {
+  if (choices.length <= 1) return <span className="self-center text-sm" style={{ color: B.muted }}>{choices[0] ?? ""}</span>;
+  return (
+    <select value={value ?? choices[0]} onChange={(e) => onChange(e.target.value as Unit)} aria-label={label}
+      className="rounded-xl px-2 py-2 text-sm" style={fieldLook(tone)}>
+      {choices.map((u) => <option key={u} value={u}>{u}</option>)}
+    </select>
+  );
+}
 
 /** A line read off a bill, waiting to be checked before it touches the shelf. */
 type BillLine = {
@@ -104,6 +122,15 @@ export default function PantryView({
   const [purchases, setPurchases] = useState(initialPurchases);
   const [openId, setOpenId] = useState<string | null>(null);              // the shelf item opened for detail
   const [stockDraft, setStockDraft] = useState({ quantity: "", low_when: "", category: "" });
+  const [boughtUnit, setBoughtUnit] = useState<Unit | null>(null);        // the unit "bought now" is given in (null = the usual one)
+  const [stockUnit, setStockUnit] = useState<Unit | null>(null);          // likewise for the correct-the-shelf boxes
+  const [tickUnit, setTickUnit] = useState<Unit | null>(null);
+  const [makeId, setMakeId] = useState<string | null>(null);              // the "to make" line being marked made
+  const [makeQty, setMakeQty] = useState("");
+  const [makeUnit, setMakeUnit] = useState<Unit | null>(null);
+  const [supplyOpen, setSupplyOpen] = useState(false);
+  const [supplyDraft, setSupplyDraft] = useState({ qty: "", every: 1, unit: null as Unit | null });
+  const [unitTouched, setUnitTouched] = useState(false);                  // the add-item form: has the person picked a unit?
   const [boughtDraft, setBoughtDraft] = useState("");                      // "bought today" amount in the detail panel
   const [tickId, setTickId] = useState<string | null>(null);               // the list line being ticked bought
   const [tickQty, setTickQty] = useState("");
@@ -124,9 +151,36 @@ export default function PantryView({
     for (const i of items) m[i.id] = estimate(i, menuUse, familySize, today, dayIn(i.stock_at, timeZone));
     return m;
   }, [items, menuUse, familySize, today, timeZone]);
-  const isShort = (i: PantryItem) => est[i.id]?.short || (i.quantity == null && i.status !== "ok");
+  const isShort = (i: PantryItem) => !i.supply_every && (est[i.id]?.short || (i.quantity == null && i.status !== "ok"));
 
   const open = shopping.filter((s) => s.status === "open");
+  const toMake = items.filter((i) => i.made_at_home && isShort(i));
+
+  /** The unit a hand-typed item starts in: the library's if it knows the name, else by the kind of thing. */
+  const draftUnit = (name: string, category: string): Unit => {
+    const lib = matchLibrary(name);
+    if (lib) return naturalUnit(lib.unit, lib.pack) ?? lib.unit;
+    return categoryUnit(category);
+  };
+
+  // The unit a thing is bought in: herbs by the gram, rice by the kilo, bananas by the dozen
+  const entryUnit = (item: PantryItem): Unit | null => {
+    const lib = item.library_key ? LIBRARY_BY_KEY.get(item.library_key) : matchLibrary(item.name) ?? undefined;
+    const typical = lib ? convert(lib.pack, lib.unit, item.unit ?? lib.unit) : null;
+    return naturalUnit(item.unit, typical);
+  };
+  /** An amount typed in `unit` as a number in the shelf's own unit, or a reason to stop. */
+  function asShelf(item: { name: string; unit: Unit | null }, text: string, unit: Unit | null): { qty: number | null; stop?: boolean } {
+    if (text.trim() === "") return { qty: null };
+    const n = parseFloat(text);
+    if (!Number.isFinite(n) || n < 0) { alert("Please type a number, such as 250."); return { qty: null, stop: true }; }
+    const q = item.unit ? (toShelf(n, unit ?? item.unit, item.unit) ?? n) : n;
+    if (looksTooMuch(q, item.unit) &&
+      !confirm(`${friendly(n, unit ?? item.unit)} of ${item.name} is a lot. Is that right?\n\nPress Cancel to change the unit (for example to g).`)) {
+      return { qty: null, stop: true };
+    }
+    return { qty: q };
+  }
 
   // What the next seven days' dishes need that is neither on the shelf nor already on the list
   const shelfNames = items.filter((i) => !isShort(i)).map((i) => i.name);
@@ -151,6 +205,7 @@ export default function PantryView({
   async function addItem(seed?: typeof STARTER[number]) {
     const name = (seed?.name ?? draft.name).trim();
     if (!name || busy) return;
+    if (!seed && draft.quantity && !asShelf({ name, unit: draft.unit }, draft.quantity, draft.unit).qty && draft.quantity.trim() !== "0") return;
     setBusy(true);
     const category = seed?.category ?? draft.category;
     const kind = seed?.kind ?? kindOf(category);
@@ -168,7 +223,8 @@ export default function PantryView({
       .select("id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note").single();
     if (error) return fail("add that", error.message);
     setItems((prev) => [...prev, data as PantryItem].sort((a, b) => a.name.localeCompare(b.name)));
-    setDraft({ name: "", category, quantity: "", unit: draft.unit, low_when: "" });
+    setDraft({ name: "", category, quantity: "", unit: categoryUnit(category), low_when: "" });
+    setUnitTouched(false);
     setBusy(false);
   }
 
@@ -230,8 +286,13 @@ export default function PantryView({
 
   /** The Key Member corrects what is on the shelf now, and where "low" begins for this item. */
   async function saveStock(item: PantryItem) {
-    const q = stockDraft.quantity.trim() === "" ? null : parseFloat(stockDraft.quantity);
-    const l = stockDraft.low_when.trim() === "" ? null : parseFloat(stockDraft.low_when);
+    const su = stockUnit ?? item.unit;
+    const qg = asShelf(item, stockDraft.quantity, su);
+    if (qg.stop) return;
+    const lg = asShelf({ name: item.name, unit: item.unit }, stockDraft.low_when, su);
+    if (lg.stop) return;
+    const q = qg.qty;
+    const l = lg.qty;
     const category = stockDraft.category || item.category;
     const kind = kindOf(category);
     const moved = kind !== item.kind;
@@ -246,7 +307,61 @@ export default function PantryView({
     if (changes.quantity !== undefined && changes.quantity !== item.quantity) changes.stock_at = new Date().toISOString();
     const next = { ...item, ...changes };
     await patch(item.id, { ...changes, status: isLow({ ...next, status: "ok" }) ? item.status : "ok" });
-    setOpenId(null);
+    setOpenId(null); setStockUnit(null);
+  }
+
+  /** The Key Member says this is made at home (or not): then it is made, not bought. */
+  async function setMadeAtHome(item: PantryItem, on: boolean) {
+    if (busy) return;
+    setBusy(true);
+    const { error } = await supabase.from("pantry_items")
+      .update({ made_at_home: on, updated_by: userId, updated_at: new Date().toISOString() }).eq("id", item.id);
+    if (error) return fail("save that", error.message);
+    if (on) {
+      await supabase.from("shopping_items").delete()
+        .eq("kutumbh_id", kutumbhId).eq("pantry_item_id", item.id).eq("status", "open").eq("source", "auto");
+    }
+    autoFlagged.current.delete(item.id);
+    await reloadAll();
+    setBusy(false);
+  }
+
+  /** A batch has been made: the shelf goes up, and it is noted as made at home, not bought. */
+  async function madeNow(item: PantryItem) {
+    if (busy) return;
+    const given = asShelf(item, makeQty, makeUnit ?? entryUnit(item));
+    if (given.stop) return;
+    setBusy(true);
+    const err = await recordPurchase(item, given.qty, "Made at home");
+    if (err) return fail("record that", err);
+    await reloadAll();
+    setMakeId(null); setMakeQty(""); setMakeUnit(null);
+    setBusy(false);
+  }
+
+  /** The Key Member says this comes regularly (milk, curd): it stops being counted down and listed. */
+  async function saveSupply(item: PantryItem, stop = false) {
+    if (busy) return;
+    let qty: number | null = null;
+    if (!stop) {
+      const given = asShelf(item, supplyDraft.qty, supplyDraft.unit ?? entryUnit(item));
+      if (given.stop) return;
+      qty = given.qty;
+    }
+    setBusy(true);
+    const changes = stop ? { supply_qty: null, supply_every: null } : { supply_qty: qty, supply_every: supplyDraft.every, status: "ok" as Status };
+    const { error } = await supabase.from("pantry_items")
+      .update({ ...changes, updated_by: userId, updated_at: new Date().toISOString() }).eq("id", item.id);
+    if (error) return fail("save that", error.message);
+    if (!stop) {
+      // What the app had put on the list for it is no longer needed
+      await supabase.from("shopping_items").delete()
+        .eq("kutumbh_id", kutumbhId).eq("pantry_item_id", item.id).eq("status", "open").eq("source", "auto");
+    }
+    autoFlagged.current.delete(item.id);
+    await reloadAll();
+    setSupplyOpen(false);
+    setBusy(false);
   }
 
   /** Anyone: "Have plenty", "About half", "Ran out" — the estimate starts again from here. */
@@ -265,31 +380,36 @@ export default function PantryView({
 
   async function boughtNow(item: PantryItem) {
     if (busy) return;
+    const given = asShelf(item, boughtDraft, boughtUnit ?? entryUnit(item));
+    if (given.stop) return;
     setBusy(true);
-    const q = boughtDraft.trim() === "" ? null : parseFloat(boughtDraft);
-    const err = await recordPurchase(item, q);
+    const err = await recordPurchase(item, given.qty);
     if (err) return fail("record that", err);
     await reloadAll();
-    setBoughtDraft("");
+    setBoughtDraft(""); setBoughtUnit(null);
     setBusy(false);
   }
 
   /** Ticked on the shopping list: it was bought. The amount is asked, but may be skipped. */
   async function tickBought(s: ShoppingItem) {
     if (busy) return;
-    setBusy(true);
-    const q = tickQty.trim() === "" ? null : parseFloat(tickQty);
     const shelf = (s.pantry_item_id && items.find((i) => i.id === s.pantry_item_id)) || findMatch(s.name, items);
+    const lineUnit = shelf?.unit ?? s.unit ?? libOfLine(s)?.unit ?? null;
+    const given = asShelf({ name: s.name, unit: lineUnit }, tickQty,
+      tickUnit ?? (shelf ? entryUnit(shelf) : naturalUnit(lineUnit, libOfLine(s)?.pack)));
+    if (given.stop) return;
+    const q = given.qty;
+    setBusy(true);
     if (shelf) {
       const err = await recordPurchase(shelf, q);
       if (err) return fail("record that", err);
     }
     // Lines not tied to a shelf item (or tied by name only) are closed here
     await supabase.from("shopping_items")
-      .update({ status: "bought", bought_by: userId, bought_at: new Date().toISOString(), quantity: q ?? s.quantity })
+      .update({ status: "bought", bought_by: userId, bought_at: new Date().toISOString(), quantity: q ?? s.quantity, ...(q != null && lineUnit ? { unit: lineUnit } : {}) })
       .eq("id", s.id).eq("status", "open");
     await reloadAll();
-    setTickId(null); setTickQty("");
+    setTickId(null); setTickQty(""); setTickUnit(null);
     setBusy(false);
   }
 
@@ -380,7 +500,7 @@ export default function PantryView({
   const usual = (s: ShoppingItem) => {
     if (s.quantity) return amount(s.quantity, s.unit);
     const lib = libOfLine(s);
-    return lib ? amount(lib.pack, lib.unit) : "";
+    return lib ? (lib.unit === "bunch" ? `${amount(lib.pack, lib.unit)}, about ${amount(lib.pack * GRAMS_PER_BUNCH, "g")}` : amount(lib.pack, lib.unit)) : "";
   };
   const listText = grouped.map(({ group, lines }) =>
     `*${group}*\n` + lines.map((s) => `• ${s.name}${usual(s) ? ` — ${usual(s)}` : ""}`).join("\n")).join("\n\n");
@@ -516,7 +636,7 @@ export default function PantryView({
   // no quantity at all are left alone: nobody has said how much there is.)
   const autoFlagged = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const due = items.filter((i) => i.quantity != null && est[i.id]?.short && !onList(i) && !autoFlagged.current.has(i.id));
+    const due = items.filter((i) => !i.made_at_home && i.quantity != null && est[i.id]?.short && !onList(i) && !autoFlagged.current.has(i.id));
     if (due.length === 0) return;
     due.forEach((i) => autoFlagged.current.add(i.id));
     (async () => {
@@ -542,6 +662,12 @@ export default function PantryView({
   function StockCell({ item }: { item: PantryItem }) {
     const e = est[item.id];
     const low = isShort(item);
+    if (item.supply_every) {
+      return <span className="rounded-lg px-1 py-1 text-center text-xs font-semibold leading-tight" style={{ background: B.tint, color: B.violet }}>Regular</span>;
+    }
+    if (item.made_at_home && low) {
+      return <span className="rounded-lg px-1 py-1 text-center text-xs font-bold leading-tight" style={{ background: B.tint, color: B.violet, border: `1.5px solid ${B.violet}` }}>Make more</span>;
+    }
     const label = e?.est != null
       ? (e.est !== item.quantity ? "~" : "") + (amount(e.est, item.unit) || "0")
       : item.quantity != null ? amount(item.quantity, item.unit) : STATUS_STYLE[item.status].label;
@@ -570,7 +696,9 @@ export default function PantryView({
     if (openId === item.id) { setOpenId(null); return; }
     setOpenId(item.id);
     setStockDraft({ quantity: item.quantity != null ? String(item.quantity) : "", low_when: item.low_when != null ? String(item.low_when) : "", category: item.category });
-    setBoughtDraft("");
+    setBoughtDraft(""); setBoughtUnit(null); setStockUnit(null);
+    setSupplyOpen(false);
+    setSupplyDraft({ qty: item.supply_qty != null ? String(item.supply_qty) : "", every: item.supply_every ?? 1, unit: null });
   }
 
   /** The opened item: record a purchase, correct the shelf, see its history. */
@@ -597,6 +725,56 @@ export default function PantryView({
                 </div>
               </div>
             )}
+            {isPrime && item.unit && !item.supply_every && (
+              <label className="flex items-center gap-2 text-sm" style={{ color: B.ink }}>
+                <input type="checkbox" checked={!!item.made_at_home} disabled={busy}
+                  onChange={(e) => setMadeAtHome(item, e.target.checked)} />
+                Made at home (curd, sambar powder, garam masala…)
+              </label>
+            )}
+            {item.unit && (item.supply_every || isPrime) && !item.made_at_home && (
+              <div className="grid gap-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Regular supply</p>
+                {item.supply_every && !supplyOpen ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm m-0" style={{ color: B.ink }}>
+                      Comes {supplyText(item.supply_qty, item.unit, item.supply_every)}. It is not counted down or put on the shopping list.
+                    </p>
+                    {isPrime && (
+                      <div className="flex gap-1.5 shrink-0">
+                        <button onClick={() => setSupplyOpen(true)} className="px-2.5 py-1.5 rounded-lg text-xs font-semibold" style={{ background: B.tint, color: B.violet }}>Change</button>
+                        <button onClick={() => saveSupply(item, true)} disabled={busy} className="px-2.5 py-1.5 rounded-lg text-xs font-semibold" style={{ background: RED.bg, color: RED.fg }}>Stop</button>
+                      </div>
+                    )}
+                  </div>
+                ) : !supplyOpen ? (
+                  <button onClick={() => { setSupplyOpen(true); if (!supplyDraft.qty && USUALLY_SUPPLIED.test(item.name)) setSupplyDraft((d) => ({ ...d, every: 1 })); }}
+                    className="py-2 rounded-xl text-xs font-semibold" style={{ background: B.tint, color: B.violet }}>
+                    This comes regularly (milk, curd, eggs…)
+                  </button>
+                ) : (
+                  <div className="grid gap-1.5">
+                    <div className="flex gap-1.5">
+                      <input type="number" inputMode="decimal" min="0" step="any" value={supplyDraft.qty}
+                        onChange={(e) => setSupplyDraft({ ...supplyDraft, qty: e.target.value })} placeholder="How much each time"
+                        aria-label={`Amount of ${item.name} supplied each time`}
+                        className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
+                      <UnitPick choices={unitChoices(item.unit)} value={supplyDraft.unit ?? entryUnit(item)}
+                        onChange={(u) => setSupplyDraft({ ...supplyDraft, unit: u })} label="Unit supplied each time" tone={FAMILY.amber} />
+                    </div>
+                    <select value={supplyDraft.every} onChange={(e) => setSupplyDraft({ ...supplyDraft, every: parseInt(e.target.value) })}
+                      aria-label="How often it comes" className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
+                      {SUPPLY_EVERY.map((o) => <option key={o.days} value={o.days}>{o.label}</option>)}
+                    </select>
+                    <div className="flex gap-2">
+                      <button onClick={() => saveSupply(item)} disabled={busy}
+                        className="flex-1 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>Save</button>
+                      <button onClick={() => setSupplyOpen(false)} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: B.tint, color: B.violet }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid gap-1.5">
               <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Bought now?</p>
               <div className="flex gap-1.5">
@@ -604,7 +782,8 @@ export default function PantryView({
                   onChange={(e) => setBoughtDraft(e.target.value)} placeholder="How much"
                   aria-label={`Amount of ${item.name} bought`}
                   className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
-                <span className="self-center text-sm" style={{ color: B.muted }}>{item.unit ?? ""}</span>
+                <UnitPick choices={unitChoices(item.unit)} value={boughtUnit ?? entryUnit(item)} onChange={setBoughtUnit}
+                  label={`Unit for ${item.name} bought`} tone={FAMILY.amber} />
                 <button onClick={() => boughtNow(item)} disabled={busy}
                   className="px-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>
                   Record
@@ -623,20 +802,31 @@ export default function PantryView({
                   </select>
                 </label>
                 {kindOf(stockDraft.category || item.category) !== "sundry" && (
+                <>
+                <div className="flex items-center gap-1.5 text-xs" style={{ color: B.muted }}>
+                  Amounts below are in
+                  <UnitPick choices={unitChoices(item.unit)} value={stockUnit ?? item.unit} onChange={(u) => {
+                    const from = stockUnit ?? item.unit;
+                    const conv = (t: string) => { const n = parseFloat(t); const c = Number.isFinite(n) ? toShelf(n, from, u) : null; return c == null ? t : String(c); };
+                    setStockDraft((d) => ({ ...d, quantity: conv(d.quantity), low_when: conv(d.low_when) }));
+                    setStockUnit(u);
+                  }} label="Unit for stock" tone={FAMILY.amber} />
+                </div>
                 <div className="grid grid-cols-2 gap-1.5">
                   <label className="grid gap-0.5 text-xs" style={{ color: B.muted }}>
-                    Current stock ({item.unit ?? "—"})
+                    Current stock ({stockUnit ?? item.unit ?? "—"})
                     <input type="number" inputMode="decimal" min="0" step="any" value={stockDraft.quantity}
                       onChange={(e) => setStockDraft({ ...stockDraft, quantity: e.target.value })}
                       className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
                   </label>
                   <label className="grid gap-0.5 text-xs" style={{ color: B.muted }}>
-                    Low at ({item.unit ?? "—"})
+                    Low at ({stockUnit ?? item.unit ?? "—"})
                     <input type="number" inputMode="decimal" min="0" step="any" value={stockDraft.low_when}
                       onChange={(e) => setStockDraft({ ...stockDraft, low_when: e.target.value })}
                       className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
                   </label>
                 </div>
+                </>
                 )}
                 <div className="flex gap-2">
                   <button onClick={() => saveStock(item)} disabled={busy}
@@ -676,9 +866,11 @@ export default function PantryView({
           <button onClick={() => openDetail(item)} className="min-w-0 text-left" aria-expanded={opened}>
             <span className="block text-sm font-medium truncate" style={{ color: B.ink }}>{item.name}</span>
             <span className="block text-xs truncate" style={{ color: left != null && left <= 1 ? RED.fg : B.muted2 }}>
-              {left != null
+              {item.supply_every
+                ? supplyText(item.supply_qty, item.unit, item.supply_every)
+                : left != null
                 ? (left < 0 ? "past its days" : left === 0 ? "use today" : `use within ${left}d`)
-                : e?.buyBelow != null ? `buy below ${amount(e.buyBelow, item.unit)}` : categoryLabel(item.category)}
+                : item.made_at_home ? "made at home" : e?.buyBelow != null ? `buy below ${amount(e.buyBelow, item.unit)}` : categoryLabel(item.category)}
             </span>
           </button>
           <BoughtCell p={bought[1]} />
@@ -730,7 +922,7 @@ export default function PantryView({
       line: plannedDays === 0 ? "Nothing planned this week" : `${plannedDays} day${plannedDays === 1 ? "" : "s"} planned · ${needed.length ? `${needed.length} short` : "nothing short"}`,
       tone: FAMILY.amber },
     { key: "shop", n: 3, title: "Shop", ask: "What do we buy?",
-      line: open.length ? `${open.length} to buy` : "Nothing to buy",
+      line: [open.length ? `${open.length} to buy` : "Nothing to buy", toMake.length ? `${toMake.length} to make` : ""].filter(Boolean).join(" · "),
       tone: FAMILY.green },
   ] as const;
 
@@ -1007,7 +1199,7 @@ export default function PantryView({
             <>
               <div className="grid gap-2">
                 <label htmlFor="p-name" className="text-xs font-medium" style={{ color: B.muted }}>What is it?</label>
-                <input id="p-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                <input id="p-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value, unit: unitTouched ? draft.unit : draftUnit(e.target.value, draft.category) })}
                   placeholder="Basmati rice, curry leaves, hing…" maxLength={60}
                   className="rounded-xl px-3 py-2 text-sm"
                   style={fieldLook(FAMILY.amber)} />
@@ -1016,7 +1208,7 @@ export default function PantryView({
               <div className="grid grid-cols-2 gap-2">
                 <div className="grid gap-1">
                   <label htmlFor="p-cat" className="text-xs font-medium" style={{ color: B.muted }}>Kind</label>
-                  <select id="p-cat" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                  <select id="p-cat" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value, unit: unitTouched ? draft.unit : draftUnit(draft.name, e.target.value) })}
                     className="rounded-xl px-3 py-2 text-sm"
                     style={fieldLook(FAMILY.amber)}>
                     {KINDS.map((k) => (
@@ -1037,7 +1229,7 @@ export default function PantryView({
                         onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
                         className="w-full min-w-0 rounded-xl px-3 py-2 text-sm"
                         style={fieldLook(FAMILY.amber)} />
-                      <select value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value as Unit })}
+                      <select value={draft.unit} onChange={(e) => { setUnitTouched(true); setDraft({ ...draft, unit: e.target.value as Unit }); }}
                         aria-label="Unit" className="rounded-xl px-2 py-2 text-sm"
                         style={fieldLook(FAMILY.amber)}>
                         {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
@@ -1259,7 +1451,7 @@ export default function PantryView({
               return (
                 <div key={s.id} className="py-2.5 grid gap-2" style={{ borderTop: `1px solid ${FAMILY.green.line}` }}>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => { setTickId(ticking ? null : s.id); setTickQty(""); }}
+                    <button onClick={() => { setTickId(ticking ? null : s.id); setTickQty(""); setTickUnit(null); }}
                       className="w-7 h-7 shrink-0 rounded-md flex items-center justify-center text-sm font-bold"
                       style={{ background: ticking ? FAMILY.green.edge : "#fff", color: ticking ? "#fff" : FAMILY.green.edge, border: `2px solid ${FAMILY.green.edge}` }}
                       aria-label={`Bought ${s.name}`}>✓</button>
@@ -1279,7 +1471,9 @@ export default function PantryView({
                         onChange={(e) => setTickQty(e.target.value)} placeholder="How much? (optional)"
                         aria-label={`Amount of ${s.name} bought`}
                         className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.green)} />
-                      <span className="self-center text-sm" style={{ color: B.muted }}>{shelf?.unit ?? s.unit ?? ""}</span>
+                      <UnitPick choices={unitChoices(shelf?.unit ?? s.unit ?? libOfLine(s)?.unit ?? null)}
+                        value={tickUnit ?? (shelf ? entryUnit(shelf) : naturalUnit(s.unit ?? libOfLine(s)?.unit ?? null, libOfLine(s)?.pack))}
+                        onChange={setTickUnit} label={`Unit for ${s.name} bought`} tone={FAMILY.green} />
                       <button onClick={() => tickBought(s)} disabled={busy}
                         className="px-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>
                         Bought
@@ -1294,6 +1488,45 @@ export default function PantryView({
           </div>
         )}
       </section>
+
+      {toMake.length > 0 && (
+        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.violet)}>
+          <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>To make at home · {toMake.length}</h2>
+          {toMake.map((item) => {
+            const making = makeId === item.id;
+            const left = est[item.id]?.est;
+            return (
+              <div key={item.id} className="grid gap-2 py-2" style={{ borderTop: `1px solid ${B.cardEdge}` }}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium m-0 truncate" style={{ color: B.ink }}>{item.name}</p>
+                    <p className="text-xs m-0" style={{ color: B.muted2 }}>
+                      {left != null ? `about ${amount(left, item.unit) || "0"} left` : "running low"} ·{" "}
+                      <Link href={`/recipes?q=${encodeURIComponent(item.name.replace(/\(.*?\)/g, "").trim())}`} style={{ color: B.violetLink }}>see recipe</Link>
+                    </p>
+                  </div>
+                  <button onClick={() => { setMakeId(making ? null : item.id); setMakeQty(""); setMakeUnit(null); }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0" style={{ background: B.button, color: "#fff" }}>
+                    {making ? "Cancel" : "Made"}
+                  </button>
+                </div>
+                {making && (
+                  <div className="flex gap-1.5">
+                    <input type="number" inputMode="decimal" min="0" step="any" value={makeQty} autoFocus
+                      onChange={(e) => setMakeQty(e.target.value)} placeholder="How much did you make? (optional)"
+                      aria-label={`Amount of ${item.name} made`}
+                      className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.violet)} />
+                    <UnitPick choices={unitChoices(item.unit)} value={makeUnit ?? entryUnit(item)} onChange={setMakeUnit}
+                      label={`Unit for ${item.name} made`} tone={FAMILY.violet} />
+                    <button onClick={() => madeNow(item)} disabled={busy}
+                      className="px-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>Save</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </section>
+      )}
     </div>
   );
 

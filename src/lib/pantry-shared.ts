@@ -1,7 +1,7 @@
 // Small pieces both the server and the phone need, kept apart from anything that sends alerts.
 
 export const ITEM_COLS =
-  "id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note, library_key, stock_at, daily_use";
+  "id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note, library_key, stock_at, daily_use, supply_qty, supply_every, made_at_home";
 
 /** The calendar day of a moment, in the family's own zone. */
 export function dayIn(ts: string | null, timeZone: string): string | null {

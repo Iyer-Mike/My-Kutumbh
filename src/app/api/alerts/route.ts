@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { familyOf } from "@/lib/family";
-import { todayLocal } from "@/lib/dates";
+import { hourLocal, todayLocal } from "@/lib/dates";
 import { primeState } from "@/lib/prime";
 
 /**
@@ -9,17 +9,27 @@ import { primeState } from "@/lib/prime";
  * Every question is asked on its own and any failure just means "no news":
  * a badge must never get in the way of the app.
  */
+/** From this hour (family time) a day with nothing logged earns a "!" on Log. */
+const EVENING_HOUR = 18;
+
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({}, { status: 401, headers: { "Cache-Control": "no-store" } });
 
-  const out = { home: false, family: false, profile: false };
+  const out = { home: false, log: false, family: false, profile: false };
   const { kutumbhId, isPrime, timeZone } = await familyOf(supabase, user.id);
 
   const ask = async (fn: () => Promise<void>) => { try { await fn(); } catch { /* no news */ } };
 
   await Promise.all([
+    // Log: evening has come and this person has logged nothing today
+    ask(async () => {
+      if (!kutumbhId || hourLocal(timeZone) < EVENING_HOUR) return;
+      const { count } = await supabase.from("meal_logs").select("id", { count: "exact", head: true })
+        .eq("user_id", user.id).eq("logged_date", todayLocal(timeZone));
+      if ((count ?? 0) === 0) out.log = true;
+    }),
     // Home: the Key Member changed the menu since this member last looked
     ask(async () => {
       if (!kutumbhId) return;

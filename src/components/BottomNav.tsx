@@ -22,10 +22,10 @@ const NAV = [
   { href: "/profile",   label: "Profile",  icon: "profile", also: [] },
 ] as const;
 
-type Alerts = { home?: boolean; family?: boolean; profile?: boolean };
+type Alerts = { home?: boolean; log?: boolean; family?: boolean; profile?: boolean };
 
 // Tabs that can carry a "!" when something there needs a look
-const ALERT_KEY: Record<string, keyof Alerts> = { "/dashboard": "home", "/family": "family", "/profile": "profile" };
+const ALERT_KEY: Record<string, keyof Alerts> = { "/dashboard": "home", "/log": "log", "/family": "family", "/profile": "profile" };
 
 export default function BottomNav() {
   const pathname = usePathname();

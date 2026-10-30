@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { addPlanned, removePlanned, setPlannedKey } from "@/app/(app)/family/planned-actions";
+import { handOverPrime } from "@/app/(app)/family/prime-actions";
 import InviteButton from "@/components/InviteButton";
 
 export type PlannedRow = { id: string; name: string; email: string | null; is_key: boolean; joined: boolean };
@@ -15,15 +16,19 @@ export type PlannedRow = { id: string; name: string; email: string | null; is_ke
  * change at any time; the role itself moves with the hand-over below.
  */
 export default function PlannedMembers({
-  rows, isOwner, keyName, inviterName, kutumbhName,
+  rows, isOwner, keyName, joined, inviterName, kutumbhName,
 }: {
-  rows: PlannedRow[]; isOwner: boolean; keyName: string | null; inviterName: string | null; kutumbhName: string | null;
+  rows: PlannedRow[]; isOwner: boolean; keyName: string | null;
+  /** Members who have already joined, other than the Key Member: the role can be handed to them now */
+  joined: { user_id: string; full_name: string | null }[];
+  inviterName: string | null; kutumbhName: string | null;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [inviting, setInviting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [handTo, setHandTo] = useState<{ user_id: string; full_name: string | null } | null>(null);
 
   const planned = rows.find((r) => r.is_key) ?? null;
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) =>
@@ -51,7 +56,7 @@ export default function PlannedMembers({
         <p className="m-0 mt-0.5 text-xs" style={{ color: "#625A75", lineHeight: 1.5 }}>
           Manages this page, the menu and the plans.
         </p>
-        {isOwner && rows.some((r) => !r.joined) && (
+        {isOwner && (rows.some((r) => !r.joined) || joined.length > 0) && !handTo && (
           <>
             <label htmlFor="planned-key" className="block mt-2 mb-1 text-xs font-semibold" style={{ color: "#241C33" }}>
               Who will manage the Kutumbh?
@@ -60,21 +65,52 @@ export default function PlannedMembers({
               id="planned-key"
               value={planned?.id ?? ""}
               disabled={pending}
-              onChange={(e) => run(() => setPlannedKey(e.target.value || null))}
+              onChange={(e) => {
+                const v = e.target.value;
+                const member = joined.find((m) => `m:${m.user_id}` === v);
+                if (member) { setHandTo(member); return; }          // already joined: hand over for real
+                run(() => setPlannedKey(v || null));                  // not joined yet: note who is next
+              }}
               className="w-full px-3 py-2.5 rounded-xl text-sm min-h-11"
               style={fieldLook(FAMILY.amber)}
             >
               <option value="">Me, for now ({keyName ?? "current Key Member"})</option>
-              {rows.filter((r) => !r.joined).map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
+              {joined.length > 0 && (
+                <optgroup label="Already joined — hands over now">
+                  {joined.map((m) => <option key={m.user_id} value={`m:${m.user_id}`}>{m.full_name ?? "Family member"}</option>)}
+                </optgroup>
+              )}
+              {rows.some((r) => !r.joined) && (
+                <optgroup label="Not joined yet — takes over once they join">
+                  {rows.filter((r) => !r.joined).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </optgroup>
+              )}
             </select>
             {planned && (
               <p className="m-0 mt-1.5 text-xs" style={{ color: "#625A75", lineHeight: 1.5 }}>
-                You stay Key Member until {planned.name} has joined. Then use &ldquo;Hand over&rdquo; below. You can change this choice any time.
+                You stay Key Member until {planned.name} has joined; then choose them above to hand over. You can change this any time.
               </p>
             )}
+            <p className="m-0 mt-1.5 text-xs" style={{ color: "#6A6180", lineHeight: 1.5 }}>
+              If you&apos;re away 7+ days, a member can take over; you can reclaim it on return.
+            </p>
           </>
+        )}
+        {isOwner && handTo && (
+          <div className="mt-2">
+            <p className="m-0 mb-2 text-sm" style={{ color: "#241C33", lineHeight: 1.5 }}>
+              Hand over to <b>{handTo.full_name ?? "this member"}</b>? They&apos;ll manage the menu, plans, dishes, invitations and the family photo. You stay as a member.
+            </p>
+            <div className="flex gap-2">
+              <button disabled={pending} onClick={() => run(() => handOverPrime(handTo.user_id), () => setHandTo(null))}
+                className="px-4 min-h-11 rounded-xl text-sm font-semibold text-white" style={{ background: "#2D1B4E" }}>
+                {pending ? "One moment…" : "Yes, hand it over"}
+              </button>
+              <button onClick={() => setHandTo(null)} className="px-4 min-h-11 rounded-xl text-sm font-semibold" style={{ background: "#E7DCF7", color: "#6B46B8" }}>
+                Not now
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

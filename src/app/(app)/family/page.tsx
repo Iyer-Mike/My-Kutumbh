@@ -216,8 +216,6 @@ export default async function FamilyPage() {
         {notices.length > 0 && <NoticesCard notices={notices} isPrime={isOwner} />}
 
         <PrimeRole
-          isPrime={isOwner}
-          members={others}
           primeName={primeName}
           canClaim={role.canClaim}
           canReclaim={role.canReclaim}
@@ -445,6 +443,7 @@ export default async function FamilyPage() {
               rows={plannedRows}
               isOwner={isOwner}
               keyName={primeName}
+              joined={others.map((m) => ({ user_id: m.user_id, full_name: m.full_name }))}
               inviterName={primeName?.split(" ")[0] ?? null}
               kutumbhName={kutumbhName}
             />

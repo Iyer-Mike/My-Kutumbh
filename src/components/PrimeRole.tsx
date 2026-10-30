@@ -1,33 +1,25 @@
 "use client";
 
-import { FAMILY, look, fieldLook } from "@/lib/brand";
+import { FAMILY, look } from "@/lib/brand";
 import { useState, useTransition } from "react";
-import { handOverPrime, claimPrime, reclaimPrime } from "@/app/(app)/family/prime-actions";
+import { claimPrime, reclaimPrime } from "@/app/(app)/family/prime-actions";
 import { QUIET_DAYS } from "@/lib/prime";
-
-type Member = { user_id: string; full_name: string | null };
 
 /**
  * The three ways the role moves, each shown only to the person who may
  * use it. Every rule here is enforced again in the database.
  */
 export default function PrimeRole({
-  isPrime,
-  members,
   primeName,
   canClaim,
   canReclaim,
   quietDays,
 }: {
-  isPrime: boolean;
-  members: Member[];
   primeName: string | null;
   canClaim: boolean;
   canReclaim: boolean;
   quietDays: number | null;
 }) {
-  const [choosing, setChoosing] = useState(false);
-  const [confirm, setConfirm] = useState<Member | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -36,7 +28,7 @@ export default function PrimeRole({
       setError(null);
       const r = await fn();
       if (!r.ok) setError(r.error ?? "It didn't work. Please try again.");
-      else { setChoosing(false); setConfirm(null); }
+      
     });
 
   // ── The one who was away, on returning ──
@@ -86,81 +78,6 @@ export default function PrimeRole({
     );
   }
 
-  // ── The Key Member, handing on ──
-  if (!isPrime || members.length < 2) return null;
-
-  if (confirm) {
-    return (
-      <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
-        <p className="text-sm m-0 mb-3" style={{ color: "#241C33" }}>
-          Hand over to <span className="font-semibold">{confirm.full_name ?? "this member"}</span>?
-          They&apos;ll manage dishes, invitations and the family photo. You stay as a member.
-        </p>
-        {error && <p className="text-xs mb-2" style={{ color: "#B0453A" }}>{error}</p>}
-        <div className="flex gap-2">
-          <button
-            onClick={() => run(() => handOverPrime(confirm.user_id))}
-            disabled={pending}
-            className="text-xs font-semibold px-4 py-2 rounded-full"
-            style={{ background: "#2D1B4E", color: "#fff" }}
-          >
-            {pending ? "One moment…" : "Yes, hand it over"}
-          </button>
-          <button
-            onClick={() => setConfirm(null)}
-            className="text-xs px-4 py-2 rounded-full"
-            style={{ background: "#E7DCF7", color: "#6B46B8" }}
-          >
-            Not now
-          </button>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
-      <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#6A6180" }}>
-        Looking after the Kutumbh
-      </p>
-
-      {!choosing ? (
-        <>
-          <p className="text-xs mt-2 mb-3" style={{ color: "#6A6180" }}>
-            If you&apos;re away 7+ days, a member can take over; you can reclaim it on return.
-          </p>
-          <button
-            onClick={() => setChoosing(true)}
-            className="text-xs font-medium px-3 py-1.5 rounded-full"
-            style={{ background: "#E7DCF7", color: "#6B46B8" }}
-          >
-            Hand it to someone else
-          </button>
-        </>
-      ) : (
-        <>
-          <p className="text-xs mt-2 mb-2" style={{ color: "#6A6180" }}>Who should look after it?</p>
-          <div className="space-y-2">
-            {members.map((m) => (
-              <button
-                key={m.user_id}
-                onClick={() => setConfirm(m)}
-                className="w-full text-left text-sm px-3 py-2 rounded-xl"
-                style={fieldLook(FAMILY.violet)}
-              >
-                {m.full_name ?? "Family member"}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() => setChoosing(false)}
-            className="text-xs mt-3 font-medium"
-            style={{ color: "#6B46B8" }}
-          >
-            Never mind
-          </button>
-        </>
-      )}
-    </section>
-  );
+  // The hand-over itself now lives in the Family list, under "Who will manage the Kutumbh?"
+  return null;
 }

@@ -612,7 +612,8 @@ export default function LogPage() {
           return (
             <div key={key} className="rounded-2xl overflow-hidden"
               style={look(FAMILY.blue)}>
-              <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center justify-between px-4 py-3 cursor-pointer"
+                onClick={() => openSlot(key)}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#E7DCF7" }}>
                     {icon}
@@ -629,7 +630,7 @@ export default function LogPage() {
                 <div className="flex items-center gap-2">
                   {slotLogs.length > 0 && (
                     <button
-                      onClick={() => toggleSlotOpen(key)}
+                      onClick={(e) => { e.stopPropagation(); toggleSlotOpen(key); }}
                       className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-semibold"
                       style={{ background: isCollapsed ? "#E7DCF7" : "#241238", color: isCollapsed ? "#6B46B8" : "#fff" }}
                       aria-label={isCollapsed ? "Expand" : "Collapse"}
@@ -637,7 +638,7 @@ export default function LogPage() {
                       {isCollapsed ? "+" : "−"}
                     </button>
                   )}
-                  <button onClick={() => openSlot(key)} aria-label={`Log ${label}`}
+                  <button onClick={(e) => { e.stopPropagation(); openSlot(key); }} aria-label={`Log ${label}`}
                     className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
                     style={{ background: "#E7DCF7", color: "#6B46B8" }}>✎</button>
                 </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { haveIt, sameThing } from "@/lib/ingredients";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
@@ -185,7 +185,7 @@ export default function PantryView({
     const { data, error } = await supabase.from("pantry_items").insert(rows)
       .select("id, name, kind, category, quantity, unit, low_when, status, bought_on, use_within_days, note");
     if (error) return fail("start the shelf", error.message);
-    setItems((data ?? []) as PantryItem[]);
+    setItems(((data ?? []) as PantryItem[]).sort((a, b) => a.name.localeCompare(b.name)));
     setBusy(false);
   }
 
@@ -512,6 +512,23 @@ export default function PantryView({
     open.some((s) => s.pantry_item_id === item.id || norm(s.name) === norm(item.name));
   const RED = { bg: "#FBE2DC", fg: "#9A2C1B", edge: "#D2553C" };
 
+  // Anything the shelf says is short goes on the list by itself, once. (Items with
+  // no quantity at all are left alone: nobody has said how much there is.)
+  const autoFlagged = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const due = items.filter((i) => i.quantity != null && est[i.id]?.short && !onList(i) && !autoFlagged.current.has(i.id));
+    if (due.length === 0) return;
+    due.forEach((i) => autoFlagged.current.add(i.id));
+    (async () => {
+      for (const i of due) await supabase.rpc("flag_pantry_low", { p_item: i.id });
+      const { data } = await supabase.from("shopping_items").select(SHOP_COLS)
+        .eq("kutumbh_id", kutumbhId).order("created_at", { ascending: false }).limit(120);
+      if (data) setShopping(data as ShoppingItem[]);
+      setItems((prev) => prev.map((x) => (due.some((d) => d.id === x.id) ? { ...x, status: "low" } : x)));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, est, shopping]);
+
   function BoughtCell({ p }: { p?: Purchase }) {
     if (!p) return <span className="text-xs text-center" style={{ color: B.muted2 }}>—</span>;
     return (
@@ -726,7 +743,7 @@ export default function PantryView({
 
   // Step 1 · the shelf, four tabs
   const current = TABS.find((t) => t.key === tab)!;
-  const tabRows = items.filter(current.match);
+  const tabRows = items.filter(current.match).sort((a, b) => a.name.localeCompare(b.name));
   const shelfStep = (
     <div className="grid gap-4">
       {items.length === 0 ? (
@@ -1228,7 +1245,7 @@ export default function PantryView({
         </div>
 
         {open.length === 0 ? (
-          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Short items come here by themselves.</p>
+          <p className="text-sm" style={{ color: B.muted }}>Nothing to buy · Items running short are added here for you.</p>
         ) : (
           <div className="grid gap-3">
             {grouped.map(({ group, lines }) => (

@@ -62,6 +62,7 @@ export default function ResetPasswordPage() {
     }
 
     await supabase.auth.signOut();
+    try { localStorage.removeItem("mk-reset-pending"); } catch { /* private window */ }
     window.location.replace("/login?changed=1");
   }
 

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { standingOf } from "./admission.ts";
 
 /**
  * What the thinking costs, and when to stop.
@@ -78,6 +79,17 @@ export async function checkBudget(
   userId: string,
   kutumbhId: string | null,
 ): Promise<BudgetVerdict> {
+  // Anyone may register, but only someone the Admin has let in may spend
+  // money. Every AI route asks here, so a person still waiting cannot reach
+  // an AI feature by any route, whatever they send to the server.
+  if ((await standingOf(supabase, userId)) !== "admitted") {
+    return {
+      ok: false,
+      status: 403,
+      message: "The AI features open once you have been welcomed in to My Kutumb Bhojan.",
+    };
+  }
+
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const dayStart   = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();

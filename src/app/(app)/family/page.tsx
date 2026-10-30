@@ -10,6 +10,7 @@ import PrimeRole from "@/components/PrimeRole";
 import { RemoveMember, LeaveKutumbh } from "@/components/MemberControls";
 import { primeState, touchLastSeen } from "@/lib/prime";
 import InviteButton from "@/components/InviteButton";
+import PlannedMembers, { type PlannedRow } from "@/components/PlannedMembers";
 import Link from "next/link";
 import { todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
@@ -141,6 +142,14 @@ export default async function FamilyPage() {
   const primeMember = members.find((m) => m.role === "owner") ?? null;
   const primeName = primeMember?.full_name ?? null;
 
+  // The family listed by name. Before phase 30 has run the table is missing: show nothing.
+  const norm = (v: string | null | undefined) => (v ?? "").trim().toLowerCase();
+  const joinedNames = new Set(members.flatMap((m) => [norm(m.full_name), norm(m.full_name?.split(" ")[0])]));
+  const { data: plannedRaw } = kutumbhId
+    ? await supabase.from("kutumbh_planned_members").select("id, name, email, is_key").eq("kutumbh_id", kutumbhId).order("created_at")
+    : { data: null };
+  const plannedRows: PlannedRow[] = (plannedRaw ?? []).map((p) => ({ ...p, joined: joinedNames.has(norm(p.name)) }));
+
   // Being here counts as being here — silence is what moves the role
   const { data: mine } = await supabase
     .from("profiles").select("last_seen_at").eq("id", user!.id).maybeSingle();
@@ -207,8 +216,6 @@ export default async function FamilyPage() {
         {notices.length > 0 && <NoticesCard notices={notices} isPrime={isOwner} />}
 
         <PrimeRole
-          isPrime={isOwner}
-          members={others}
           primeName={primeName}
           canClaim={role.canClaim}
           canReclaim={role.canReclaim}
@@ -232,7 +239,7 @@ export default async function FamilyPage() {
             ) : (
               <Face url={familyPhoto ? faceUrls[familyPhoto] : null} name={kutumbhName} size={96} />
             )}
-            <p className="text-[11px] mt-1 text-center m-0" style={{ color: "#6A6180" }}>
+            <p className="text-xs mt-1 text-center m-0" style={{ color: "#6A6180" }}>
               {familyPhoto ? kutumbhName : "Add a family photo"}
             </p>
           </section>
@@ -400,7 +407,7 @@ export default async function FamilyPage() {
                         >
                           {m.kcal_today}
                           <br />
-                          <span className="font-normal text-[10px]" style={{ color: "#6A6180" }}>kcal</span>
+                          <span className="font-normal text-xs" style={{ color: "#6A6180" }}>kcal</span>
                         </div>
                       )}
                     </>
@@ -431,6 +438,15 @@ export default async function FamilyPage() {
                 })}
               </div>
             </div>
+
+            <PlannedMembers
+              rows={plannedRows}
+              isOwner={isOwner}
+              keyName={primeName}
+              joined={others.map((m) => ({ user_id: m.user_id, full_name: m.full_name }))}
+              inviterName={primeName?.split(" ")[0] ?? null}
+              kutumbhName={kutumbhName}
+            />
 
             {/* ── Non-Key Member: invite note, and the way out ── */}
             {!isOwner && (

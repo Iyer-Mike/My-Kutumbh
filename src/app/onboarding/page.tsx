@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { pendingInvite } from "@/lib/invite";
+import { pendingInvite, forgetInvite } from "@/lib/invite";
 import { DEFAULT_TIME_ZONE, deviceTimeZone } from "@/lib/dates";
 import { useRouter } from "next/navigation";
 import KutumbhLogo from "@/components/KutumbhLogo";
@@ -170,6 +170,14 @@ export default function OnboardingPage() {
   const [alreadyMember, setAlreadyMember] = useState(false);
 
   const [kutumbhName, setKutumbhName] = useState("");
+  // The family, listed by name (all optional; more can be added later on the Kutumbh page)
+  type Listed = { name: string; email: string };
+  const [listed, setListed] = useState<Listed[]>([]);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [listError, setListError] = useState<string | null>(null);
+  // Who will manage the Kutumbh: -1 is the person signing up. Changeable here, and later.
+  const [keyIndex, setKeyIndex] = useState(-1);
   const [dob, setDob] = useState("");
   const [gender, setGender] = useState("");
   const [height, setHeight] = useState("");
@@ -179,9 +187,17 @@ export default function OnboardingPage() {
   const [result, setResult] = useState<ReturnType<typeof computeDosha> | null>(null);
 
   // An invite in hand means they are joining someone else's family, not starting one
+  // (but someone already in a family has used it, and is finishing their profile)
   useEffect(() => {
     const code = pendingInvite();
-    if (code) router.replace(`/join/${code}`);
+    if (!code) return;
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data } = await supabase.from("kutumbh_members").select("kutumbh_id").eq("user_id", user.id).limit(1);
+      if (data && data.length > 0) forgetInvite();
+      else router.replace(`/join/${code}`);
+    });
   }, [router]);
 
   // On mount: if user is already in a kutumbh (joined via invite), skip step 1
@@ -213,6 +229,20 @@ export default function OnboardingPage() {
     setStep(2);
   }
 
+  function addListed() {
+    const n = newName.trim();
+    const em = newEmail.trim().toLowerCase();
+    if (!n) return;
+    if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)) { setListError("That doesn't look like an email address."); return; }
+    setListError(null);
+    setListed((l) => [...l, { name: n.slice(0, 60), email: em }]);
+    setNewName(""); setNewEmail("");
+  }
+  function removeListed(i: number) {
+    setListed((l) => l.filter((_, j) => j !== i));
+    setKeyIndex((k) => (k === i ? -1 : k > i ? k - 1 : k));
+  }
+
   function handleProfile(e: React.FormEvent) {
     e.preventDefault();
     setStep(3);
@@ -232,19 +262,25 @@ export default function OnboardingPage() {
     setStep(4);
   }
 
-  async function handleSkipPrakriti() {
+  // One path for both endings (with or without the Prakriti quiz), so a
+  // failure is reported the same way: the family and its owner are made
+  // together or not at all, and nothing is written over what is already saved.
+  async function finish(prakriti: ReturnType<typeof computeDosha> | null) {
     setSaving(true);
     setError(null);
+
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
 
     if (!alreadyMember) {
+      // Re-run safety: someone who already has a family never gets a second
       const { data: existing } = await supabase
         .from("kutumbh_members")
         .select("kutumbh_id")
         .eq("user_id", user.id)
         .limit(1);
+
       if (!existing?.[0]) {
         const { data: kutumbh, error: ke } = await supabase
           .from("kutumbhs")
@@ -252,88 +288,60 @@ export default function OnboardingPage() {
           .select()
           .single();
         if (ke) { setError(ke.message); setSaving(false); return; }
-        await supabase.from("kutumbh_members").insert({
-          kutumbh_id: kutumbh.id,
-          user_id: user.id,
-          role: "owner",
-        });
-      }
-    }
-
-    await supabase.from("profiles").upsert({
-      id: user.id,
-      full_name: user.user_metadata?.full_name,
-      date_of_birth: dob || null,
-      gender: gender || null,
-      height_cm: height ? parseFloat(height) : null,
-      weight_kg: weight ? parseFloat(weight) : null,
-      activity_level: activity || null,
-      onboarding_complete: true,
-      updated_at: new Date().toISOString(),
-    });
-
-    router.push("/dashboard");
-  }
-
-  async function handleSave() {
-    if (!result) return;
-    setSaving(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/login"); return; }
-
-    if (!alreadyMember) {
-      // Check if this user already owns a kutumbh (re-run safety)
-      const { data: existing } = await supabase
-        .from("kutumbh_members")
-        .select("kutumbh_id")
-        .eq("user_id", user.id)
-        .limit(1);
-
-      const existingMembership = existing?.[0] ?? null;
-
-      if (!existingMembership) {
-        // First time — create the kutumbh and membership
-        const { data: kutumbh, error: ke } = await supabase
-          .from("kutumbhs")
-          .insert({ name: kutumbhName, created_by: user.id, time_zone: deviceTimeZone() ?? DEFAULT_TIME_ZONE })
-          .select()
-          .single();
-
-        if (ke) { setError(ke.message); setSaving(false); return; }
 
         const { error: me } = await supabase.from("kutumbh_members").insert({
           kutumbh_id: kutumbh.id,
           user_id: user.id,
           role: "owner",
         });
-
-        if (me) { setError(me.message); setSaving(false); return; }
+        if (me) {
+          // Do not leave a family with no owner behind
+          await supabase.from("kutumbhs").delete().eq("id", kutumbh.id);
+          setError("We could not set up your Kutumbh. Please try again.");
+          setSaving(false);
+          return;
+        }
       }
     }
 
-    // Always update the profile (idempotent)
-    const { error: pe } = await supabase.from("profiles").upsert({
+    // The family list. Best effort: the app opens even if this cannot be saved,
+    // and names can be added again from the Kutumbh page.
+    if (!alreadyMember && listed.length > 0) {
+      const { data: mine } = await supabase.from("kutumbh_members").select("kutumbh_id").eq("user_id", user.id).limit(1);
+      const kid = mine?.[0]?.kutumbh_id;
+      if (kid) {
+        await supabase.from("kutumbh_planned_members").insert(
+          listed.map((p, i) => ({ kutumbh_id: kid, name: p.name, email: p.email || null, is_key: i === keyIndex, created_by: user.id })),
+        );
+      }
+    }
+
+    // Only what was filled in: leaving a box empty must not blank what is saved
+    const profile: Record<string, unknown> = {
       id: user.id,
       full_name: user.user_metadata?.full_name,
-      date_of_birth: dob || null,
-      gender: gender || null,
-      height_cm: height ? parseFloat(height) : null,
-      weight_kg: weight ? parseFloat(weight) : null,
-      activity_level: activity || null,
-      prakriti_vata: result.v,
-      prakriti_pitta: result.p,
-      prakriti_kapha: result.k,
-      primary_dosha: result.primary,
       onboarding_complete: true,
       updated_at: new Date().toISOString(),
-    });
+    };
+    if (dob)      profile.date_of_birth = dob;
+    if (gender)   profile.gender = gender;
+    if (height)   profile.height_cm = parseFloat(height);
+    if (weight)   profile.weight_kg = parseFloat(weight);
+    if (activity) profile.activity_level = activity;
+    if (prakriti) {
+      profile.prakriti_vata = prakriti.v;
+      profile.prakriti_pitta = prakriti.p;
+      profile.prakriti_kapha = prakriti.k;
+      profile.primary_dosha = prakriti.primary;
+    }
 
-    if (pe) { setError(pe.message); setSaving(false); return; }
+    const { error: pe } = await supabase.from("profiles").upsert(profile);
+    if (pe) { setError("We could not save your details. Please try again."); setSaving(false); return; }
     router.push("/dashboard");
   }
+
+  const handleSkipPrakriti = () => finish(null);
+  const handleSave = () => { if (result) finish(result); };
 
   // ══ STEP 1 — Kutumbh name ══════════════════════════════════════
   if (step === 1) return (
@@ -342,7 +350,7 @@ export default function OnboardingPage() {
         Name your Kutumbh
       </h2>
       <p className="text-sm mb-5" style={{ color: "#625A75" }}>
-        Your family&apos;s name in the app — &ldquo;Kutumbh&rdquo; is added for you.
+        Your family&apos;s name in the app — &ldquo;Kutumbh&rdquo; is added for you. Then list the family and choose who manages it.
       </p>
       <form onSubmit={handleKutumbh} className="space-y-4">
         <div>
@@ -363,6 +371,59 @@ export default function OnboardingPage() {
             </p>
           )}
         </div>
+        <div className="rounded-2xl px-4 py-4" style={{ background: "#fff", border: "2px solid #F2B531" }}>
+          <p className="m-0 text-sm font-semibold" style={{ color: "#241C33" }}>Who is in your family?</p>
+          <p className="m-0 mt-0.5 mb-3 text-xs" style={{ color: "#625A75", lineHeight: 1.5 }}>
+            Optional. List the names now, or add them later from the Kutumbh page. Everyone joins with their own login when you invite them.
+          </p>
+
+          {listed.length > 0 && (
+            <ul className="m-0 mb-3 p-0 list-none grid gap-2">
+              {listed.map((p, i) => (
+                <li key={`${p.name}-${i}`} className="flex items-center justify-between gap-2 rounded-xl px-3 py-2" style={{ background: "#FAF7FE", border: "1.5px solid #E0D4F2" }}>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold truncate" style={{ color: "#241C33" }}>{p.name}</span>
+                    {p.email && <span className="block text-xs truncate" style={{ color: "#6A6180" }}>{p.email}</span>}
+                  </span>
+                  <button type="button" onClick={() => removeListed(i)} aria-label={`Remove ${p.name}`}
+                    className="px-3 min-h-11 text-xs font-semibold" style={{ color: "#B0453A" }}>Remove</button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="grid gap-2">
+            <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} style={inputStyle} placeholder="Name" aria-label="Name" maxLength={60}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addListed(); } }} />
+            <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={inputStyle} placeholder="Email (optional)" aria-label="Email (optional)"
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addListed(); } }} />
+            {listError && <p className="m-0 text-xs" style={{ color: "#B0453A" }}>{listError}</p>}
+            <button type="button" onClick={addListed} disabled={!newName.trim()}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 min-h-11" style={{ border: "1.5px solid #6B46B8", color: "#6B46B8" }}>
+              + Add to the list
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl px-4 py-4" style={{ background: "#fff", border: "2px solid #CBB4EE" }}>
+          <label htmlFor="key-member" className="block text-sm font-semibold" style={{ color: "#241C33" }}>
+            ★ Who will manage the Kutumbh?
+          </label>
+          <p className="m-0 mt-0.5 mb-2 text-xs" style={{ color: "#625A75", lineHeight: 1.5 }}>
+            The Key Member manages the Kutumbh page, the menu and the plans. You can change this choice any time.
+          </p>
+          <select id="key-member" value={keyIndex} onChange={(e) => setKeyIndex(Number(e.target.value))}
+            style={inputStyle} className="min-h-11">
+            <option value={-1}>Me</option>
+            {listed.map((p, i) => <option key={`${p.name}-${i}`} value={i}>{p.name}</option>)}
+          </select>
+          {keyIndex >= 0 && (
+            <p className="m-0 mt-2 text-xs" style={{ color: "#625A75", lineHeight: 1.5 }}>
+              You set things up and stay Key Member until {listed[keyIndex]?.name} has joined. Then you hand the role over from the Kutumbh page.
+            </p>
+          )}
+        </div>
+
         <button
           type="submit"
           className="w-full py-3 rounded-xl font-semibold text-sm text-white"

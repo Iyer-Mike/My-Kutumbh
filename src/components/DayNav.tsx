@@ -41,7 +41,7 @@ export default function DayNav({ date, back, ahead, path, onDark = false }: {
 
       <div className="flex-1 min-w-0 text-center">
         <p className="m-0 text-sm font-semibold truncate" style={{ color: fg }}>{dayLabel(date, tz)}</p>
-        <p className="m-0 text-[11px] truncate" style={{ color: onDark ? "rgba(255,255,255,0.6)" : B.muted2 }}>
+        <p className="m-0 text-xs truncate" style={{ color: onDark ? "rgba(255,255,255,0.6)" : B.muted2 }}>
           {longDateFor(date)}
         </p>
       </div>
@@ -54,7 +54,7 @@ export default function DayNav({ date, back, ahead, path, onDark = false }: {
 
       {!isToday && (
         <button onClick={() => go(todayLocal(tz))}
-          className="shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold"
+          className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
           style={chip}>
           Today
         </button>

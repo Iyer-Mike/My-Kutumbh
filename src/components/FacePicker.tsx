@@ -98,7 +98,7 @@ export default function FacePicker({
       >
         <Face url={url} name={name} size={size} />
         <span
-          className="absolute bottom-0 right-0 flex items-center justify-center rounded-full text-[11px]"
+          className="absolute bottom-0 right-0 flex items-center justify-center rounded-full text-xs"
           style={{ width: 24, height: 24, background: B.gold, color: "#2A1646", border: "2px solid #fff" }}
           aria-hidden
         >

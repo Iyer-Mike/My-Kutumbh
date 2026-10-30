@@ -97,7 +97,7 @@ export default function FoodFilterBar({ value, onChange, idPrefix, slot }: {
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label htmlFor={`${idPrefix}-cuisine`} className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#6A6180" }}>
+          <label htmlFor={`${idPrefix}-cuisine`} className="block text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#6A6180" }}>
             Cuisine
           </label>
           <select id={`${idPrefix}-cuisine`} value={value.cuisine}
@@ -114,7 +114,7 @@ export default function FoodFilterBar({ value, onChange, idPrefix, slot }: {
           </select>
         </div>
         <div>
-          <label htmlFor={`${idPrefix}-diet`} className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#6A6180" }}>
+          <label htmlFor={`${idPrefix}-diet`} className="block text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "#6A6180" }}>
             Diet
           </label>
           <select id={`${idPrefix}-diet`} value={value.diet}

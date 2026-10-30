@@ -5,6 +5,9 @@ import WhatsForToday, { type MealSuggestion } from "@/components/WhatsForToday";
 import LiveFamily from "@/components/LiveFamily";
 import MenuUpdateCard, { type MenuChange } from "@/components/MenuUpdateCard";
 import MenuAlertsToggle from "@/components/MenuAlertsToggle";
+import GettingStarted from "@/components/GettingStarted";
+import HomeShortcuts from "@/components/HomeShortcuts";
+import KeyMemberTodo, { type TodoLine } from "@/components/KeyMemberTodo";
 import RunningShort, { type ShortLine } from "@/components/RunningShort";
 import { ITEM_COLS, checkPantry, type CheckedItem } from "@/lib/pantry-check";
 import { redirect } from "next/navigation";
@@ -266,6 +269,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const nextLine = isPrime
     ? (!festReady || nextState === "unset" ? "Create your menu here" : nextState === "draft" ? "Continue your draft menu" : "Menu published · see it here")
     : (!festReady || nextState === "published" ? "See the menu here" : "Menu is being prepared");
+  // One list for the Key Member of everything waiting on them
+  const todo: TodoLine[] = [];
+  if (isPrime && kutumbhId) {
+    const festHref = nextFest ? `/dashboard?date=${nextFest.date}&fest=1` : "/festivals";
+    if (waiting > 0) todo.push({ text: `${waiting} menu ${waiting === 1 ? "suggestion" : "suggestions"} to review`, href: festHref });
+    if (nextFest && nextState === "draft") todo.push({ text: `Publish the ${shortFestivalName(nextFest.name)} menu`, href: festHref });
+    if (toBuy > 0) todo.push({ text: `${toBuy} ${toBuy === 1 ? "item" : "items"} on the shopping list`, href: "/pantry?step=shop" });
+    const { count: dishesToComplete } = await supabase.from("food_items").select("id", { count: "exact", head: true })
+      .eq("kutumbh_id", kutumbhId).eq("needs_review", true);
+    if ((dishesToComplete ?? 0) > 0) todo.push({ text: `${dishesToComplete} ${dishesToComplete === 1 ? "dish" : "dishes"} to complete`, href: "/family/dishes" });
+  }
   const starter = festivalMode && isPrime && festivalName ? starterMenu(festivalMenu(builtIn), dishInfo) : [];
 
   const festivalTab = festivalName
@@ -326,6 +340,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       {/* ── Tabs + content ── */}
       <main className="flex-1 px-4 py-5">
+        <GettingStarted />
+        <KeyMemberTodo lines={todo} />
         {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools,menu_changes" />}
         {kutumbhId && menuChanges.length > 0 && <MenuUpdateCard changes={menuChanges} userId={user!.id} kutumbhId={kutumbhId} />}
         {kutumbhId && <RunningShort toBuy={toBuy} short={shortLines} today={today} />}
@@ -371,6 +387,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           kutumbhId={kutumbhId}
         />
         )}
+
+        {!festivalMode && <HomeShortcuts />}
 
         {/* Next festival: the whole strip opens that day's menu */}
         {nextFest && festOff != null && !festivalMode && (

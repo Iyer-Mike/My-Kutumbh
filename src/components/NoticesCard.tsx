@@ -48,7 +48,7 @@ export default function NoticesCard({ notices, isPrime }: { notices: Notice[]; i
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-sm font-semibold m-0" style={{ color: "#241C33" }}>{n.title}</p>
               {!n.read_at && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium"
+                <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium"
                   style={{ background: "#FBEBCB", color: "#8A5A06" }}>new</span>
               )}
             </div>
@@ -60,13 +60,13 @@ export default function NoticesCard({ notices, isPrime }: { notices: Notice[]; i
             <div className="flex gap-3 mt-2">
               {!n.read_at && (
                 <button onClick={() => start(async () => { await markNoticeRead(n.id); })}
-                  className="text-[11px] font-medium" style={{ color: "#6B46B8" }}>
+                  className="text-xs font-medium" style={{ color: "#6B46B8" }}>
                   Mark as read
                 </button>
               )}
               {isPrime && n.from_admin && !done && (
                 <button onClick={() => setReplyTo(replyTo === n.id ? null : n.id)}
-                  className="text-[11px] font-medium" style={{ color: "#6B46B8" }}>
+                  className="text-xs font-medium" style={{ color: "#6B46B8" }}>
                   {replyTo === n.id ? "Never mind" : "Reply"}
                 </button>
               )}

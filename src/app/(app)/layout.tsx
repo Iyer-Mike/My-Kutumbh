@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import BottomNav from "@/components/BottomNav";
 import SignedInGuard from "@/components/SignedInGuard";
+import ClearInvite from "@/components/ClearInvite";
 import { FamilyTimeProvider } from "@/lib/family-time";
 import { familyOf } from "@/lib/family";
 import { standingOf } from "@/lib/admission";
@@ -66,6 +67,7 @@ export default async function AppLayout({
         style={{ maxWidth: 480, boxShadow: "0 0 40px rgba(0,0,0,0.08)" }}
       >
         <SignedInGuard />
+        <ClearInvite />
         <div className="flex-1 pb-20">{children}</div>
         <BottomNav />
       </div>

@@ -264,7 +264,7 @@ export default function FestivalMenu(p: Props) {
               {SLOTS.map((s) => (
                 <div key={s.key} className="flex flex-col items-center text-center min-w-0">
                   <span className="text-sm font-bold leading-[18px]" style={{ color: INK }}>{Math.round(valueOf(s.key).kcal) || "–"}</span>
-                  <span className="text-[10px] leading-3 truncate" style={{ color: MUTED }}>{s.label.replace(" Snack", " snack")}</span>
+                  <span className="text-xs leading-3 truncate" style={{ color: MUTED }}>{s.label.replace(" Snack", " snack")}</span>
                 </div>
               ))}
             </div>
@@ -272,9 +272,9 @@ export default function FestivalMenu(p: Props) {
               <Values title="" color={MUTED} cells={nutrientCells(dayTotal)} />
             </div>
             <Values title="" color={MUTED} cells={microCells(dayTotal)} />
-            {!plans.length && <p className="m-0 text-[11px]" style={{ color: MUTED }}>No dishes yet · values appear as you plan</p>}
-            {noValues > 0 && <p className="m-0 text-[11px]" style={{ color: MUTED }}>{noValues} {noValues === 1 ? "dish" : "dishes"} without values · excluded</p>}
-            <p className="m-0 text-[11px]" style={{ color: MUTED }}>Estimates · IFCT-based</p>
+            {!plans.length && <p className="m-0 text-xs" style={{ color: MUTED }}>No dishes yet · values appear as you plan</p>}
+            {noValues > 0 && <p className="m-0 text-xs" style={{ color: MUTED }}>{noValues} {noValues === 1 ? "dish" : "dishes"} without values · excluded</p>}
+            <p className="m-0 text-xs" style={{ color: MUTED }}>Estimates · IFCT-based</p>
           </div>
 
           {isPrime && pending.length > 0 && (
@@ -319,7 +319,7 @@ export default function FestivalMenu(p: Props) {
                         </span>
                       </span>
                       {x.recipe_id != null && (
-                        <Link href={`/recipes/${x.recipe_id}`} className="text-[11px] font-semibold ml-auto px-1 flex-shrink-0" style={{ color: "#6B46B8" }}>📖 Recipe</Link>
+                        <Link href={`/recipes/${x.recipe_id}`} className="text-xs font-semibold ml-auto px-1 flex-shrink-0" style={{ color: "#6B46B8" }}>📖 Recipe</Link>
                       )}
                     </div>
                   ))}

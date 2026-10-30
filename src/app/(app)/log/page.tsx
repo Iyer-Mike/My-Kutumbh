@@ -859,7 +859,7 @@ export default function LogPage() {
                     style={{ background: FAMILY.violet.bg, border: `2px dashed ${FAMILY.violet.edge}` }}>
                     <span className="text-2xl">📷</span>
                     <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>Photo of the plate</span>
-                    <span className="text-[11px]" style={{ color: "#6A6180" }}>camera or gallery</span>
+                    <span className="text-xs" style={{ color: "#6A6180" }}>camera or gallery</span>
                   </button>
                 )}
 

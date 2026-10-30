@@ -38,7 +38,7 @@ export default function RecipeFilters({ q, cuisine, diet, type }: {
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label htmlFor="r-cuisine" className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: B.muted2 }}>
+          <label htmlFor="r-cuisine" className="block text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: B.muted2 }}>
             Cuisine
           </label>
           <select id="r-cuisine" value={cuisine} onChange={(e) => go({ cuisine: e.target.value })}
@@ -54,7 +54,7 @@ export default function RecipeFilters({ q, cuisine, diet, type }: {
           </select>
         </div>
         <div>
-          <label htmlFor="r-diet" className="block text-[10px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: B.muted2 }}>
+          <label htmlFor="r-diet" className="block text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: B.muted2 }}>
             Diet
           </label>
           <select id="r-diet" value={diet} onChange={(e) => go({ diet: e.target.value })}

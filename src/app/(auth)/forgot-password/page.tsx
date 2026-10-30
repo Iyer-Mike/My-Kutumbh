@@ -26,6 +26,7 @@ function ForgotPasswordForm() {
     setLoading(true);
     setError(null);
 
+    try { localStorage.setItem("mk-reset-pending", String(Date.now())); } catch { /* private window */ }
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/auth/reset`,

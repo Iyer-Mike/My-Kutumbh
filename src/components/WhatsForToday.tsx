@@ -219,7 +219,7 @@ export default function WhatsForToday({
           <button onClick={() => setQty(l, -1)} className={btn} style={{ background: "#fff", border: `1.5px solid ${PLUM}`, color: PLUM }} aria-label="Less">−</button>
           <span className="text-sm font-bold min-w-[84px] text-center tabular-nums" style={{ color: INK }}>
             {qtyText(q, l.quantity_unit)}
-            {l.calories != null && <span className="block text-[11px] font-normal" style={{ color: MUTED }}>{Math.round(Number(l.calories))} kcal</span>}
+            {l.calories != null && <span className="block text-xs font-normal" style={{ color: MUTED }}>{Math.round(Number(l.calories))} kcal</span>}
           </span>
           <button onClick={() => setQty(l, 1)} className={btn} style={{ background: "#fff", border: `1.5px solid ${PLUM}`, color: PLUM }} aria-label="More">+</button>
         </span>
@@ -306,7 +306,7 @@ export default function WhatsForToday({
                 className="rounded-xl text-center leading-tight min-w-0 flex flex-col items-center justify-center"
                 style={{ minHeight: 56, background: on ? PLUM : ahead ? "#F3EEFA" : "#fff", color: on ? "#fff" : INK,
                          border: `${on ? 2 : 1.5}px ${ahead && !on ? "dashed" : "solid"} ${on ? PLUM : "#C9BEDD"}` }}>
-                <span className="block text-[10px]" style={{ color: on ? "#F5B82E" : MUTED, fontWeight: isNow ? 800 : 400 }}>{isNow ? "TODAY" : wd}</span>
+                <span className="block text-xs" style={{ color: on ? "#F5B82E" : MUTED, fontWeight: isNow ? 800 : 400 }}>{isNow ? "TODAY" : wd}</span>
                 <span className="block text-base font-bold">{dd}</span>
               </Link>
             );
@@ -330,7 +330,7 @@ export default function WhatsForToday({
         </div>
         <table className="w-full text-[13px]" style={{ color: INK, borderCollapse: "collapse" }}>
           <thead>
-            <tr className="text-left text-[11px]" style={{ color: MUTED, borderBottom: `1.5px solid ${WARM.edge}` }}>
+            <tr className="text-left text-xs" style={{ color: MUTED, borderBottom: `1.5px solid ${WARM.edge}` }}>
               <th className="py-1 font-bold">Particulars</th>
               <th className="py-1 font-bold text-right">Qty</th>
               <th className="py-1 font-bold text-right">Good Range</th>
@@ -359,8 +359,8 @@ export default function WhatsForToday({
           className="w-full rounded-xl text-sm font-bold" style={{ minHeight: 44, background: "#fff", border: `1.5px solid ${WARM.edge}`, color: "#8A3A12" }}>
           {seeMore ? "See less ▴" : "See more ▾"}
         </button>
-        {!anything && <p className="m-0 text-[11px]" style={{ color: MUTED }}>{canLog ? "Plan or log a dish to see values" : "Add dishes to see values"}</p>}
-        <p className="m-0 text-[11px]" style={{ color: MUTED }}>
+        {!anything && <p className="m-0 text-xs" style={{ color: MUTED }}>{canLog ? "Plan or log a dish to see values" : "Add dishes to see values"}</p>}
+        <p className="m-0 text-xs" style={{ color: MUTED }}>
           Good Range is from your profile; Intake % is against its lower number.{anyProjected ? " ~ From the menu · your log replaces it." : ""}
           {noValues > 0 ? ` ${noValues} ${noValues === 1 ? "dish" : "dishes"} without values · excluded.` : ""} Estimates · IFCT-based
         </p>
@@ -422,7 +422,7 @@ export default function WhatsForToday({
                         </span>
                       </span>
                       {p.recipe_id != null && (
-                        <Link href={`/recipes/${p.recipe_id}`} className="text-[11px] font-semibold ml-auto px-1 flex-shrink-0" style={{ color: "#6B46B8" }}
+                        <Link href={`/recipes/${p.recipe_id}`} className="text-xs font-semibold ml-auto px-1 flex-shrink-0" style={{ color: "#6B46B8" }}
                           onClick={(e) => e.stopPropagation()}>📖 Recipe</Link>
                       )}
                     </>
@@ -459,7 +459,7 @@ export default function WhatsForToday({
                 {canLog && ps.length === 0 && ls.length === 0 && sug && sug.items.length > 0 && (
                   <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={look(FAMILY.violet)}>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold" style={{ color: "#6B46B8" }}>{whyText(sug)}</p>
+                      <p className="text-xs font-semibold" style={{ color: "#6B46B8" }}>{whyText(sug)}</p>
                       <p className="text-sm truncate" style={{ color: INK }}>{sug.items.map((i) => i.food_name).join(", ")}</p>
                     </div>
                     <button onClick={() => logSuggestion(key, sug)} disabled={busy}
@@ -511,12 +511,12 @@ export default function WhatsForToday({
 export function Values({ title, color, cells, dark }: { title: string; color: string; cells: { label: string; value: string }[]; dark?: boolean }) {
   return (
     <div>
-      {title && <p className="text-[11px] font-bold mb-1" style={{ color }}>{title}</p>}
+      {title && <p className="text-xs font-bold mb-1" style={{ color }}>{title}</p>}
       <div className="grid grid-cols-5 gap-1">
         {cells.map((c) => (
           <div key={c.label} className="flex flex-col items-center text-center min-w-0">
             <span className="text-sm font-bold leading-[18px]" style={{ color: dark ? "#fff" : INK }}>{c.value}</span>
-            <span className="text-[10px] leading-3" style={{ color: dark ? color : MUTED }}>{c.label}</span>
+            <span className="text-xs leading-3" style={{ color: dark ? color : MUTED }}>{c.label}</span>
           </div>
         ))}
       </div>

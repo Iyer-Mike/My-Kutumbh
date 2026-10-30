@@ -517,7 +517,7 @@ export default function PantryView({
     return (
       <span className="grid text-center leading-tight">
         <span className="text-xs tabular-nums" style={{ color: B.ink }}>{p.quantity != null ? amount(p.quantity, p.unit) : "✓"}</span>
-        <span className="text-[10px]" style={{ color: B.muted2 }}>{shortDate(p.bought_on)}</span>
+        <span className="text-xs" style={{ color: B.muted2 }}>{shortDate(p.bought_on)}</span>
       </span>
     );
   }
@@ -533,7 +533,7 @@ export default function PantryView({
       return (
         <span className="rounded-lg px-1 py-1 text-center leading-tight" style={{ background: B.goldTint, color: B.goldInk }}>
           <span className="block text-xs font-semibold tabular-nums">{label}</span>
-          <span className="block text-[10px] font-semibold">on list</span>
+          <span className="block text-xs font-semibold">on list</span>
         </span>
       );
     }
@@ -544,7 +544,7 @@ export default function PantryView({
         style={{ background: RED.bg, color: RED.fg, border: `1.5px solid ${RED.edge}` }}
         aria-label={`${item.name} is low — add to the shopping list`}>
         <span className="block text-xs font-bold tabular-nums">{label}</span>
-        <span className="block text-[10px] font-semibold">+ list</span>
+        <span className="block text-xs font-semibold">+ list</span>
       </button>
     );
   }
@@ -563,12 +563,12 @@ export default function PantryView({
           <div className="rounded-xl px-3 py-3 mb-2 grid gap-3" style={{ background: "#FFFFFF", border: `1px solid ${B.cardEdge}` }}>
             {est[item.id]?.est != null && (
               <div className="grid gap-1.5">
-                <p className="text-[11px] m-0" style={{ color: B.muted }}>
+                <p className="text-xs m-0" style={{ color: B.muted }}>
                   <b style={{ color: B.ink }}>About {amount(est[item.id].est, item.unit) || "0"} left</b>
                   {est[item.id].byMenu ? " · worked out from the dishes cooked" : " · worked out from usual daily use"}
                   {est[item.id].buyBelow != null ? ` · buy below ${amount(est[item.id].buyBelow, item.unit)}` : ""}
                 </p>
-                <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Not right? How much is left</p>
+                <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Not right? How much is left</p>
                 <div className="grid grid-cols-3 gap-1.5">
                   {(["plenty", "half", "out"] as const).map((lv) => (
                     <button key={lv} onClick={() => quickStock(item, lv)} disabled={busy}
@@ -581,7 +581,7 @@ export default function PantryView({
               </div>
             )}
             <div className="grid gap-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Bought now?</p>
+              <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Bought now?</p>
               <div className="flex gap-1.5">
                 <input type="number" inputMode="decimal" min="0" step="any" value={boughtDraft}
                   onChange={(e) => setBoughtDraft(e.target.value)} placeholder="How much"
@@ -597,8 +597,8 @@ export default function PantryView({
 
             {isPrime && (
               <div className="grid gap-1.5">
-                <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Correct the shelf</p>
-                <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
+                <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Correct the shelf</p>
+                <label className="grid gap-0.5 text-xs" style={{ color: B.muted }}>
                   Kind (which tab it sits in)
                   <select value={stockDraft.category} onChange={(e) => setStockDraft({ ...stockDraft, category: e.target.value })}
                     className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
@@ -607,13 +607,13 @@ export default function PantryView({
                 </label>
                 {kindOf(stockDraft.category || item.category) !== "sundry" && (
                 <div className="grid grid-cols-2 gap-1.5">
-                  <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
+                  <label className="grid gap-0.5 text-xs" style={{ color: B.muted }}>
                     Current stock ({item.unit ?? "—"})
                     <input type="number" inputMode="decimal" min="0" step="any" value={stockDraft.quantity}
                       onChange={(e) => setStockDraft({ ...stockDraft, quantity: e.target.value })}
                       className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)} />
                   </label>
-                  <label className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
+                  <label className="grid gap-0.5 text-xs" style={{ color: B.muted }}>
                     Low at ({item.unit ?? "—"})
                     <input type="number" inputMode="decimal" min="0" step="any" value={stockDraft.low_when}
                       onChange={(e) => setStockDraft({ ...stockDraft, low_when: e.target.value })}
@@ -633,7 +633,7 @@ export default function PantryView({
             )}
 
             <div className="grid gap-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Purchases</p>
+              <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Purchases</p>
               {bought.length === 0 ? (
                 <p className="text-xs m-0" style={{ color: B.muted2 }}>None recorded yet.</p>
               ) : bought.slice(0, 12).map((p) => (
@@ -658,7 +658,7 @@ export default function PantryView({
         <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 items-center py-2">
           <button onClick={() => openDetail(item)} className="min-w-0 text-left" aria-expanded={opened}>
             <span className="block text-sm font-medium truncate" style={{ color: B.ink }}>{item.name}</span>
-            <span className="block text-[10px] truncate" style={{ color: left != null && left <= 1 ? RED.fg : B.muted2 }}>
+            <span className="block text-xs truncate" style={{ color: left != null && left <= 1 ? RED.fg : B.muted2 }}>
               {left != null
                 ? (left < 0 ? "past its days" : left === 0 ? "use today" : `use within ${left}d`)
                 : e?.buyBelow != null ? `buy below ${amount(e.buyBelow, item.unit)}` : categoryLabel(item.category)}
@@ -688,7 +688,7 @@ export default function PantryView({
         style={style}
         aria-label={!low ? `${item.name} is fine — tap if it is running low` : listed ? `${item.name} is on the list` : `${item.name} is low — add to the list`}>
         <span>{item.name}</span>
-        <span className="text-[10px] font-bold uppercase">
+        <span className="text-xs font-bold uppercase">
           {!low ? (last ? shortDate(last.bought_on) : "OK") : listed ? "on list" : "+ list"}
         </span>
       </button>
@@ -754,7 +754,7 @@ export default function PantryView({
                   className="rounded-xl px-1 py-2 text-center leading-tight"
                   style={{ background: on ? t.tone.edge : t.tone.bg, border: `2px solid ${t.tone.edge}`, color: on ? "#fff" : t.tone.ink }}>
                   <span className="block text-xs font-bold">{t.label}</span>
-                  <span className="block text-[10px] opacity-90">{n}{low ? ` · ${low} low` : ""}</span>
+                  <span className="block text-xs opacity-90">{n}{low ? ` · ${low} low` : ""}</span>
                 </button>
               );
             })}
@@ -764,7 +764,7 @@ export default function PantryView({
             style={{ background: current.tone.bg, border: `2.5px solid ${current.tone.edge}` }}>
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: current.tone.ink }}>{current.label}</h2>
-              <p className="text-[11px]" style={{ color: B.muted2 }}>{current.hint}</p>
+              <p className="text-xs" style={{ color: B.muted2 }}>{current.hint}</p>
             </div>
             {tabRows.length === 0 ? (
               <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
@@ -772,7 +772,7 @@ export default function PantryView({
               <div className="grid gap-2 pt-1">
                 <div className="flex flex-wrap gap-2">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
                 {isPrime && (
-                  <label className="text-[11px] grid gap-1" style={{ color: B.muted2 }}>
+                  <label className="text-xs grid gap-1" style={{ color: B.muted2 }}>
                     Open one to correct it or move it to another tab
                     <select value={tabRows.some((i) => i.id === openId) ? openId! : ""}
                       onChange={(e) => { const it = tabRows.find((i) => i.id === e.target.value); if (it) openDetail(it); else setOpenId(null); }}
@@ -786,7 +786,7 @@ export default function PantryView({
               </div>
             ) : (
               <div className="grid">
-                <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wide"
+                <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 pb-1 text-xs font-semibold uppercase tracking-wide"
                   style={{ color: current.tone.ink }}>
                   <span>Item</span><span className="text-center">Bought 1</span><span className="text-center">Bought 2</span>
                   <span className="text-center">Current stock</span>
@@ -795,7 +795,7 @@ export default function PantryView({
                 {current.key === "spice" && tabRows.some((i) => i.quantity == null) && (
                   <div className="flex flex-wrap gap-2 pt-2">{tabRows.filter((i) => i.quantity == null).map((i) => <SundryChip key={i.id} item={i} />)}</div>
                 )}
-                <p className="text-[10px] pt-2 m-0" style={{ color: B.muted2 }}>
+                <p className="text-xs pt-2 m-0" style={{ color: B.muted2 }}>
                   Current stock is worked out from the dishes cooked and the purchases made. Tap an item to say how much is really left or to record a purchase.
                   Red = short · it goes on the shopping list by itself.
                 </p>
@@ -818,7 +818,7 @@ export default function PantryView({
             <>
               <div>
                 <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Back from the shop?</h2>
-                <p className="text-[11px]" style={{ color: B.muted2 }}>
+                <p className="text-xs" style={{ color: B.muted2 }}>
                   Photo or PDF of the bill → shelf.
                 </p>
               </div>
@@ -847,7 +847,7 @@ export default function PantryView({
                       📄 Choose a file
                     </button>
                   </div>
-                  <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
+                  <p className="text-xs m-0" style={{ color: B.muted2 }}>
                     The camera or the file list is your phone&apos;s own, not ours — press your
                     phone&apos;s back button to close it. Nothing happens here until you pick something.
                   </p>
@@ -867,7 +867,7 @@ export default function PantryView({
                 <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
                   On the bill{bill.shop ? ` · ${bill.shop}` : ""}
                 </h2>
-                <p className="text-[11px]" style={{ color: B.muted2 }}>
+                <p className="text-xs" style={{ color: B.muted2 }}>
                   Check the amounts, confirm any new items, then record.
                 </p>
               </div>
@@ -894,7 +894,7 @@ export default function PantryView({
                   <>
                     {known.length > 0 && (
                       <div className="grid">
-                        <p className="text-[11px] font-semibold uppercase tracking-wider m-0 pb-1" style={{ color: B.violet }}>
+                        <p className="text-xs font-semibold uppercase tracking-wider m-0 pb-1" style={{ color: B.violet }}>
                           Known items · {known.length}
                         </p>
                         {known.map(({ l: line, idx }) => {
@@ -909,7 +909,7 @@ export default function PantryView({
                               <Tick line={line} idx={idx} />
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm truncate m-0" style={{ color: line.take ? B.ink : B.muted2 }}>{line.name}</p>
-                                <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
+                                <p className="text-xs m-0" style={{ color: B.muted2 }}>
                                   {shelf ? shelf.name : `New on the shelf · ${lib?.name}`}{add != null
                                     ? ` · ${amount(now, unit) || "0"} → ${amount(Math.round((now + add) * 1000) / 1000, unit)}`
                                     : ""}
@@ -927,12 +927,12 @@ export default function PantryView({
                     {fresh.length > 0 && (
                       <div className="grid rounded-xl px-3 py-2" style={{ background: B.goldTint }}>
                         <div className="flex items-center justify-between gap-2 pb-1">
-                          <p className="text-[11px] font-semibold uppercase tracking-wider m-0" style={{ color: B.goldInk }}>
+                          <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.goldInk }}>
                             New to the shelf · {fresh.length} — add {fresh.length > 1 ? "these" : "this"}?
                           </p>
                           {fresh.length > 1 && (
                             <button onClick={() => setBill((b) => b && { ...b, lines: b.lines.map((l) => (l.matchId || l.libKey ? l : { ...l, take: !allNewOn })) })}
-                              className="text-[11px] font-semibold shrink-0" style={{ color: B.violetLink }}>
+                              className="text-xs font-semibold shrink-0" style={{ color: B.violetLink }}>
                               {allNewOn ? "Untick all" : "Tick all"}
                             </button>
                           )}
@@ -952,7 +952,7 @@ export default function PantryView({
                             <span className="text-xs tabular-nums shrink-0" style={{ color: B.muted }}>{amount(line.quantity, line.unit)}</span>
                           </div>
                         ))}
-                        <p className="text-[10px] m-0 pt-1" style={{ color: B.goldInk }}>
+                        <p className="text-xs m-0 pt-1" style={{ color: B.goldInk }}>
                           Ticked ones get their own row on the shelf. Unticked ones are left off.
                         </p>
                       </div>
@@ -1126,7 +1126,7 @@ export default function PantryView({
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
               {needed.length ? `${needed.length} short for the week` : "Nothing short"}
             </h2>
-            <p className="text-[11px]" style={{ color: B.muted2 }}>
+            <p className="text-xs" style={{ color: B.muted2 }}>
               Next 7 days · <span style={{ color: FAMILY.green.ink }}>on the shelf</span> · <span style={{ color: FAMILY.gold.ink }}>ticked = on the shopping list</span> · <span style={{ color: FAMILY.red.ink }}>short</span>
             </p>
           </div>
@@ -1138,7 +1138,7 @@ export default function PantryView({
             </button>
           )}
         </div>
-        <p className="text-[11px]" style={{ color: B.muted2 }}>
+        <p className="text-xs" style={{ color: B.muted2 }}>
           Tick what to buy; untick and it leaves the list. Amounts are left to you — a family pot is never one recipe.
         </p>
       </section>
@@ -1154,7 +1154,7 @@ export default function PantryView({
             <div key={dish.name} className="grid gap-1.5" style={{ borderTop: `1px solid ${FAMILY.blue.line}`, paddingTop: 8 }}>
               <p className="text-sm font-medium" style={{ color: B.ink }}>{dish.name}</p>
               {dish.ings.length === 0 ? (
-                <p className="text-[11px]" style={{ color: B.muted2 }}>No ingredient list for this dish.</p>
+                <p className="text-xs" style={{ color: B.muted2 }}>No ingredient list for this dish.</p>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {dish.ings.map((ing) => {
@@ -1233,7 +1233,7 @@ export default function PantryView({
           <div className="grid gap-3">
             {grouped.map(({ group, lines }) => (
             <div key={group} className="grid">
-              <p className="text-[11px] font-semibold uppercase tracking-wider m-0 pb-1" style={{ color: FAMILY.green.ink }}>
+              <p className="text-xs font-semibold uppercase tracking-wider m-0 pb-1" style={{ color: FAMILY.green.ink }}>
                 {group} · {lines.length}
               </p>
             {lines.map((s) => {
@@ -1248,7 +1248,7 @@ export default function PantryView({
                       aria-label={`Bought ${s.name}`}>✓</button>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm m-0" style={{ color: B.ink }}>{s.name}</p>
-                      <p className="text-[11px] m-0" style={{ color: B.muted2 }}>
+                      <p className="text-xs m-0" style={{ color: B.muted2 }}>
                         {usual(s) ? `usually ${usual(s)} · ` : ""}
                         {s.source === "auto" ? "running short" : s.requested_by ? `added by ${memberNames[s.requested_by] ?? "family"}` : "added"}
                       </p>
@@ -1293,7 +1293,7 @@ export default function PantryView({
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold uppercase tracking-wider" style={{ color: s.tone.ink }}>{s.title}</span>
               <span className="block text-sm" style={{ color: B.ink }}>{s.ask}</span>
-              <span className="block text-[11px]" style={{ color: B.muted2 }}>{s.line}</span>
+              <span className="block text-xs" style={{ color: B.muted2 }}>{s.line}</span>
             </span>
             <Arrow dir="right" tone={s.tone} />
           </button>
@@ -1324,7 +1324,7 @@ export default function PantryView({
         <button onClick={() => { setStep(next.key); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }}
           className="w-full rounded-2xl px-4 py-3 flex items-center gap-3 text-left" style={look(next.tone)}>
           <span className="flex-1 min-w-0">
-            <span className="block text-[11px]" style={{ color: B.muted2 }}>Next</span>
+            <span className="block text-xs" style={{ color: B.muted2 }}>Next</span>
             <span className="block text-sm font-bold" style={{ color: next.tone.ink }}>{next.n} · {next.title} — {next.ask}</span>
           </span>
           <Arrow dir="right" tone={next.tone} />

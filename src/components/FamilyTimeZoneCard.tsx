@@ -40,7 +40,7 @@ export default function FamilyTimeZoneCard({ kutumbhId, timeZone }: { kutumbhId:
       </button>
 
       {mismatch && !open && (
-        <p className="text-[11px] mt-2 rounded-lg px-2.5 py-1.5" style={{ background: B.goldTint, color: B.goldInk }}>
+        <p className="text-xs mt-2 rounded-lg px-2.5 py-1.5" style={{ background: B.goldTint, color: B.goldInk }}>
           Phone is on {timeZoneLabel(device)} · tap to change the family&apos;s time zone
         </p>
       )}

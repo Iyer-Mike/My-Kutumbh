@@ -26,7 +26,7 @@ export default function EnterAnyCode() {
         Have a code?
       </label>
       <p className="m-0 mb-2 text-xs" style={{ color: "#6A6180", lineHeight: 1.5 }}>
-        A passcode from the letter that invited you, or the six-digit number a family gave you.
+        The six-digit number a family gave you, or a passcode from an invitation letter.
       </p>
 
       <input

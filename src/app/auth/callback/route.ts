@@ -25,9 +25,9 @@ export async function GET(request: Request) {
   }
 
   if (authError) {
-    // Send user back to forgot-password with a visible error
+    // This route finishes a sign-up confirmation; password resets use /auth/reset
     return NextResponse.redirect(
-      `${origin}/forgot-password?error=${encodeURIComponent("Reset link is invalid or has expired. Please request a new one.")}`
+      `${origin}/login?linkerror=1`
     );
   }
 

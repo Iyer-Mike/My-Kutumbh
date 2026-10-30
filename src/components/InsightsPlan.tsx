@@ -57,14 +57,14 @@ function ActionRow({ a, n }: { a: Action; n: number }) {
           {a.because.length > 0 && (
             <button
               onClick={() => setWhy(!why)}
-              className="text-[11px] font-medium mt-1"
+              className="text-xs font-medium mt-1"
               style={{ color: C.ink3 }}
             >
               {why ? "Hide why" : `Why · ${a.because.length}`}
             </button>
           )}
           {why && (
-            <ul className="mt-1 mb-0 pl-4 text-[11px] grid gap-0.5" style={{ color: C.ink3, listStyle: "disc" }}>
+            <ul className="mt-1 mb-0 pl-4 text-xs grid gap-0.5" style={{ color: C.ink3, listStyle: "disc" }}>
               {a.because.map((b) => <li key={b}>{b}</li>)}
             </ul>
           )}
@@ -130,7 +130,7 @@ export default function InsightsPlan({
           <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: C.ink3 }}>
             What to change this week
           </p>
-          <p className="text-[11px] mt-1 mb-1 m-0" style={{ color: C.ink3 }}>
+          <p className="text-xs mt-1 mb-1 m-0" style={{ color: C.ink3 }}>
             The {plan.actions.length === 1 ? "one thing" : `${plan.actions.length} things`} that would move the most,
             strongest first.
           </p>
@@ -152,7 +152,7 @@ export default function InsightsPlan({
             {" "}kcal a day of {Math.round(kcalTarget).toLocaleString("en-IN")}
           </span>
         </p>
-        <p className="text-[11px] mt-0.5 mb-1 m-0" style={{ color: C.ink3 }}>
+        <p className="text-xs mt-0.5 mb-1 m-0" style={{ color: C.ink3 }}>
           averaged over {loggedDays} logged {loggedDays === 1 ? "day" : "days"}
         </p>
 
@@ -176,7 +176,7 @@ export default function InsightsPlan({
           <ul className="grid gap-1.5 text-sm m-0 pl-4" style={{ color: C.ink, listStyle: "disc" }}>
             {plan.doctor.map((d) => <li key={d}>{d}</li>)}
           </ul>
-          <p className="text-[11px] mt-2 mb-0" style={{ color: C.ink3 }}>
+          <p className="text-xs mt-2 mb-0" style={{ color: C.ink3 }}>
             Food cannot settle these. They are not urgent unless {who} {viewingOther ? "feels" : "feel"} unwell.
           </p>
         </section>

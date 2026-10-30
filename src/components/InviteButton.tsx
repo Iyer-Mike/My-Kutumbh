@@ -13,8 +13,8 @@ import { useState } from "react";
  * The address travels into the sign-up form as well, so joining is one
  * continuous motion rather than three disconnected steps.
  */
-export default function InviteButton({ inviterName, kutumbhName }: { inviterName?: string | null; kutumbhName?: string | null }) {
-  const [email,   setEmail]   = useState("");
+export default function InviteButton({ inviterName, kutumbhName, initialEmail }: { inviterName?: string | null; kutumbhName?: string | null; initialEmail?: string | null }) {
+  const [email,   setEmail]   = useState(initialEmail ?? "");
   const [minor,   setMinor]   = useState(false);
   const [code,    setCode]    = useState<string | null>(null);
   const [number,  setNumber]  = useState<string | null>(null);
@@ -94,7 +94,7 @@ export default function InviteButton({ inviterName, kutumbhName }: { inviterName
           className="w-full text-sm rounded-xl px-3 py-2.5 mb-2"
           style={fieldLook(FAMILY.amber)}
         />
-        <p className="text-[11px] mt-0 mb-3" style={{ color: "#6A6180", lineHeight: 1.5 }}>
+        <p className="text-xs mt-0 mb-3" style={{ color: "#6A6180", lineHeight: 1.5 }}>
           You get a link and a 6-digit number. Send the link; tell them the number.
         </p>
 
@@ -110,7 +110,7 @@ export default function InviteButton({ inviterName, kutumbhName }: { inviterName
             className="mt-0.5 flex-shrink-0"
             style={{ accentColor: "#6B46B8", width: "1rem", height: "1rem" }}
           />
-          <span className="text-[11px]" style={{ color: minor ? "#6B4A0A" : "#4A4360", lineHeight: 1.55 }}>
+          <span className="text-xs" style={{ color: minor ? "#6B4A0A" : "#4A4360", lineHeight: 1.55 }}>
             This person is <strong>under eighteen</strong>, and I am their parent or guardian.
             {minor && (
               <>
@@ -147,13 +147,13 @@ export default function InviteButton({ inviterName, kutumbhName }: { inviterName
   return (
     <div className="space-y-3">
       <div className="rounded-xl px-4 py-4 text-center" style={{ background: "#241238" }}>
-        <p className="text-[11px] font-semibold uppercase tracking-widest m-0" style={{ color: "#C9B8E4" }}>
+        <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#C9B8E4" }}>
           Tell them this number
         </p>
         <p className="m-0 mt-2 font-bold tabular-nums" style={{ fontSize: "2.2rem", letterSpacing: "0.18em", color: "#fff" }}>
           {number}
         </p>
-        <p className="text-[11px] m-0 mt-2" style={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
+        <p className="text-xs m-0 mt-2" style={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
           Works once · valid 24 hours
         </p>
       </div>
@@ -204,7 +204,7 @@ export default function InviteButton({ inviterName, kutumbhName }: { inviterName
         )}
       </div>
 
-      <p className="text-[11px] m-0" style={{ color: "#6A6180", lineHeight: 1.5 }}>
+      <p className="text-xs m-0" style={{ color: "#6A6180", lineHeight: 1.5 }}>
         You&apos;re notified upon joining. 5 wrong attempts cancels the invite.
       </p>
     </div>

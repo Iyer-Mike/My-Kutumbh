@@ -16,6 +16,7 @@ function LoginForm() {
   const redirectTo   = searchParams.get("redirect");
   const justChanged  = searchParams.get("changed") === "1";
   const forgotten    = searchParams.get("forgotten") === "1";
+  const linkError    = searchParams.get("linkerror") === "1";
 
   // Server render knows nothing about this phone, so it starts as a stranger
   const stored = useSyncExternalStore(subscribe, getSnapshot, () => null);
@@ -86,7 +87,7 @@ function LoginForm() {
               <span className="text-[19px] leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
                 My Kutumb Bhojan
               </span>
-              <span className="text-[11px] tracking-wide" style={{ color: B.onDarkFaint }}>मेरा कुटुम्ब</span>
+              <span className="text-xs tracking-wide" style={{ color: B.onDarkFaint }}>मेरा कुटुम्ब</span>
             </div>
           </div>
           <h1 className="m-0 text-white text-[30px]" style={{ fontFamily: "var(--font-dm-serif)", lineHeight: 1.15 }}>
@@ -126,7 +127,7 @@ function LoginForm() {
             )}
           </div>
           {known && (
-            <p className="mt-1 text-[11px]" style={{ color: B.muted2 }}>
+            <p className="mt-1 text-xs" style={{ color: B.muted2 }}>
               Remembered on this phone only. Your password is never stored.
             </p>
           )}
@@ -157,6 +158,12 @@ function LoginForm() {
         {forgotten && !error && (
           <div className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.gold), color: FAMILY.gold.ink }}>
             Your account and everything in it have been removed. Thank you for the time you gave it.
+          </div>
+        )}
+
+        {linkError && !error && (
+          <div className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
+            That confirmation link is invalid or has expired. Sign in below — if your email isn&apos;t confirmed yet, we&apos;ll tell you, or you can create the account again.
           </div>
         )}
 

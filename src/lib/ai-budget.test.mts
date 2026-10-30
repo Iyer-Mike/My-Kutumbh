@@ -4,6 +4,12 @@ import { rupeesFor, checkBudget, MONTH_FAMILY_RUPEES, DAY_PERSON_RUPEES, MONTH_A
 
 // A stand-in for the database: it answers with whatever rows we hand it.
 // The gate asks two questions — the family's month, then the person's day.
+// The admission table: who the Admin has let in. Anyone else gets no AI.
+function admission(status: string | null, error = false) {
+  const chain = { eq: () => chain, maybeSingle: () => Promise.resolve({ data: status ? { status } : null, error: error ? { message: "no table" } : null }) };
+  return { select: () => chain };
+}
+
 function ledger(familyRows: number[], myRows: number[], appRupees = 0) {
   let call = 0;
   const rowsFor = () => (call++ === 0 ? familyRows : myRows).map((cost_rupees) => ({ cost_rupees }));
@@ -15,7 +21,7 @@ function ledger(familyRows: number[], myRows: number[], appRupees = 0) {
     return chain;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { from: () => ({ select: q }), rpc: () => Promise.resolve({ data: appRupees }) } as any;
+  return { from: (t: string) => (t === "app_admissions" ? admission("admitted") : { select: q }), rpc: () => Promise.resolve({ data: appRupees }) } as any;
 }
 
 describe("what an answer costs", () => {
@@ -113,8 +119,25 @@ describe("the ceiling", () => {
 
   test("a ledger that cannot be read does not lock the family out", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const broken = { from: () => ({ select: () => ({ eq: () => ({ gte: () => Promise.resolve({ data: null }) }) }) }), rpc: () => Promise.resolve({ data: null }) } as any;
+    const broken = { from: (t: string) => (t === "app_admissions" ? admission("admitted") : { select: () => ({ eq: () => ({ gte: () => Promise.resolve({ data: null }) }) }) }), rpc: () => Promise.resolve({ data: null }) } as any;
     const v = await checkBudget(broken, "u1", "k1");
+    assert.equal(v.ok, true);
+  });
+});
+
+describe("only someone the Admin has let in may spend", () => {
+  for (const status of ["waiting", "declined", null]) {
+    test(`${status ?? "no entry yet"} → no AI, whatever else is true`, async () => {
+      const db = { ...ledger([0], [0]), from: (t: string) => (t === "app_admissions" ? admission(status) : ledger([0], [0]).from(t)) };
+      const v = await checkBudget(db as never, "u1", "k1");
+      assert.equal(v.ok, false);
+      if (!v.ok) assert.equal(v.status, 403);
+    });
+  }
+
+  test("before the admission table exists, everyone carries on as before", async () => {
+    const db = { ...ledger([0], [0]), from: (t: string) => (t === "app_admissions" ? admission(null, true) : ledger([0], [0]).from(t)) };
+    const v = await checkBudget(db as never, "u1", "k1");
     assert.equal(v.ok, true);
   });
 });

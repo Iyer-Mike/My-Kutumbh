@@ -31,7 +31,7 @@ export default function AiSpendCard({ familyRupees, myRupees }: { familyRupees: 
         />
       </div>
 
-      <p className="text-[11px] mt-3 mb-0" style={{ color: "#6A6180" }}>
+      <p className="text-xs mt-3 mb-0" style={{ color: "#6A6180" }}>
         {spent
           ? "Month's AI used up · Returns next month · All else works."
           : `Today: ${rupees(myRupees)} of ${rupees(DAY_PERSON_RUPEES)} · AI only`}

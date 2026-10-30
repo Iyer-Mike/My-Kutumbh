@@ -28,7 +28,7 @@ export function RemoveMember({ userId, name }: { userId: string; name: string | 
     return (
       <button
         onClick={() => setSure(true)}
-        className="text-[11px] font-medium mt-2"
+        className="text-xs font-medium mt-2"
         style={{ color: C.ink3 }}
       >
         Remove from the Kutumbh

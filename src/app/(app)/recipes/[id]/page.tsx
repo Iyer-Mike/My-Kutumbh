@@ -26,7 +26,7 @@ const EFFECT_WORD: Record<string, string> = {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid gap-0.5">
-      <p className="m-0 text-[10px] font-semibold uppercase tracking-wide" style={{ color: B.muted2 }}>{label}</p>
+      <p className="m-0 text-xs font-semibold uppercase tracking-wide" style={{ color: B.muted2 }}>{label}</p>
       <p className="m-0 text-sm font-medium" style={{ color: B.ink }}>{value}</p>
     </div>
   );
@@ -165,7 +165,7 @@ export default async function RecipePage({ params, searchParams }: { params: Pro
 
         {variants.length > 0 && (
           <section className="rounded-2xl px-4 py-3 grid gap-1.5" style={look(FAMILY.violet)}>
-            <p className="m-0 text-[10px] font-semibold uppercase tracking-wide" style={{ color: B.muted2 }}>Your family&apos;s versions</p>
+            <p className="m-0 text-xs font-semibold uppercase tracking-wide" style={{ color: B.muted2 }}>Your family&apos;s versions</p>
             {variants.map((v) => (
               <Link key={v.id} href={`/recipes/${v.id}`} className="text-sm font-semibold" style={{ color: B.violet }}>{v.name} →</Link>
             ))}
@@ -200,7 +200,7 @@ export default async function RecipePage({ params, searchParams }: { params: Pro
           <ol className="grid gap-2.5 m-0 p-0" style={{ listStyle: "none" }}>
             {shown.method.map((step: string, i: number) => (
               <li key={i} lang={tr ? lang ?? undefined : undefined} className="flex gap-3 text-sm leading-relaxed" style={{ color: B.ink2 }}>
-                <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
                   style={{ background: B.tint, color: B.violet }}>{i + 1}</span>
                 <span className="min-w-0">{step}</span>
               </li>
@@ -220,11 +220,11 @@ export default async function RecipePage({ params, searchParams }: { params: Pro
             <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>
               Per {unit}
             </h2>
-            <p className="text-[11px]" style={{ color: B.muted2 }}>
+            <p className="text-xs" style={{ color: B.muted2 }}>
               {[recipe.serving_weight_g ? `About ${Math.round(recipe.serving_weight_g)} g` : null, recipe.nutrition_estimated ? "estimated" : null].filter(Boolean).join(" · ")}
             </p>
             {recipe.nutrition_estimated && (
-              <p className="text-[11px] mt-0.5" style={{ color: B.muted2 }}>
+              <p className="text-xs mt-0.5" style={{ color: B.muted2 }}>
                 AI estimated as per IFCT tables and reviewed by Key Member.
               </p>
             )}
@@ -261,7 +261,7 @@ export default async function RecipePage({ params, searchParams }: { params: Pro
         {recipe.tags?.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {recipe.tags.map((t: string) => (
-              <span key={t} className="px-2.5 py-1 rounded-full text-[11px] font-medium"
+              <span key={t} className="px-2.5 py-1 rounded-full text-xs font-medium"
                 style={{ background: B.tint, color: B.violet }}>{t}</span>
             ))}
           </div>
@@ -276,14 +276,14 @@ export default async function RecipePage({ params, searchParams }: { params: Pro
           </Link>
         )}
         {recipe.in_bucket && (
-          <p data-print-hide className="text-[11px] text-center" style={{ color: B.muted2 }}>
+          <p data-print-hide className="text-xs text-center" style={{ color: B.muted2 }}>
             In the nutrition bucket · estimate pending.
           </p>
         )}
 
         <PrintRecipe name={shown.name} />
 
-        <p className="text-[11px] text-center pb-2" style={{ color: B.muted2 }}>
+        <p className="text-xs text-center pb-2" style={{ color: B.muted2 }}>
           Values are per {unit} · The Log counts your portion.
         </p>
       </main>

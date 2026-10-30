@@ -299,7 +299,7 @@ export default function ProfileEditCard(props: Props) {
               className="w-full mt-1 rounded-xl px-3 py-2 text-sm"
               style={fieldLook(FAMILY.violet)}
             />
-            <p className="text-[11px] mt-1" style={{ color: "#A79BC0" }}>
+            <p className="text-xs mt-1" style={{ color: "#A79BC0" }}>
               Used for food–medicine checks · Kutumbh only.
             </p>
           </div>

@@ -121,3 +121,9 @@ export function deviceTimeZone(): string | null {
     return null;
   }
 }
+
+/** The hour (0-23) it is now in the family's time zone. */
+export function hourLocal(tz: string = DEFAULT_TIME_ZONE, now: Date = new Date()): number {
+  const h = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", hourCycle: "h23" }).format(now);
+  return Number(h) % 24;
+}

@@ -134,7 +134,7 @@ export default async function MemberConsumptionPage({ params }: { params: Promis
                     if (!slotLogs.length) return null;
                     return (
                       <div key={slot} className="px-4 py-2" style={{ borderBottom: `1px solid ${FAMILY.blue.line}` }}>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: "#6A6180" }}>
+                        <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#6A6180" }}>
                           {slot === "other" ? "Other" : slotLabel(slot)}
                         </p>
                         {slotLogs.map((l) => (

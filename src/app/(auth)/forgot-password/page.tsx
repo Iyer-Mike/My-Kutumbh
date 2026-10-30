@@ -1,5 +1,6 @@
 "use client";
 
+import { authErrorText } from "@/lib/auth-error";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -34,7 +35,7 @@ function ForgotPasswordForm() {
 
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(authErrorText(error));
     } else {
       setSent(true);
     }

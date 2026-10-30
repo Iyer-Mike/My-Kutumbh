@@ -8,6 +8,7 @@ import AuthHeader from "@/components/AuthHeader";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { inviteFromPath, rememberInvite } from "@/lib/invite";
 import { emailReturnTo } from "@/lib/gate";
+import { authErrorText } from "@/lib/auth-error";
 import KutumbhLogo from "@/components/KutumbhLogo";
 import PasswordRules, { passwordOk } from "@/components/PasswordRules";
 
@@ -54,7 +55,7 @@ function SignupForm() {
     });
 
     if (error) {
-      setError(error.message);
+      setError(authErrorText(error));
       setLoading(false);
       return;
     }

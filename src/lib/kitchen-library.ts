@@ -347,8 +347,9 @@ export function estimate(item: ShelfLike, use: MenuUse, familySize: number, toda
   const stale = daysLeftFresh != null && daysLeftFresh < 0 && (shelf ?? 999) <= 30;
   const reason = out ? "out" : low ? "low" : stale ? "stale" : null;
   // A fresh thing cannot be used up slower than its days allow: far more than that is a counting slip
-  const rate = item.daily_use ?? (lib ? convert(lib.usePerPersonPerDay * fam, lib.unit, unit) : null);
-  const suspect = !!rate && shelf != null && shelf <= 14 && est > rate * shelf * 2;
+  const libRate = lib ? convert(lib.usePerPersonPerDay * fam, lib.unit, unit) : null;
+  const rate = Math.max(item.daily_use ?? 0, libRate ?? 0);
+  const suspect = rate > 0 && shelf != null && shelf <= 14 && est > rate * shelf * 3;
   return { est, buyBelow, daysLeftFresh, short: reason != null, reason, byMenu, suspect };
 }
 

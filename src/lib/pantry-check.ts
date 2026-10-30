@@ -13,7 +13,7 @@ export type CheckedItem = {
   id: string; name: string; kind: string; category: string; quantity: number | null; unit: Unit | null;
   low_when: number | null; status: string; bought_on: string | null; use_within_days: number | null;
   library_key: string | null; stock_at: string | null; daily_use: number | null;
-  supply_qty?: number | null; supply_every?: number | null;
+  supply_qty?: number | null; supply_every?: number | null; made_at_home?: boolean | null;
 };
 
 export type PantryCheck = {
@@ -21,6 +21,7 @@ export type PantryCheck = {
   use: MenuUse;
   estimates: Record<string, Estimate>;
   short: { id: string; name: string; reason: Estimate["reason"]; est: number | null; unit: Unit | null }[];
+  toMake: { id: string; name: string; est: number | null; unit: Unit | null }[];   // made at home: running low, nothing to buy
 };
 
 /**
@@ -61,17 +62,19 @@ export async function checkPantry(supabase: SupabaseClient<any, any, any>, opts:
 
   const estimates: Record<string, Estimate> = {};
   const short: PantryCheck["short"] = [];
+  const toMake: PantryCheck["toMake"] = [];
   for (const it of items) {
     const e = estimate(it, use, familySize, today, dayIn(it.stock_at, timeZone));
     estimates[it.id] = e;
-    if (e.short) short.push({ id: it.id, name: it.name, reason: e.reason, est: e.est, unit: it.unit });
+    if (e.short && it.made_at_home) toMake.push({ id: it.id, name: it.name, est: e.est, unit: it.unit });
+    else if (e.short) short.push({ id: it.id, name: it.name, reason: e.reason, est: e.est, unit: it.unit });
   }
 
   if (opts.sync) {
     const added = await syncList(supabase, { kutumbhId, userId, items, short });
     if (added.length) await tellKeyMember(supabase, kutumbhId, today, short.map((s) => s.name)).catch(() => {});
   }
-  return { familySize, use, estimates, short };
+  return { familySize, use, estimates, short, toMake };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

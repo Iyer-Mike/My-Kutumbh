@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { haveIt, sameThing } from "@/lib/ingredients";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
@@ -21,6 +22,7 @@ export type PantryItem = {
   status: Status; bought_on: string | null; use_within_days: number | null; note: string | null;
   library_key: string | null; stock_at: string | null; daily_use: number | null;
   supply_qty?: number | null; supply_every?: number | null;      // regular supply: milk, curd… delivered on a rhythm
+  made_at_home?: boolean | null;                                  // curd, sambar powder…: made in the kitchen, never bought
 };
 
 export type ShoppingItem = {
@@ -123,6 +125,9 @@ export default function PantryView({
   const [boughtUnit, setBoughtUnit] = useState<Unit | null>(null);        // the unit "bought now" is given in (null = the usual one)
   const [stockUnit, setStockUnit] = useState<Unit | null>(null);          // likewise for the correct-the-shelf boxes
   const [tickUnit, setTickUnit] = useState<Unit | null>(null);
+  const [makeId, setMakeId] = useState<string | null>(null);              // the "to make" line being marked made
+  const [makeQty, setMakeQty] = useState("");
+  const [makeUnit, setMakeUnit] = useState<Unit | null>(null);
   const [supplyOpen, setSupplyOpen] = useState(false);
   const [supplyDraft, setSupplyDraft] = useState({ qty: "", every: 1, unit: null as Unit | null });
   const [unitTouched, setUnitTouched] = useState(false);                  // the add-item form: has the person picked a unit?
@@ -149,6 +154,7 @@ export default function PantryView({
   const isShort = (i: PantryItem) => !i.supply_every && (est[i.id]?.short || (i.quantity == null && i.status !== "ok"));
 
   const open = shopping.filter((s) => s.status === "open");
+  const toMake = items.filter((i) => i.made_at_home && isShort(i));
 
   /** The unit a hand-typed item starts in: the library's if it knows the name, else by the kind of thing. */
   const draftUnit = (name: string, category: string): Unit => {
@@ -302,6 +308,35 @@ export default function PantryView({
     const next = { ...item, ...changes };
     await patch(item.id, { ...changes, status: isLow({ ...next, status: "ok" }) ? item.status : "ok" });
     setOpenId(null); setStockUnit(null);
+  }
+
+  /** The Key Member says this is made at home (or not): then it is made, not bought. */
+  async function setMadeAtHome(item: PantryItem, on: boolean) {
+    if (busy) return;
+    setBusy(true);
+    const { error } = await supabase.from("pantry_items")
+      .update({ made_at_home: on, updated_by: userId, updated_at: new Date().toISOString() }).eq("id", item.id);
+    if (error) return fail("save that", error.message);
+    if (on) {
+      await supabase.from("shopping_items").delete()
+        .eq("kutumbh_id", kutumbhId).eq("pantry_item_id", item.id).eq("status", "open").eq("source", "auto");
+    }
+    autoFlagged.current.delete(item.id);
+    await reloadAll();
+    setBusy(false);
+  }
+
+  /** A batch has been made: the shelf goes up, and it is noted as made at home, not bought. */
+  async function madeNow(item: PantryItem) {
+    if (busy) return;
+    const given = asShelf(item, makeQty, makeUnit ?? entryUnit(item));
+    if (given.stop) return;
+    setBusy(true);
+    const err = await recordPurchase(item, given.qty, "Made at home");
+    if (err) return fail("record that", err);
+    await reloadAll();
+    setMakeId(null); setMakeQty(""); setMakeUnit(null);
+    setBusy(false);
   }
 
   /** The Key Member says this comes regularly (milk, curd): it stops being counted down and listed. */
@@ -601,7 +636,7 @@ export default function PantryView({
   // no quantity at all are left alone: nobody has said how much there is.)
   const autoFlagged = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const due = items.filter((i) => i.quantity != null && est[i.id]?.short && !onList(i) && !autoFlagged.current.has(i.id));
+    const due = items.filter((i) => !i.made_at_home && i.quantity != null && est[i.id]?.short && !onList(i) && !autoFlagged.current.has(i.id));
     if (due.length === 0) return;
     due.forEach((i) => autoFlagged.current.add(i.id));
     (async () => {
@@ -629,6 +664,9 @@ export default function PantryView({
     const low = isShort(item);
     if (item.supply_every) {
       return <span className="rounded-lg px-1 py-1 text-center text-xs font-semibold leading-tight" style={{ background: B.tint, color: B.violet }}>Regular</span>;
+    }
+    if (item.made_at_home && low) {
+      return <span className="rounded-lg px-1 py-1 text-center text-xs font-bold leading-tight" style={{ background: B.tint, color: B.violet, border: `1.5px solid ${B.violet}` }}>Make more</span>;
     }
     const label = e?.est != null
       ? (e.est !== item.quantity ? "~" : "") + (amount(e.est, item.unit) || "0")
@@ -687,7 +725,14 @@ export default function PantryView({
                 </div>
               </div>
             )}
-            {item.unit && (item.supply_every || isPrime) && (
+            {isPrime && item.unit && !item.supply_every && (
+              <label className="flex items-center gap-2 text-sm" style={{ color: B.ink }}>
+                <input type="checkbox" checked={!!item.made_at_home} disabled={busy}
+                  onChange={(e) => setMadeAtHome(item, e.target.checked)} />
+                Made at home (curd, sambar powder, garam masala…)
+              </label>
+            )}
+            {item.unit && (item.supply_every || isPrime) && !item.made_at_home && (
               <div className="grid gap-1.5">
                 <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Regular supply</p>
                 {item.supply_every && !supplyOpen ? (
@@ -825,7 +870,7 @@ export default function PantryView({
                 ? supplyText(item.supply_qty, item.unit, item.supply_every)
                 : left != null
                 ? (left < 0 ? "past its days" : left === 0 ? "use today" : `use within ${left}d`)
-                : e?.buyBelow != null ? `buy below ${amount(e.buyBelow, item.unit)}` : categoryLabel(item.category)}
+                : item.made_at_home ? "made at home" : e?.buyBelow != null ? `buy below ${amount(e.buyBelow, item.unit)}` : categoryLabel(item.category)}
             </span>
           </button>
           <BoughtCell p={bought[1]} />
@@ -877,7 +922,7 @@ export default function PantryView({
       line: plannedDays === 0 ? "Nothing planned this week" : `${plannedDays} day${plannedDays === 1 ? "" : "s"} planned · ${needed.length ? `${needed.length} short` : "nothing short"}`,
       tone: FAMILY.amber },
     { key: "shop", n: 3, title: "Shop", ask: "What do we buy?",
-      line: open.length ? `${open.length} to buy` : "Nothing to buy",
+      line: [open.length ? `${open.length} to buy` : "Nothing to buy", toMake.length ? `${toMake.length} to make` : ""].filter(Boolean).join(" · "),
       tone: FAMILY.green },
   ] as const;
 
@@ -1443,6 +1488,45 @@ export default function PantryView({
           </div>
         )}
       </section>
+
+      {toMake.length > 0 && (
+        <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.violet)}>
+          <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>To make at home · {toMake.length}</h2>
+          {toMake.map((item) => {
+            const making = makeId === item.id;
+            const left = est[item.id]?.est;
+            return (
+              <div key={item.id} className="grid gap-2 py-2" style={{ borderTop: `1px solid ${B.cardEdge}` }}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium m-0 truncate" style={{ color: B.ink }}>{item.name}</p>
+                    <p className="text-xs m-0" style={{ color: B.muted2 }}>
+                      {left != null ? `about ${amount(left, item.unit) || "0"} left` : "running low"} ·{" "}
+                      <Link href={`/recipes?q=${encodeURIComponent(item.name.replace(/\(.*?\)/g, "").trim())}`} style={{ color: B.violetLink }}>see recipe</Link>
+                    </p>
+                  </div>
+                  <button onClick={() => { setMakeId(making ? null : item.id); setMakeQty(""); setMakeUnit(null); }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0" style={{ background: B.button, color: "#fff" }}>
+                    {making ? "Cancel" : "Made"}
+                  </button>
+                </div>
+                {making && (
+                  <div className="flex gap-1.5">
+                    <input type="number" inputMode="decimal" min="0" step="any" value={makeQty} autoFocus
+                      onChange={(e) => setMakeQty(e.target.value)} placeholder="How much did you make? (optional)"
+                      aria-label={`Amount of ${item.name} made`}
+                      className="flex-1 min-w-0 rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.violet)} />
+                    <UnitPick choices={unitChoices(item.unit)} value={makeUnit ?? entryUnit(item)} onChange={setMakeUnit}
+                      label={`Unit for ${item.name} made`} tone={FAMILY.violet} />
+                    <button onClick={() => madeNow(item)} disabled={busy}
+                      className="px-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: B.button }}>Save</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </section>
+      )}
     </div>
   );
 

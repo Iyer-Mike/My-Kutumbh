@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { forgetInvite } from "@/lib/invite";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 /**
@@ -34,6 +35,7 @@ export default function EnterJoinCode({ link, kutumbhHint }: { link?: string; ku
         });
         const data = await res.json();
         if (!res.ok) { setError(data.error ?? "That didn't work. Please try again."); return; }
+        forgetInvite();            // the invitation is used; never send them back to it
         router.push("/family");
         router.refresh();
       } catch {

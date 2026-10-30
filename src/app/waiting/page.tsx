@@ -18,10 +18,20 @@ export default async function WaitingPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const standing = await standingOf(supabase, user.id);
+  let standing = await standingOf(supabase, user.id);
   if (standing === "admitted") redirect("/onboarding");
 
+  // Registration is open to anyone: a person with an account and no entry
+  // yet is simply asked into the waiting room, and the Admin decides.
+  // (A declined person is left as declined; the function never reverses it.)
+  if (standing === "unknown") {
+    const { data: placed, error: placeError } = await supabase.rpc("request_admission");
+    if (!placeError && placed === "waiting") standing = "waiting";
+    if (!placeError && placed === "admitted") redirect("/onboarding");
+  }
+
   const declined = standing === "declined";
+  // Only true if the place could not be made (the database step has not been run yet)
   const neverKnocked = standing === "unknown";
 
   // Somebody is behind the door. The Admin is told once, here, because
@@ -71,7 +81,7 @@ export default async function WaitingPage() {
             <>
               <p className="mt-3 mb-0 text-sm" style={{ color: "#4A4360", lineHeight: 1.6 }}>
                 {neverKnocked
-                  ? "Your account exists. To go further you need the code you were sent — either the passcode from the letter that invited you, or the six-digit number a family gave you."
+                  ? "Your account exists, but we could not add you to the waiting list just now. Please open this page again in a minute. If a family gave you a six-digit number, you can use it below."
                   : "Your details are safely with us. Someone at My Kutumb Bhojan will look at your registration and welcome you in — usually within a day."}
               </p>
 

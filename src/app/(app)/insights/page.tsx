@@ -94,7 +94,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
           <h1 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
             {d.viewingOther ? `${d.name}'s Insights` : "Insights"}
           </h1>
-          <p className="text-[11px] text-right pt-2 shrink-0" style={{ color: "#C9B8E4" }}>
+          <p className="text-xs text-right pt-2 shrink-0" style={{ color: "#C9B8E4" }}>
             {reportDate
               ? `Latest report ${new Date(`${reportDate}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })} ✓`
               : "No lab report · add one on Profile"}

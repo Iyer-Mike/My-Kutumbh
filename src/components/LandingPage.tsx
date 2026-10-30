@@ -61,7 +61,7 @@ export default function LandingPage() {
               <span className="text-[19px] leading-[22px] text-white whitespace-nowrap" style={{ fontFamily: "var(--font-dm-serif)" }}>
                 My Kutumb Bhojan
               </span>
-              <span className="block text-[11px] leading-[12px] text-center whitespace-nowrap"
+              <span className="block text-xs leading-[12px] text-center whitespace-nowrap"
                 style={{ color: B.onDarkFaint, textAlignLast: "justify", letterSpacing: "0.06em" }}>मेरा कुटुम्ब भोजन</span>
             </div>
           </div>
@@ -69,7 +69,7 @@ export default function LandingPage() {
           <div className="grid gap-2.5">
             <div className="flex items-center gap-2.5">
               <span className="block w-[22px] h-px" style={{ background: B.gold }} />
-              <span className="text-[11px] uppercase" style={{ letterSpacing: "0.16em", color: B.gold }}>
+              <span className="text-xs uppercase" style={{ letterSpacing: "0.16em", color: B.gold }}>
                 अन्नं ब्रह्म · food is sacred
               </span>
             </div>
@@ -139,7 +139,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <p className="m-0 text-center text-[11px] leading-snug" style={{ color: B.muted2 }}>
+          <p className="m-0 text-center text-xs leading-snug" style={{ color: B.muted2 }}>
             General guidance on food and habits — not medical advice.
           </p>
         </div>

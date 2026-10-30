@@ -79,7 +79,7 @@ export default function FamilyRecipeForm({
 
   const field = "w-full rounded-xl px-3 py-2.5 text-sm";
   const fieldStyle = { background: B.field, border: `1.5px solid ${B.cardEdge}`, color: B.ink, outline: "none" } as const;
-  const label = "text-[11px] font-semibold uppercase tracking-wide";
+  const label = "text-xs font-semibold uppercase tracking-wide";
 
   return (
     <div className="grid gap-4">
@@ -130,13 +130,13 @@ export default function FamilyRecipeForm({
 
       <section className="rounded-2xl px-4 py-4 grid gap-2" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
         <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>What goes in</h2>
-        <p className="text-[11px]" style={{ color: B.muted2 }}>One ingredient per line, with the amount: 1 cup toor dal</p>
+        <p className="text-xs" style={{ color: B.muted2 }}>One ingredient per line, with the amount: 1 cup toor dal</p>
         <textarea className={field} style={{ ...fieldStyle, minHeight: 130 }} value={ingredients} onChange={(e) => setIng(e.target.value)} />
       </section>
 
       <section className="rounded-2xl px-4 py-4 grid gap-2" style={{ background: B.card, border: `1px solid ${B.cardEdge}` }}>
         <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>How it&apos;s made</h2>
-        <p className="text-[11px]" style={{ color: B.muted2 }}>One step per line. The numbers are added for you.</p>
+        <p className="text-xs" style={{ color: B.muted2 }}>One step per line. The numbers are added for you.</p>
         <textarea className={field} style={{ ...fieldStyle, minHeight: 160 }} value={method} onChange={(e) => setMethod(e.target.value)} />
         <label className="grid gap-1 mt-1">
           <span className={label} style={{ color: B.muted2 }}>Tip (optional)</span>
@@ -151,7 +151,7 @@ export default function FamilyRecipeForm({
         </label>
       )}
 
-      <p className="text-[11px] px-1" style={{ color: B.muted2 }}>
+      <p className="text-xs px-1" style={{ color: B.muted2 }}>
         Nutrition is taken from the dish (estimated).
         {isPrime ? " Shown to the family at once." : " Shown after Key Member approval."}
       </p>

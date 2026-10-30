@@ -360,7 +360,7 @@ export default function FamilyDishesEditor({
                     style={{ background: "#FAF7FE", color: "#4B3B8C", border: "1px solid #C9BDEB" }}>
                     {estimating ? "Estimating…" : "✨ Fill with AI"}
                   </button>
-                  <p className="text-[11px] mt-1.5" style={{ color: "#6E6390" }}>
+                  <p className="text-xs mt-1.5" style={{ color: "#6E6390" }}>
                     {aiNote
                       ? <>AI estimate filled in below — review before saving. <i>{aiNote}</i></>
                       : "Works out what the dish is from the ingredients and method, with the cuisine, diet, dish type and serving chosen above. It estimates the weight of one serving, its nutrition and its Ayurvedic qualities. You review before saving."}
@@ -374,7 +374,7 @@ export default function FamilyDishesEditor({
                   <div className="grid grid-cols-3 gap-2">
                     {MAIN.map(({ col, label }) => (
                       <div key={col}>
-                        <label htmlFor={`${col}-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>{label}</label>
+                        <label htmlFor={`${col}-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>{label}</label>
                         <input id={`${col}-${d.id}`} type="number" min="0" step="0.1" value={draft.nutrients[col]}
                           onChange={e => setNutrient(col, e.target.value)}
                           className="w-full rounded-lg px-2 py-1.5 text-sm" style={inputStyle} />
@@ -390,7 +390,7 @@ export default function FamilyDishesEditor({
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     {MICRO.map(({ col, label }) => (
                       <div key={col}>
-                        <label htmlFor={`${col}-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>{label}</label>
+                        <label htmlFor={`${col}-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>{label}</label>
                         <input id={`${col}-${d.id}`} type="number" min="0" step="0.1" value={draft.nutrients[col]}
                           onChange={e => setNutrient(col, e.target.value)}
                           className="w-full rounded-lg px-2 py-1.5 text-sm" style={inputStyle} />
@@ -405,7 +405,7 @@ export default function FamilyDishesEditor({
                   </summary>
                   <div className="space-y-2.5 mt-2">
                     <div>
-                      <p className="text-[11px] mb-1" style={{ color: "#6A6180" }}>Rasa (tastes)</p>
+                      <p className="text-xs mb-1" style={{ color: "#6A6180" }}>Rasa (tastes)</p>
                       <div className="flex flex-wrap gap-1.5">
                         {RASAS.map(r => (
                           <button key={r} type="button" onClick={() => toggleIn("rasa", r)}
@@ -414,7 +414,7 @@ export default function FamilyDishesEditor({
                       </div>
                     </div>
                     <div>
-                      <p className="text-[11px] mb-1" style={{ color: "#6A6180" }}>Guna (qualities)</p>
+                      <p className="text-xs mb-1" style={{ color: "#6A6180" }}>Guna (qualities)</p>
                       <div className="flex flex-wrap gap-1.5">
                         {GUNAS.map(g => (
                           <button key={g} type="button" onClick={() => toggleIn("guna", g)}
@@ -424,7 +424,7 @@ export default function FamilyDishesEditor({
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label htmlFor={`vipaka-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>Vipaka</label>
+                        <label htmlFor={`vipaka-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Vipaka</label>
                         <select id={`vipaka-${d.id}`} value={draft.vipaka} onChange={e => set("vipaka", e.target.value)}
                           className="w-full rounded-lg px-2 py-1.5 text-xs" style={inputStyle}>
                           <option value="">—</option>
@@ -434,7 +434,7 @@ export default function FamilyDishesEditor({
                         </select>
                       </div>
                       <div>
-                        <label htmlFor={`virya-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>Virya</label>
+                        <label htmlFor={`virya-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>Virya</label>
                         <select id={`virya-${d.id}`} value={draft.virya} onChange={e => set("virya", e.target.value)}
                           className="w-full rounded-lg px-2 py-1.5 text-xs" style={inputStyle}>
                           <option value="">—</option>
@@ -447,7 +447,7 @@ export default function FamilyDishesEditor({
                     <div className="grid grid-cols-3 gap-2">
                       {([["vata", "Vata"], ["pitta", "Pitta"], ["kapha", "Kapha"]] as const).map(([k, label]) => (
                         <div key={k}>
-                          <label htmlFor={`${k}-${d.id}`} className="text-[11px]" style={{ color: "#6A6180" }}>{label}</label>
+                          <label htmlFor={`${k}-${d.id}`} className="text-xs" style={{ color: "#6A6180" }}>{label}</label>
                           <select id={`${k}-${d.id}`} value={draft[k]} onChange={e => set(k, e.target.value)}
                             className="w-full rounded-lg px-2 py-1.5 text-xs" style={inputStyle}>
                             {EFFECTS.map(v => <option key={v} value={v}>{v[0].toUpperCase() + v.slice(1)}</option>)}

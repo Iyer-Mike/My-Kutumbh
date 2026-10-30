@@ -40,13 +40,13 @@ export default function MyDataCard() {
       </a>
 
       {taken && (
-        <p className="text-[11px] mt-2 mb-0" style={{ color: "#4A7C4A" }}>
+        <p className="text-xs mt-2 mb-0" style={{ color: "#4A7C4A" }}>
           Saved to Downloads.
         </p>
       )}
 
       {/* What you agreed to, kept where the buttons that act on it are */}
-      <p className="text-[11px] mt-3 mb-0" style={{ color: "#6A6180", lineHeight: 1.6 }}>
+      <p className="text-xs mt-3 mb-0" style={{ color: "#6A6180", lineHeight: 1.6 }}>
         <a href="/privacy" style={{ color: "#6B46B8", fontWeight: 600 }}>What My Kutumb Bhojan knows about you</a>
         <span className="mx-1.5">·</span>
         <a href="/terms" style={{ color: "#6B46B8", fontWeight: 600 }}>Using My Kutumb Bhojan</a>

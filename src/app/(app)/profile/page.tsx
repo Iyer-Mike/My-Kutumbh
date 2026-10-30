@@ -106,7 +106,7 @@ export default async function ProfilePage() {
               size={88}
               label="Add your photo"
             />
-            <p className="text-[11px] text-center mt-3 m-0" style={{ color: "#6A6180" }}>
+            <p className="text-xs text-center mt-3 m-0" style={{ color: "#6A6180" }}>
               Visible to your Kutumbh only.
             </p>
           </section>

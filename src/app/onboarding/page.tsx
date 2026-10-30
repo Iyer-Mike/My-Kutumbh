@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { pendingInvite } from "@/lib/invite";
+import { pendingInvite, forgetInvite } from "@/lib/invite";
 import { DEFAULT_TIME_ZONE, deviceTimeZone } from "@/lib/dates";
 import { useRouter } from "next/navigation";
 import KutumbhLogo from "@/components/KutumbhLogo";
@@ -179,9 +179,17 @@ export default function OnboardingPage() {
   const [result, setResult] = useState<ReturnType<typeof computeDosha> | null>(null);
 
   // An invite in hand means they are joining someone else's family, not starting one
+  // (but someone already in a family has used it, and is finishing their profile)
   useEffect(() => {
     const code = pendingInvite();
-    if (code) router.replace(`/join/${code}`);
+    if (!code) return;
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data } = await supabase.from("kutumbh_members").select("kutumbh_id").eq("user_id", user.id).limit(1);
+      if (data && data.length > 0) forgetInvite();
+      else router.replace(`/join/${code}`);
+    });
   }, [router]);
 
   // On mount: if user is already in a kutumbh (joined via invite), skip step 1
@@ -232,19 +240,25 @@ export default function OnboardingPage() {
     setStep(4);
   }
 
-  async function handleSkipPrakriti() {
+  // One path for both endings (with or without the Prakriti quiz), so a
+  // failure is reported the same way: the family and its owner are made
+  // together or not at all, and nothing is written over what is already saved.
+  async function finish(prakriti: ReturnType<typeof computeDosha> | null) {
     setSaving(true);
     setError(null);
+
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
 
     if (!alreadyMember) {
+      // Re-run safety: someone who already has a family never gets a second
       const { data: existing } = await supabase
         .from("kutumbh_members")
         .select("kutumbh_id")
         .eq("user_id", user.id)
         .limit(1);
+
       if (!existing?.[0]) {
         const { data: kutumbh, error: ke } = await supabase
           .from("kutumbhs")
@@ -252,88 +266,48 @@ export default function OnboardingPage() {
           .select()
           .single();
         if (ke) { setError(ke.message); setSaving(false); return; }
-        await supabase.from("kutumbh_members").insert({
-          kutumbh_id: kutumbh.id,
-          user_id: user.id,
-          role: "owner",
-        });
-      }
-    }
-
-    await supabase.from("profiles").upsert({
-      id: user.id,
-      full_name: user.user_metadata?.full_name,
-      date_of_birth: dob || null,
-      gender: gender || null,
-      height_cm: height ? parseFloat(height) : null,
-      weight_kg: weight ? parseFloat(weight) : null,
-      activity_level: activity || null,
-      onboarding_complete: true,
-      updated_at: new Date().toISOString(),
-    });
-
-    router.push("/dashboard");
-  }
-
-  async function handleSave() {
-    if (!result) return;
-    setSaving(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/login"); return; }
-
-    if (!alreadyMember) {
-      // Check if this user already owns a kutumbh (re-run safety)
-      const { data: existing } = await supabase
-        .from("kutumbh_members")
-        .select("kutumbh_id")
-        .eq("user_id", user.id)
-        .limit(1);
-
-      const existingMembership = existing?.[0] ?? null;
-
-      if (!existingMembership) {
-        // First time — create the kutumbh and membership
-        const { data: kutumbh, error: ke } = await supabase
-          .from("kutumbhs")
-          .insert({ name: kutumbhName, created_by: user.id, time_zone: deviceTimeZone() ?? DEFAULT_TIME_ZONE })
-          .select()
-          .single();
-
-        if (ke) { setError(ke.message); setSaving(false); return; }
 
         const { error: me } = await supabase.from("kutumbh_members").insert({
           kutumbh_id: kutumbh.id,
           user_id: user.id,
           role: "owner",
         });
-
-        if (me) { setError(me.message); setSaving(false); return; }
+        if (me) {
+          // Do not leave a family with no owner behind
+          await supabase.from("kutumbhs").delete().eq("id", kutumbh.id);
+          setError("We could not set up your Kutumbh. Please try again.");
+          setSaving(false);
+          return;
+        }
       }
     }
 
-    // Always update the profile (idempotent)
-    const { error: pe } = await supabase.from("profiles").upsert({
+    // Only what was filled in: leaving a box empty must not blank what is saved
+    const profile: Record<string, unknown> = {
       id: user.id,
       full_name: user.user_metadata?.full_name,
-      date_of_birth: dob || null,
-      gender: gender || null,
-      height_cm: height ? parseFloat(height) : null,
-      weight_kg: weight ? parseFloat(weight) : null,
-      activity_level: activity || null,
-      prakriti_vata: result.v,
-      prakriti_pitta: result.p,
-      prakriti_kapha: result.k,
-      primary_dosha: result.primary,
       onboarding_complete: true,
       updated_at: new Date().toISOString(),
-    });
+    };
+    if (dob)      profile.date_of_birth = dob;
+    if (gender)   profile.gender = gender;
+    if (height)   profile.height_cm = parseFloat(height);
+    if (weight)   profile.weight_kg = parseFloat(weight);
+    if (activity) profile.activity_level = activity;
+    if (prakriti) {
+      profile.prakriti_vata = prakriti.v;
+      profile.prakriti_pitta = prakriti.p;
+      profile.prakriti_kapha = prakriti.k;
+      profile.primary_dosha = prakriti.primary;
+    }
 
-    if (pe) { setError(pe.message); setSaving(false); return; }
+    const { error: pe } = await supabase.from("profiles").upsert(profile);
+    if (pe) { setError("We could not save your details. Please try again."); setSaving(false); return; }
     router.push("/dashboard");
   }
+
+  const handleSkipPrakriti = () => finish(null);
+  const handleSave = () => { if (result) finish(result); };
 
   // ══ STEP 1 — Kutumbh name ══════════════════════════════════════
   if (step === 1) return (

@@ -16,9 +16,6 @@ function SignupForm() {
   const redirectTo   = searchParams.get("redirect") ?? null;
 
   const [email, setEmail] = useState("");
-  // The passcode from the letter. Registration needs it; joining a
-  // family later uses a different number entirely.
-  const [passcode, setPasscode] = useState("");
   // Someone arriving on a family's invitation does not need a passcode
   // from the Admin: their Key Member is vouching for them, and the
   // six-digit number on the next page does the same work.
@@ -69,21 +66,10 @@ function SignupForm() {
         return;
       }
 
-      // Knock at the app's own door with the passcode from the letter.
-      // Somebody at My Kutumb Bhojan decides; until then they wait.
-      const { error: claimError } = await supabase.rpc("claim_app_invite", { p_code: passcode.trim() });
-
-      if (claimError) {
-        setError(
-          /wrong_passcode/.test(claimError.message)
-            ? "That passcode doesn't match. Check the letter you were sent."
-            : /passcode_expired/.test(claimError.message)
-            ? "That passcode has expired — they last a day. Ask for a fresh one."
-            : "Your account was made, but the passcode wasn't accepted. Sign in and try again.",
-        );
-        setLoading(false);
-        return;
-      }
+      // Anyone may register. The Admin decides who is let in: ask for a
+      // place in the waiting room now (the waiting page asks again, so a
+      // failure here costs nothing).
+      await supabase.rpc("request_admission");
 
       window.location.href = "/waiting";
       return;
@@ -163,36 +149,9 @@ function SignupForm() {
         </div>
 
         {!invitedToFamily && (
-        <div>
-          <label htmlFor="passcode" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
-
-            Passcode from your invitation
-
-          </label>
-
-          <input
-
-            id="passcode"
-
-            type="text"
-
-            autoComplete="off"
-
-            required
-
-            value={passcode}
-
-            onChange={(e) => setPasscode(e.target.value.toUpperCase())}
-
-            placeholder="the code in your letter"
-
-            className="w-full px-4 py-3 rounded-xl text-sm tracking-widest focus:outline-none"
-            style={fieldLook(FAMILY.amber)}
-          />
-          <p className="text-xs mt-1.5" style={{ color: "#8A80A0" }}>
-            The code in the invitation you were sent. It lasts a day.
+          <p className="m-0 text-xs rounded-xl px-3 py-2.5" style={{ background: "#F3EEFA", color: "#4A4360", lineHeight: 1.55 }}>
+            Anyone can register. After you do, a person at My Kutumb Bhojan welcomes you in — usually within a day.
           </p>
-        </div>
         )}
 
         <div>

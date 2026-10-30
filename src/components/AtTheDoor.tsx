@@ -71,7 +71,7 @@ function NewPasscode({ signature, appUrl }: { signature: string | null; appUrl: 
   if (made) {
     return (
       <div className="rounded-2xl px-4 py-4" style={{ background: "#241238" }}>
-        <p className="m-0 text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#C9B8E4" }}>
+        <p className="m-0 text-xs font-semibold uppercase tracking-widest" style={{ color: "#C9B8E4" }}>
           Passcode for {email || "your letter"}
         </p>
         <p className="m-0 mt-2 font-bold tabular-nums" style={{ fontSize: "1.9rem", letterSpacing: "0.22em", color: "#fff" }}>
@@ -190,7 +190,7 @@ function Knocking({ w }: { w: Waiting }) {
         <p className="m-0 text-sm font-semibold" style={{ color: C.ink }}>
           {w.full_name ?? "No name given"}
         </p>
-        <span className="text-[11px] flex-shrink-0" style={{ color: C.ink3 }}>{waited(w.asked_at)}</span>
+        <span className="text-xs flex-shrink-0" style={{ color: C.ink3 }}>{waited(w.asked_at)}</span>
       </div>
 
       <p className="m-0 mt-0.5 text-xs" style={{ color: C.ink3 }}>
@@ -225,7 +225,7 @@ function Knocking({ w }: { w: Waiting }) {
         </button>
         <button
           onClick={() => setWriting(!writing)}
-          className="text-[11px] font-medium"
+          className="text-xs font-medium"
           style={{ color: C.purple }}
         >
           {writing ? "Without a note" : "Add a welcome note"}
@@ -234,7 +234,7 @@ function Knocking({ w }: { w: Waiting }) {
         <button
           onClick={() => act(false)}
           disabled={pending}
-          className="text-[11px] font-medium"
+          className="text-xs font-medium"
           style={{ color: C.ink3 }}
         >
           Decline
@@ -277,7 +277,7 @@ export default function AtTheDoor({
       </div>
 
       {/* Whether you will be told, or must remember to look */}
-      <p className="m-0 mt-3 text-[11px]" style={{ color: alertsOn ? C.leaf : C.warn, lineHeight: 1.5 }}>
+      <p className="m-0 mt-3 text-xs" style={{ color: alertsOn ? C.leaf : C.warn, lineHeight: 1.5 }}>
         {alertsOn
           ? "You're emailed when someone registers."
           : "Email alerts off · Add RESEND_API_KEY to enable."}

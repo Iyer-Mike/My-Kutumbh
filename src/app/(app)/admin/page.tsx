@@ -105,7 +105,7 @@ export default async function AdminPage() {
             <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-1" style={{ color: "#B0453A" }}>
               Faults · last 30 days
             </p>
-            <p className="text-[11px] mt-0 mb-3" style={{ color: "#6A6180" }}>
+            <p className="text-xs mt-0 mb-3" style={{ color: "#6A6180" }}>
               Grouped by fault
             </p>
             <div className="space-y-2.5">
@@ -132,7 +132,7 @@ export default async function AdminPage() {
             <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#B0453A" }}>
               Signed up, no family · {desk.stranded.length}
             </p>
-            <p className="text-[11px] mt-1 mb-3" style={{ color: "#6A6180" }}>
+            <p className="text-xs mt-1 mb-3" style={{ color: "#6A6180" }}>
 In the app, no family · Ask them to name one.
             </p>
             {desk.stranded.map((s, n) => (
@@ -165,7 +165,7 @@ In the app, no family · Ask them to name one.
                       {h.name ?? "Unnamed Kutumbh"}
                       {h.kutumbh_id === myKutumbh && (
                         <span
-                          className="text-[10px] font-medium ml-2 px-1.5 py-0.5 rounded-full align-middle"
+                          className="text-xs font-medium ml-2 px-1.5 py-0.5 rounded-full align-middle"
                           style={{ background: "#E7DCF7", color: "#6B46B8" }}
                         >
                           yours
@@ -248,7 +248,7 @@ In the app, no family · Ask them to name one.
           </section>
         )}
 
-        <p className="text-[11px] text-center pt-2 pb-4 m-0" style={{ color: "#8A80A0" }}>
+        <p className="text-xs text-center pt-2 pb-4 m-0" style={{ color: "#8A80A0" }}>
           Counts and timings only · No family&apos;s food, labs, photos or questions are visible.
         </p>
       </main>

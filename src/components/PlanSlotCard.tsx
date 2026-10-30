@@ -238,7 +238,7 @@ export default function PlanSlotCard({
           <span aria-hidden className="shrink-0">{dishTypeOf(s.category).icon}</span>
           <DietMark diet={s.diet} />
           <span className="truncate">{s.name}</span>
-          {s.kutumbh_id && <span className="shrink-0 text-[10px] font-semibold" style={{ color: "#8A5A06" }}>FAMILY</span>}
+          {s.kutumbh_id && <span className="shrink-0 text-xs font-semibold" style={{ color: "#8A5A06" }}>FAMILY</span>}
         </span>
         <span className="text-xs flex-shrink-0" style={{ color: "#6A6180" }}>
           {already ? "on menu" : k != null ? `${k} kcal / ${s.serving_unit === "g" ? "100 g" : (s.serving_unit ?? "serving")}` : ""}
@@ -353,15 +353,15 @@ export default function PlanSlotCard({
                   <div className="min-w-0">
                     <p className="text-sm truncate" style={{ color: "#241C33" }}>{item.food_name}</p>
                     {item.needs_review ? (
-                      <p className="text-[10px] font-medium" style={{ color: "#8A5A06" }}>
+                      <p className="text-xs font-medium" style={{ color: "#8A5A06" }}>
                         Family dish · awaiting Key Member&apos;s details{hint ? ` · ${hint}` : ""}
                       </p>
                     ) : hint ? (
-                      <p className="text-[10px]" style={{ color: "#6A6180" }}>{hint}</p>
+                      <p className="text-xs" style={{ color: "#6A6180" }}>{hint}</p>
                     ) : null}
                     {item.recipe_id != null && (
                       <a href={`/recipes/${item.recipe_id}`}
-                        className="inline-block text-[10px] font-semibold mt-0.5"
+                        className="inline-block text-xs font-semibold mt-0.5"
                         style={{ color: "#6B46B8" }}>
                         📖 Recipe
                       </a>
@@ -378,7 +378,7 @@ export default function PlanSlotCard({
                     ✕
                   </button>
                 ) : (
-                  <span className="text-[10px] flex-shrink-0 ml-3" style={{ color: "#A79BC0" }}>
+                  <span className="text-xs flex-shrink-0 ml-3" style={{ color: "#A79BC0" }}>
                     {memberNames[item.user_id] ?? ""}
                   </span>
                 )}
@@ -468,7 +468,7 @@ export default function PlanSlotCard({
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] mt-1.5" style={{ color: "#8A5A06" }}>
+              <p className="text-xs mt-1.5" style={{ color: "#8A5A06" }}>
                 Saved as a Family Dish. The Key Member will add its exact nutrition, ingredients and preparation.
               </p>
             </div>

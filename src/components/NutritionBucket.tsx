@@ -102,13 +102,13 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
         <div key={e.id} className="rounded-2xl p-4 grid gap-3" style={look(FAMILY.amber)}>
           <div>
             <p className="text-sm font-semibold" style={{ color: B.ink }}>{nameOf(e.id)}</p>
-            <p className="text-[11px]" style={{ color: B.muted2 }}>
+            <p className="text-xs" style={{ color: B.muted2 }}>
               Estimate for 1 {e.serving_unit}, guided by the Indian Food Composition Tables (IFCT). It is approximate, so change any value, then approve.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {FIELDS.map((f) => (
-              <label key={f.key} className="grid gap-0.5 text-[11px]" style={{ color: B.muted }}>
+              <label key={f.key} className="grid gap-0.5 text-xs" style={{ color: B.muted }}>
                 {f.label}
                 <input type="number" inputMode="decimal" min={0} step="any" value={e[f.key] as number}
                   onChange={(ev) => edit(e.id, f.key, ev.target.value)}
@@ -142,14 +142,14 @@ export default function NutritionBucket({ items }: { items: Item[] }) {
             <div key={i.id} className="flex items-center gap-3 min-h-11">
               <input type="checkbox" className="w-5 h-5" checked={picked.has(i.id)} onChange={() => toggle(i.id)} aria-label={`Select ${i.name}`} />
               <span className="text-sm flex-1" style={{ color: B.ink }}>{i.name}</span>
-              {i.kind === "recipe" ? <Link href={`/recipes/${i.id}`} className="text-xs underline" style={{ color: B.muted }}>View</Link> : <span className="text-[11px]" style={{ color: B.muted2 }}>dish</span>}
+              {i.kind === "recipe" ? <Link href={`/recipes/${i.id}`} className="text-xs underline" style={{ color: B.muted }}>View</Link> : <span className="text-xs" style={{ color: B.muted2 }}>dish</span>}
             </div>
           ))}
           <button disabled={busy || picked.size === 0} onClick={estimate}
             className="h-12 rounded-full text-sm font-semibold text-white mt-1 disabled:opacity-50" style={{ background: "#3B1F5C" }}>
             {busy ? "Working…" : `Estimate nutrition for ${picked.size}`}
           </button>
-          <p className="text-[11px]" style={{ color: B.muted2 }}>Nothing is saved until you approve each estimate.</p>
+          <p className="text-xs" style={{ color: B.muted2 }}>Nothing is saved until you approve each estimate.</p>
         </div>
       )}
     </div>

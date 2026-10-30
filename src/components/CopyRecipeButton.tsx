@@ -43,14 +43,14 @@ export default function CopyRecipeButton({ recipeId, recipeName }: { recipeId: n
 
   return (
     <div data-print-hide className="rounded-2xl px-4 py-4 grid gap-2.5" style={{ background: B.card, border: `1.5px solid ${B.cardEdge}` }}>
-      <label htmlFor="variant-name" className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: B.muted2 }}>
+      <label htmlFor="variant-name" className="text-xs font-semibold uppercase tracking-wide" style={{ color: B.muted2 }}>
         Name this version
       </label>
       <input id="variant-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80}
         placeholder="Barnyard Millet Dosa (Kuthiraivali Dosa)"
         className="w-full rounded-xl px-3 py-2.5 text-sm"
         style={{ background: B.field, border: `1.5px solid ${B.cardEdge}`, color: B.ink, outline: "none" }} />
-      <p className="text-[11px] m-0" style={{ color: B.muted2 }}>English name, local name in brackets.</p>
+      <p className="text-xs m-0" style={{ color: B.muted2 }}>English name, local name in brackets.</p>
       <div className="flex gap-2">
         <button onClick={go} disabled={busy || name.trim().length < 2}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"

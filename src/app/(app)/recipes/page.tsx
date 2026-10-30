@@ -91,13 +91,13 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
                     </span>
                     <span className="truncate">{r.name}</span>
                   </p>
-                  <p className="text-[11px] truncate" style={{ color: B.muted2 }}>
+                  <p className="text-xs truncate" style={{ color: B.muted2 }}>
                     {CUISINES.find((c) => c.key === r.cuisine)?.label ?? "Indian"} · {dishTypeOf(r.dish_type).label}
                     {r.cook_time ? ` · ${r.cook_time} cooking` : ""}
                   </p>
                 </div>
                 {(translated.get(r.id) ?? []).map((t) => (
-                  <span key={t.lang} className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                  <span key={t.lang} className="shrink-0 rounded-full px-1.5 py-0.5 text-xs font-semibold"
                     title={`${langOf(t.lang)?.name} · ${t.status === "checked" ? "checked" : "draft"}`}
                     style={{ background: "#FFFFFF", color: B.ink, border: `1px ${t.status === "checked" ? "solid" : "dashed"} ${B.muted2}` }}>
                     {langOf(t.lang)?.native}{t.status === "checked" ? " ✓" : ""}

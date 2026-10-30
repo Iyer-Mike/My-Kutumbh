@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { standingOf } from "@/lib/admission";
+import { pendingConsents } from "@/lib/consent";
 
 /**
  * Onboarding lives outside the app's own layout, so it needs the same
@@ -15,6 +16,9 @@ export default async function OnboardingLayout({ children }: { children: React.R
 
   const standing = await standingOf(supabase, user.id);
   if (standing !== "admitted") redirect("/waiting");
+
+  // Asked before anything is held: naming a family comes after agreeing
+  if ((await pendingConsents(supabase, user.id)).length > 0) redirect("/agree");
 
   return <>{children}</>;
 }

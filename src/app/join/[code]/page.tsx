@@ -34,13 +34,13 @@ function Shell({ eyebrow, title, children }: { eyebrow: string; title: string; c
             </div>
             <div className="grid">
               <span className="text-[19px] leading-tight text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>My Kutumb Bhojan</span>
-              <span className="text-[11px] tracking-wide" style={{ color: B.onDarkFaint }}>मेरा कुटुम्ब</span>
+              <span className="text-xs tracking-wide" style={{ color: B.onDarkFaint }}>मेरा कुटुम्ब</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 mb-2">
             <span className="block w-[22px] h-px" style={{ background: B.gold }} />
-            <span className="text-[11px] uppercase" style={{ letterSpacing: "0.16em", color: B.gold }}>{eyebrow}</span>
+            <span className="text-xs uppercase" style={{ letterSpacing: "0.16em", color: B.gold }}>{eyebrow}</span>
           </div>
           <h1 className="m-0 text-white text-[26px]" style={{ fontFamily: "var(--font-dm-serif)", lineHeight: 1.16, textWrap: "balance" }}>
             {title}
@@ -77,7 +77,7 @@ export default async function JoinPage({ params }: Props) {
       <Shell eyebrow="An invitation" title="A place has been kept for you in a Kutumbh">
         <RememberInvite code={clean} />
         <div className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.blue)}>
-          <p className="m-0 text-[11px] font-semibold uppercase" style={{ letterSpacing: "0.1em", color: B.muted2 }}>
+          <p className="m-0 text-xs font-semibold uppercase" style={{ letterSpacing: "0.1em", color: B.muted2 }}>
             What joining gives you
           </p>
           <div className="flex gap-3 items-start">
@@ -256,7 +256,7 @@ export default async function JoinPage({ params }: Props) {
         Type it below and you are in.
       </p>
       <div className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.blue)}>
-        <p className="m-0 text-[11px] font-semibold uppercase" style={{ letterSpacing: "0.1em", color: B.muted2 }}>
+        <p className="m-0 text-xs font-semibold uppercase" style={{ letterSpacing: "0.1em", color: B.muted2 }}>
           What joining gives you
         </p>
         <div className="flex gap-3 items-start">

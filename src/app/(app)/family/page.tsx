@@ -232,7 +232,7 @@ export default async function FamilyPage() {
             ) : (
               <Face url={familyPhoto ? faceUrls[familyPhoto] : null} name={kutumbhName} size={96} />
             )}
-            <p className="text-[11px] mt-1 text-center m-0" style={{ color: "#6A6180" }}>
+            <p className="text-xs mt-1 text-center m-0" style={{ color: "#6A6180" }}>
               {familyPhoto ? kutumbhName : "Add a family photo"}
             </p>
           </section>
@@ -400,7 +400,7 @@ export default async function FamilyPage() {
                         >
                           {m.kcal_today}
                           <br />
-                          <span className="font-normal text-[10px]" style={{ color: "#6A6180" }}>kcal</span>
+                          <span className="font-normal text-xs" style={{ color: "#6A6180" }}>kcal</span>
                         </div>
                       )}
                     </>

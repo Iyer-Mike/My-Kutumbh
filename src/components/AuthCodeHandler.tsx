@@ -27,7 +27,14 @@ export default function AuthCodeHandler() {
     };
 
     // An invite in hand means this link finished a sign-up, not a reset
-    const invite = pendingInvite();
+    // A reset the person asked for in the last hour wins over any invitation
+    // kept on this phone; otherwise an invite means a sign-up finished.
+    let resetAsked = false;
+    try {
+      const at = Number(localStorage.getItem("mk-reset-pending") ?? 0);
+      resetAsked = at > 0 && Date.now() - at < 60 * 60 * 1000;
+    } catch { /* private window */ }
+    const invite = resetAsked ? null : pendingInvite();
     const landing = invite ? `/join/${invite}` : "/reset-password";
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {

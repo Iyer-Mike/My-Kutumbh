@@ -66,7 +66,7 @@ export default function WriteToKutumbh({
 
   return (
     <div className="mt-3 rounded-xl p-3" style={look(FAMILY.violet)}>
-      <p className="text-[11px] m-0 mb-2" style={{ color: "#6A6180" }}>
+      <p className="text-xs m-0 mb-2" style={{ color: "#6A6180" }}>
         To the Key Member of {kutumbhName}
       </p>
 
@@ -82,7 +82,7 @@ export default function WriteToKutumbh({
       {/* The line a family reads first. One warm thought, and only one:
           they should feel noticed, not asked to explain themselves. The
           question goes in the letter, where there is room for it. */}
-      <p className="text-[11px] mt-1 mb-2 m-0" style={{ color: "#8A80A0" }}>
+      <p className="text-xs mt-1 mb-2 m-0" style={{ color: "#8A80A0" }}>
         One warm line · Questions go in the letter below.
       </p>
       <textarea

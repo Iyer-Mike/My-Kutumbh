@@ -119,10 +119,8 @@ export default function PlannedMembers({
           <li key={r.id} className="rounded-xl px-3 py-2.5" style={{ background: "#fff", border: "1.5px solid #E0D4F2" }}>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="m-0 text-sm font-semibold truncate" style={{ color: "#241C33" }}>
-                  {r.name}
-                  {r.is_key && <span className="ml-2 text-xs font-bold" style={{ color: "#7A5A06" }}>★ next Key Member</span>}
-                </p>
+                <p className="m-0 text-sm font-semibold truncate" style={{ color: "#241C33" }}>{r.name}</p>
+                {r.is_key && <p className="m-0 text-xs font-bold" style={{ color: "#7A5A06" }}>★ next Key Member</p>}
                 <p className="m-0 text-xs truncate" style={{ color: "#6A6180" }}>
                   {r.joined ? "Joined ✓" : r.email ?? "Not invited yet"}
                 </p>

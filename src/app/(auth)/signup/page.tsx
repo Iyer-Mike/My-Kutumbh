@@ -149,7 +149,7 @@ function SignupForm() {
         </div>
 
         {!invitedToFamily && (
-          <p className="m-0 text-xs rounded-xl px-3 py-2.5" style={{ background: "#F3EEFA", color: "#4A4360", lineHeight: 1.55 }}>
+          <p className="m-0 text-xs rounded-xl px-3 py-2.5" style={{ background: "#F3EEFA", border: "2px solid #CBB4EE", color: "#4A4360", lineHeight: 1.55 }}>
             Anyone can register. After you do, a person at My Kutumb Bhojan welcomes you in — usually within a day.
           </p>
         )}

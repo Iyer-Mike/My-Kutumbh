@@ -8,6 +8,7 @@
 
 import { LIBRARY } from "./kitchen-library-data.ts";
 import type { Kind, Unit } from "./pantry.ts";
+import { toShelf } from "./units.ts";
 
 export type LibraryItem = {
   key: string; name: string; alias: string[]; group: string; unit: Unit;
@@ -301,6 +302,7 @@ export type Estimate = {
   short: boolean;              // goes on the list
   reason: "low" | "out" | "stale" | null;
   byMenu: boolean;             // the menu accounts for its use
+  suspect?: boolean;           // more than the household could use before it spoils: probably a wrong count
 };
 
 const dayDiff = (a: string, b: string) =>
@@ -344,7 +346,11 @@ export function estimate(item: ShelfLike, use: MenuUse, familySize: number, toda
   // Something that keeps a month or less and is past its days has most likely been used or spoilt
   const stale = daysLeftFresh != null && daysLeftFresh < 0 && (shelf ?? 999) <= 30;
   const reason = out ? "out" : low ? "low" : stale ? "stale" : null;
-  return { est, buyBelow, daysLeftFresh, short: reason != null, reason, byMenu };
+  // A fresh thing cannot be used up slower than its days allow: far more than that is a counting slip
+  const libRate = lib ? convert(lib.usePerPersonPerDay * fam, lib.unit, unit) : null;
+  const rate = Math.max(item.daily_use ?? 0, libRate ?? 0);
+  const suspect = rate > 0 && shelf != null && shelf <= 14 && est > rate * shelf * 3;
+  return { est, buyBelow, daysLeftFresh, short: reason != null, reason, byMenu, suspect };
 }
 
 /** A bill's "1 packet" of something weighed: its usual pack, in the shelf unit. */
@@ -353,5 +359,5 @@ export function packToShelf(qty: number, unit: Unit | null, lib: LibraryItem, sh
   if ((unit === "packet" || unit === "piece" || unit == null) && lib.unit !== "piece" && lib.unit !== "dozen" && lib.unit !== "bunch") {
     return convert(qty * lib.pack, lib.unit, target);
   }
-  return unit ? convert(qty, unit, target) : null;
+  return unit ? (convert(qty, unit, target) ?? toShelf(qty, unit, target)) : null;
 }

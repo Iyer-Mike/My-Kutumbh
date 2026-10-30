@@ -13,8 +13,8 @@ import { useState } from "react";
  * The address travels into the sign-up form as well, so joining is one
  * continuous motion rather than three disconnected steps.
  */
-export default function InviteButton({ inviterName, kutumbhName }: { inviterName?: string | null; kutumbhName?: string | null }) {
-  const [email,   setEmail]   = useState("");
+export default function InviteButton({ inviterName, kutumbhName, initialEmail }: { inviterName?: string | null; kutumbhName?: string | null; initialEmail?: string | null }) {
+  const [email,   setEmail]   = useState(initialEmail ?? "");
   const [minor,   setMinor]   = useState(false);
   const [code,    setCode]    = useState<string | null>(null);
   const [number,  setNumber]  = useState<string | null>(null);

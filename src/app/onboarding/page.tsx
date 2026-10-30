@@ -170,6 +170,14 @@ export default function OnboardingPage() {
   const [alreadyMember, setAlreadyMember] = useState(false);
 
   const [kutumbhName, setKutumbhName] = useState("");
+  // The family, listed by name (all optional; more can be added later on the Kutumbh page)
+  type Listed = { name: string; email: string };
+  const [listed, setListed] = useState<Listed[]>([]);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [listError, setListError] = useState<string | null>(null);
+  // Who will manage the Kutumbh: -1 is the person signing up. Changeable here, and later.
+  const [keyIndex, setKeyIndex] = useState(-1);
   const [dob, setDob] = useState("");
   const [gender, setGender] = useState("");
   const [height, setHeight] = useState("");
@@ -219,6 +227,20 @@ export default function OnboardingPage() {
       : `${kutumbhName.trim()} Kutumbh`;
     setKutumbhName(name);
     setStep(2);
+  }
+
+  function addListed() {
+    const n = newName.trim();
+    const em = newEmail.trim().toLowerCase();
+    if (!n) return;
+    if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)) { setListError("That doesn't look like an email address."); return; }
+    setListError(null);
+    setListed((l) => [...l, { name: n.slice(0, 60), email: em }]);
+    setNewName(""); setNewEmail("");
+  }
+  function removeListed(i: number) {
+    setListed((l) => l.filter((_, j) => j !== i));
+    setKeyIndex((k) => (k === i ? -1 : k > i ? k - 1 : k));
   }
 
   function handleProfile(e: React.FormEvent) {
@@ -282,6 +304,18 @@ export default function OnboardingPage() {
       }
     }
 
+    // The family list. Best effort: the app opens even if this cannot be saved,
+    // and names can be added again from the Kutumbh page.
+    if (!alreadyMember && listed.length > 0) {
+      const { data: mine } = await supabase.from("kutumbh_members").select("kutumbh_id").eq("user_id", user.id).limit(1);
+      const kid = mine?.[0]?.kutumbh_id;
+      if (kid) {
+        await supabase.from("kutumbh_planned_members").insert(
+          listed.map((p, i) => ({ kutumbh_id: kid, name: p.name, email: p.email || null, is_key: i === keyIndex, created_by: user.id })),
+        );
+      }
+    }
+
     // Only what was filled in: leaving a box empty must not blank what is saved
     const profile: Record<string, unknown> = {
       id: user.id,
@@ -316,7 +350,7 @@ export default function OnboardingPage() {
         Name your Kutumbh
       </h2>
       <p className="text-sm mb-5" style={{ color: "#625A75" }}>
-        Your family&apos;s name in the app — &ldquo;Kutumbh&rdquo; is added for you.
+        Your family&apos;s name in the app — &ldquo;Kutumbh&rdquo; is added for you. Then list the family and choose who manages it.
       </p>
       <form onSubmit={handleKutumbh} className="space-y-4">
         <div>
@@ -337,6 +371,59 @@ export default function OnboardingPage() {
             </p>
           )}
         </div>
+        <div className="rounded-2xl px-4 py-4" style={{ background: "#fff", border: "2px solid #F2B531" }}>
+          <p className="m-0 text-sm font-semibold" style={{ color: "#241C33" }}>Who is in your family?</p>
+          <p className="m-0 mt-0.5 mb-3 text-xs" style={{ color: "#625A75", lineHeight: 1.5 }}>
+            Optional. List the names now, or add them later from the Kutumbh page. Everyone joins with their own login when you invite them.
+          </p>
+
+          {listed.length > 0 && (
+            <ul className="m-0 mb-3 p-0 list-none grid gap-2">
+              {listed.map((p, i) => (
+                <li key={`${p.name}-${i}`} className="flex items-center justify-between gap-2 rounded-xl px-3 py-2" style={{ background: "#FAF7FE", border: "1.5px solid #E0D4F2" }}>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold truncate" style={{ color: "#241C33" }}>{p.name}</span>
+                    {p.email && <span className="block text-xs truncate" style={{ color: "#6A6180" }}>{p.email}</span>}
+                  </span>
+                  <button type="button" onClick={() => removeListed(i)} aria-label={`Remove ${p.name}`}
+                    className="px-3 min-h-11 text-xs font-semibold" style={{ color: "#B0453A" }}>Remove</button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="grid gap-2">
+            <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} style={inputStyle} placeholder="Name" aria-label="Name" maxLength={60}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addListed(); } }} />
+            <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={inputStyle} placeholder="Email (optional)" aria-label="Email (optional)"
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addListed(); } }} />
+            {listError && <p className="m-0 text-xs" style={{ color: "#B0453A" }}>{listError}</p>}
+            <button type="button" onClick={addListed} disabled={!newName.trim()}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 min-h-11" style={{ border: "1.5px solid #6B46B8", color: "#6B46B8" }}>
+              + Add to the list
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl px-4 py-4" style={{ background: "#fff", border: "2px solid #CBB4EE" }}>
+          <label htmlFor="key-member" className="block text-sm font-semibold" style={{ color: "#241C33" }}>
+            ★ Who will manage the Kutumbh?
+          </label>
+          <p className="m-0 mt-0.5 mb-2 text-xs" style={{ color: "#625A75", lineHeight: 1.5 }}>
+            The Key Member manages the Kutumbh page, the menu and the plans. You can change this choice any time.
+          </p>
+          <select id="key-member" value={keyIndex} onChange={(e) => setKeyIndex(Number(e.target.value))}
+            style={inputStyle} className="min-h-11">
+            <option value={-1}>Me</option>
+            {listed.map((p, i) => <option key={`${p.name}-${i}`} value={i}>{p.name}</option>)}
+          </select>
+          {keyIndex >= 0 && (
+            <p className="m-0 mt-2 text-xs" style={{ color: "#625A75", lineHeight: 1.5 }}>
+              You set things up and stay Key Member until {listed[keyIndex]?.name} has joined. Then you hand the role over from the Kutumbh page.
+            </p>
+          )}
+        </div>
+
         <button
           type="submit"
           className="w-full py-3 rounded-xl font-semibold text-sm text-white"

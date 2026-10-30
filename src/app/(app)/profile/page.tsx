@@ -37,6 +37,15 @@ export default async function ProfilePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // The Admin sees a way to the Admin Desk; nobody else does
+  const { data: adminFlag } = await supabase.rpc("is_app_admin");
+  const isAdmin = adminFlag === true;
+  let waitingCount = 0;
+  if (isAdmin) {
+    const { data: waiting } = await supabase.rpc("admin_waiting");
+    waitingCount = Array.isArray(waiting) ? waiting.length : 0;
+  }
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
@@ -93,6 +102,20 @@ export default async function ProfilePage() {
       </header>
 
       <main className="flex-1 px-5 py-5 space-y-4">
+
+        {/* ── Admin Desk (the Admin only): where new registrations are approved ── */}
+        {isAdmin && (
+          <Link href="/admin" className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 min-h-12"
+            style={look(FAMILY.gold)}>
+            <span>
+              <span className="block text-sm font-bold" style={{ color: "#241C33" }}>Admin Desk</span>
+              <span className="block text-xs" style={{ color: "#6A6180" }}>
+                {waitingCount > 0 ? `${waitingCount} waiting to be let in` : "Approve new registrations"}
+              </span>
+            </span>
+            <span aria-hidden style={{ color: "#6B46B8" }}>›</span>
+          </Link>
+        )}
 
         {/* ── Your face ── */}
         {kutumbhId && (

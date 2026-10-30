@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 // Drawn icons rather than text symbols: they look the same on every phone.
 const ICONS: Record<string, React.ReactNode> = {
@@ -21,8 +22,29 @@ const NAV = [
   { href: "/profile",   label: "Profile",  icon: "profile", also: [] },
 ] as const;
 
+type Alerts = { home?: boolean; family?: boolean; profile?: boolean };
+
+// Tabs that can carry a "!" when something there needs a look
+const ALERT_KEY: Record<string, keyof Alerts> = { "/dashboard": "home", "/family": "family", "/profile": "profile" };
+
 export default function BottomNav() {
   const pathname = usePathname();
+  const [alerts, setAlerts] = useState<Alerts>({});
+
+  // Ask again whenever the person moves to another page, or comes back to the app
+  useEffect(() => {
+    let live = true;
+    const ask = () => {
+      fetch("/api/alerts", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : {}))
+        .then((a: Alerts) => { if (live) setAlerts(a); })
+        .catch(() => { /* a badge is never worth an error */ });
+    };
+    ask();
+    const onVisible = () => { if (document.visibilityState === "visible") ask(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { live = false; document.removeEventListener("visibilitychange", onVisible); };
+  }, [pathname]);
 
   return (
     <nav
@@ -47,10 +69,19 @@ export default function BottomNav() {
                 active ? "text-(--color-sage-light)" : "text-white/60"
               }`}
             >
+              <span className="relative">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 {ICONS[icon]}
               </svg>
+              {alerts[ALERT_KEY[href]] && (
+                <span role="img" aria-label="Something new here"
+                  className="absolute -top-1.5 -right-2.5 flex items-center justify-center rounded-full font-bold"
+                  style={{ width: 16, height: 16, fontSize: 11, lineHeight: 1, background: "#E5484D", color: "#fff", border: "1.5px solid #241238" }}>
+                  !
+                </span>
+              )}
+              </span>
               <span className="font-medium">{label}</span>
             </Link>
           );

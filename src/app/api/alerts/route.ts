@@ -70,7 +70,7 @@ export async function GET() {
       if ((count ?? 0) > 0) out.family = true;
     }),
     // Profile, Admin only: somebody is waiting to be let in, a family has written
-    // back and not been read, or the app has met a fault in the last day
+    // back and not been read (a welcome note to one person has no family: not a reply), or the app has met a fault in the last day
     ask(async () => {
       const { data: isAdmin } = await supabase.rpc("is_app_admin");
       if (isAdmin !== true) return;
@@ -78,7 +78,7 @@ export async function GET() {
         supabase.rpc("admin_waiting"), supabase.rpc("admin_notices"), supabase.rpc("admin_faults"),
       ]);
       const w = Array.isArray(waiting.data) && waiting.data.length > 0;
-      const unreadReply = Array.isArray(notices.data) && notices.data.some((n: { from_admin: boolean; read_at: string | null }) => !n.from_admin && !n.read_at);
+      const unreadReply = Array.isArray(notices.data) && notices.data.some((n: { from_admin: boolean; read_at: string | null; kutumbh_id: string | null }) => !n.from_admin && !n.read_at && n.kutumbh_id != null);
       const dayAgo = Date.now() - 86_400_000;
       const fault = Array.isArray(faults.data) && faults.data.some((f: { last_seen: string }) => new Date(f.last_seen).getTime() > dayAgo);
       if (w || unreadReply || fault) out.profile = true;

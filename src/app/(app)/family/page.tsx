@@ -317,7 +317,14 @@ export default async function FamilyPage() {
                       : "Stock and shopping list"}
                 </p>
               </div>
-              <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
+              <span className="flex items-center gap-2">
+                {toBuy > 0 && isOwner && (
+                  <span aria-label="Needs you" title="This is why the Kutumbh tab shows !"
+                    className="w-5 h-5 rounded-full text-xs font-bold text-white flex items-center justify-center"
+                    style={{ background: "#D2553C" }}>!</span>
+                )}
+                <span className="text-lg" style={{ color: "#6B46B8" }}>›</span>
+              </span>
             </Link>
 
             {/* ── The family's day (Key Member) ── */}

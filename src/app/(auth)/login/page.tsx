@@ -7,6 +7,7 @@ import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
 import { afterSignIn } from "@/lib/gate";
+import { authErrorText, isNetworkError, withOneRetry } from "@/lib/auth-error";
 import { pendingInvite } from "@/lib/invite";
 import { getSnapshot, parseLastUser, subscribe, writeLastUser } from "@/lib/last-user";
 
@@ -47,15 +48,17 @@ function LoginForm() {
     setError(null);
 
     const supabase = createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await withOneRetry(() => supabase.auth.signInWithPassword({ email, password }));
 
     if (error) {
-      if (error.message.toLowerCase().includes("not confirmed")) {
+      if (isNetworkError(error)) {
+        setError(authErrorText(error));
+      } else if (error.message.toLowerCase().includes("not confirmed")) {
         setError("Please confirm your email first. Check your inbox for a confirmation link.");
       } else if (error.message.toLowerCase().includes("invalid")) {
         setError("Incorrect email or password. Please try again.");
       } else {
-        setError(error.message);
+        setError(authErrorText(error));
       }
       setLoading(false);
       return;

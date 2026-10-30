@@ -1,5 +1,6 @@
 "use client";
 
+import { authErrorText } from "@/lib/auth-error";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -49,7 +50,7 @@ export default function ResetPasswordPage() {
 
     if (error) {
       setLoading(false);
-      setError(error.message);
+      setError(authErrorText(error));
       return;
     }
 

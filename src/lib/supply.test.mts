@@ -17,3 +17,12 @@ test("supply wording", () => {
   assert.equal(supplyText(null, "l", 7), "every week");
   assert.equal(everyLabel(5), "every 5 days");
 });
+
+test("far more fresh stock than the household could use before it spoils is flagged for a recount", () => {
+  const tomato = { library_key: "tomato", quantity: 4.71, unit: "kg" as const, low_when: null, stock_at: null, bought_on: null, use_within_days: 6, daily_use: 0.06 };
+  assert.equal(estimate(tomato, {}, 3, "2026-10-29", "2026-10-29").suspect, true);
+  assert.equal(estimate({ ...tomato, quantity: 1 }, {}, 3, "2026-10-29", "2026-10-29").suspect, false);
+  // rice keeps a year: a big sack is fine
+  const rice = { library_key: "rice-sona-masoori", quantity: 10, unit: "kg" as const, low_when: null, stock_at: null, bought_on: null, use_within_days: null, daily_use: null };
+  assert.equal(estimate(rice, {}, 3, "2026-10-29", "2026-10-29").suspect, false);
+});

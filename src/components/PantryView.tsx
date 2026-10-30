@@ -125,6 +125,8 @@ export default function PantryView({
   const [boughtUnit, setBoughtUnit] = useState<Unit | null>(null);        // the unit "bought now" is given in (null = the usual one)
   const [stockUnit, setStockUnit] = useState<Unit | null>(null);          // likewise for the correct-the-shelf boxes
   const [tickUnit, setTickUnit] = useState<Unit | null>(null);
+  type StockEvent = { id: string; kind: "count" | "purchase" | "made" | "adjust"; qty: number | null; before_qty: number | null; after_qty: number | null; added: boolean; on_date: string };
+  const [history, setHistory] = useState<Record<string, StockEvent[]>>({});   // why a shelf figure is what it is
   const [makeId, setMakeId] = useState<string | null>(null);              // the "to make" line being marked made
   const [makeQty, setMakeQty] = useState("");
   const [makeUnit, setMakeUnit] = useState<Unit | null>(null);
@@ -278,9 +280,19 @@ export default function PantryView({
 
   /** Bought: a dated purchase, stock goes up, the item is OK again and comes off the list. */
   async function recordPurchase(item: PantryItem, qty: number | null, shop: string | null = null, on: string = today) {
-    const { error } = await supabase.rpc("record_purchase", {
-      p_item: item.id, p_qty: qty, p_unit: item.unit, p_on: on, p_shop: shop, p_est: est[item.id]?.est ?? null,
+    const call = (included: boolean | null) => supabase.rpc("record_purchase_v2", {
+      p_item: item.id, p_qty: qty, p_unit: item.unit, p_on: on, p_shop: shop, p_est: est[item.id]?.est ?? null, p_included: included,
     });
+    let { data, error } = await call(null);
+    // Counted on or after the day it was bought: has the count already got it in?
+    if (!error && (data as { status?: string } | null)?.status === "ask") {
+      const a = data as { counted: number; counted_on: string };
+      const already = confirm(
+        `You counted ${friendly(a.counted, item.unit)} of ${item.name} on ${shortDate(a.counted_on)}.\n\n` +
+        `Does that count already include the ${friendly(qty, item.unit)} you just bought?\n\n` +
+        `OK = yes, it is already counted (do not add it again)\nCancel = no, add it on top`);
+      ({ data, error } = await call(already));
+    }
     return error?.message ?? null;
   }
 
@@ -305,8 +317,16 @@ export default function PantryView({
           ...(moved && kind === "fresh" ? { bought_on: today, use_within_days: SHELF_LIFE[category] ?? 5 } : {}),
         };
     if (changes.quantity !== undefined && changes.quantity !== item.quantity) changes.stock_at = new Date().toISOString();
+    // A typed stock figure is a count: written to the history, and it is what daily use is learned from
+    const counted = q != null && q !== item.quantity && !(kind === "sundry" && !tracked);
+    if (counted) {
+      const { error } = await supabase.rpc("count_stock", { p_item: item.id, p_qty: q, p_on: today });
+      if (error) { alert(`Couldn't save that: ${error.message}`); return; }
+      delete changes.quantity; delete changes.stock_at;
+    }
     const next = { ...item, ...changes };
-    await patch(item.id, { ...changes, status: isLow({ ...next, status: "ok" }) ? item.status : "ok" });
+    await patch(item.id, { ...changes, ...(counted ? {} : { status: isLow({ ...next, status: "ok" }) ? item.status : "ok" }) });
+    if (counted) await reloadAll();
     setOpenId(null); setStockUnit(null);
   }
 
@@ -697,6 +717,10 @@ export default function PantryView({
     setOpenId(item.id);
     setStockDraft({ quantity: item.quantity != null ? String(item.quantity) : "", low_when: item.low_when != null ? String(item.low_when) : "", category: item.category });
     setBoughtDraft(""); setBoughtUnit(null); setStockUnit(null);
+    supabase.from("pantry_stock_events")
+      .select("id, kind, qty, before_qty, after_qty, added, on_date").eq("pantry_item_id", item.id)
+      .order("created_at", { ascending: false }).limit(6)
+      .then(({ data }) => { if (data) setHistory((h) => ({ ...h, [item.id]: data as StockEvent[] })); });
     setSupplyOpen(false);
     setSupplyDraft({ qty: item.supply_qty != null ? String(item.supply_qty) : "", every: item.supply_every ?? 1, unit: null });
   }
@@ -723,6 +747,17 @@ export default function PantryView({
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+            {(history[item.id]?.length ?? 0) > 0 && (
+              <div className="grid gap-1">
+                <p className="text-xs font-semibold uppercase tracking-wider m-0" style={{ color: B.muted }}>Why this number</p>
+                {history[item.id].map((ev) => (
+                  <p key={ev.id} className="text-xs m-0 tabular-nums" style={{ color: B.muted }}>
+                    {shortDate(ev.on_date)} · {ev.kind === "count" ? `counted ${amount(ev.after_qty, item.unit)}`
+                      : `${ev.kind === "made" ? "made" : "bought"} ${amount(ev.qty, item.unit) || "some"}${ev.added ? "" : " (already in the count)"}`}
+                  </p>
+                ))}
               </div>
             )}
             {isPrime && item.unit && !item.supply_every && (
@@ -865,12 +900,12 @@ export default function PantryView({
         <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 items-center py-2">
           <button onClick={() => openDetail(item)} className="min-w-0 text-left" aria-expanded={opened}>
             <span className="block text-sm font-medium truncate" style={{ color: B.ink }}>{item.name}</span>
-            <span className="block text-xs truncate" style={{ color: left != null && left <= 1 ? RED.fg : B.muted2 }}>
+            <span className="block text-xs truncate" style={{ color: (left != null && left <= 1) || e?.suspect ? RED.fg : B.muted2 }}>
               {item.supply_every
                 ? supplyText(item.supply_qty, item.unit, item.supply_every)
                 : left != null
                 ? (left < 0 ? "past its days" : left === 0 ? "use today" : `use within ${left}d`)
-                : item.made_at_home ? "made at home" : e?.buyBelow != null ? `buy below ${amount(e.buyBelow, item.unit)}` : categoryLabel(item.category)}
+                : e?.suspect ? "please recount" : item.made_at_home ? "made at home" : e?.buyBelow != null ? `buy below ${amount(e.buyBelow, item.unit)}` : categoryLabel(item.category)}
             </span>
           </button>
           <BoughtCell p={bought[1]} />

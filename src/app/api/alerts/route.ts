@@ -62,6 +62,16 @@ export async function GET() {
       const st = await primeState(supabase, user.id, kutumbhId, owner?.user_id ?? null, isPrime);
       if (st.canClaim || st.canReclaim) out.family = true;
     }),
+    // Kutumbh, Key Member: the monthly stock check is overdue (only once a first count has been made)
+    ask(async () => {
+      if (!kutumbhId || !isPrime) return;
+      const { data } = await supabase.from("pantry_stock_events").select("on_date")
+        .eq("kutumbh_id", kutumbhId).eq("kind", "count").order("on_date", { ascending: false }).limit(1);
+      const last = data?.[0]?.on_date as string | undefined;
+      if (!last) return;
+      const days = (new Date(`${todayLocal(timeZone)}T00:00:00Z`).getTime() - new Date(`${last}T00:00:00Z`).getTime()) / 86400000;
+      if (days > 35) out.family = true;
+    }),
     // Kutumbh, Key Member: things on the shopping list (the pantry has run short)
     ask(async () => {
       if (!kutumbhId || !isPrime) return;

@@ -26,3 +26,11 @@ test("far more fresh stock than the household could use before it spoils is flag
   const rice = { library_key: "rice-sona-masoori", quantity: 10, unit: "kg" as const, low_when: null, stock_at: null, bought_on: null, use_within_days: null, daily_use: null };
   assert.equal(estimate(rice, {}, 3, "2026-10-29", "2026-10-29").suspect, false);
 });
+
+test("fresh stock far past its days is written off; a recent count restarts the clock", () => {
+  const spinach = { library_key: "tomato", quantity: 2, unit: "kg" as const, low_when: null, stock_at: null, bought_on: "2026-10-01", use_within_days: 6, daily_use: 0.01 };
+  // bought 29 days earlier (over three times its days), never counted: gone
+  assert.equal(estimate(spinach, {}, 3, "2026-10-30", null).est, 0);
+  // counted two days ago: its days run from the count
+  assert.ok((estimate(spinach, {}, 3, "2026-10-30", "2026-10-28").est ?? 0) > 1);
+});

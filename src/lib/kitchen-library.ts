@@ -320,7 +320,9 @@ export function estimate(item: ShelfLike, use: MenuUse, familySize: number, toda
 
   // Freshness: days since it was bought against how long it keeps
   const shelf = item.use_within_days ?? lib?.shelfDays ?? null;
-  const daysLeftFresh = item.bought_on && shelf ? shelf - dayDiff(item.bought_on, today) : null;
+  // ...counted from the later of the day it was bought and the day it was last counted
+  const freshFrom = item.bought_on && anchorDay && anchorDay > item.bought_on ? anchorDay : item.bought_on;
+  const daysLeftFresh = freshFrom && shelf ? shelf - dayDiff(freshFrom, today) : null;
 
   if (item.quantity == null || !unit) {
     return { est: null, buyBelow: null, daysLeftFresh, short: false, reason: null, byMenu: false };
@@ -336,7 +338,9 @@ export function estimate(item: ShelfLike, use: MenuUse, familySize: number, toda
     const rate = item.daily_use ?? (lib ? convert(lib.usePerPersonPerDay * fam, lib.unit, unit) : null);
     if (rate) used = rate * Math.max(dayDiff(since, today), 0);
   }
-  const est = Math.max(0, Math.round((item.quantity - used) * 1000) / 1000);
+  // Something that keeps a week or two and is more than three times its days old has gone: written off
+  const gone = shelf != null && shelf <= 14 && daysLeftFresh != null && daysLeftFresh < -2 * shelf;
+  const est = gone ? 0 : Math.max(0, Math.round((item.quantity - used) * 1000) / 1000);
 
   const libBuy = lib ? convert(lib.usePerPersonPerDay * fam * lib.coverDays, lib.unit, unit) : null;
   const buyBelow = item.low_when ?? (libBuy != null ? Math.round(libBuy * 1000) / 1000 : null);

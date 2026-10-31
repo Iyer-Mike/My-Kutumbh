@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import StockCheck from "@/components/StockCheck";
 import { haveIt, sameThing } from "@/lib/ingredients";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
@@ -101,9 +102,10 @@ function inShelfUnit(qty: number, from: Unit | null, to: Unit | null): number | 
 
 export default function PantryView({
   kutumbhId, userId, isPrime, initialItems, initialShopping, initialPurchases, menuDays, memberNames, today,
-  familySize, menuUse, timeZone, initialStep = null,
+  familySize, menuUse, timeZone, initialStep = null, startChecking = false,
 }: {
   initialStep?: null | "shelf" | "menu" | "shop";
+  startChecking?: boolean;
   kutumbhId: string; userId: string; isPrime: boolean; familySize: number; menuUse: MenuUse; timeZone: string;
   initialItems: PantryItem[]; initialShopping: ShoppingItem[]; initialPurchases: Purchase[];
   menuDays: { date: string; label: string; dishes: { name: string; ings: string[] }[] }[];
@@ -127,6 +129,7 @@ export default function PantryView({
   const [tickUnit, setTickUnit] = useState<Unit | null>(null);
   type StockEvent = { id: string; kind: "count" | "purchase" | "made" | "adjust"; qty: number | null; before_qty: number | null; after_qty: number | null; added: boolean; on_date: string };
   const [history, setHistory] = useState<Record<string, StockEvent[]>>({});   // why a shelf figure is what it is
+  const [checking, setChecking] = useState(startChecking && isPrime);     // the monthly stock check is open
   const [makeId, setMakeId] = useState<string | null>(null);              // the "to make" line being marked made
   const [makeQty, setMakeQty] = useState("");
   const [makeUnit, setMakeUnit] = useState<Unit | null>(null);
@@ -973,6 +976,16 @@ export default function PantryView({
   const tabRows = items.filter(current.match).sort((a, b) => a.name.localeCompare(b.name));
   const shelfStep = (
     <div className="grid gap-4">
+      {isPrime && items.some((i) => i.unit) && (
+        <button onClick={() => setChecking(true)}
+          className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left" style={look(FAMILY.violet)}>
+          <span>
+            <span className="block text-sm font-bold" style={{ color: B.violet }}>Stock check</span>
+            <span className="block text-xs" style={{ color: B.muted }}>Count what is on the shelf, once a month. The app's guesses start fresh.</span>
+          </span>
+          <span className="text-lg" style={{ color: B.violet }}>›</span>
+        </button>
+      )}
       {items.length === 0 ? (
         <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={look(FAMILY.violet)}>
           <p className="text-sm" style={{ color: B.muted }}>
@@ -1564,6 +1577,14 @@ export default function PantryView({
       )}
     </div>
   );
+
+  // ── The monthly stock check ─────────────────────────────────
+  if (checking) {
+    return (
+      <StockCheck items={items} est={est} today={today} kutumbhId={kutumbhId}
+        onClose={async (changed) => { if (changed) await reloadAll(); setChecking(false); setStep("shelf"); }} />
+    );
+  }
 
   // ── The hub, and the step you opened ────────────────────────
   if (step === null) {

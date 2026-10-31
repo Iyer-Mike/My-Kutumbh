@@ -123,7 +123,8 @@ export default async function PantryPage({ searchParams }: { searchParams: Promi
             familySize={familySize}
             menuUse={use}
             timeZone={timeZone}
-            initialStep={step === "shop" || step === "shelf" || step === "menu" ? step : null}
+            initialStep={step === "shop" || step === "shelf" || step === "menu" ? step : step === "check" ? "shelf" : null}
+            startChecking={step === "check"}
             menuDays={menuDays}
             memberNames={names}
             today={today}

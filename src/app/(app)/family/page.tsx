@@ -5,6 +5,8 @@ import { BRAND as B } from "@/lib/brand";
 import Face from "@/components/Face";
 import FacePicker from "@/components/FacePicker";
 import { signedFaces } from "@/lib/faces";
+import AttentionCard from "@/components/AttentionCard";
+import { familyAttention } from "@/lib/family-alerts";
 import NoticesCard, { type Notice } from "@/components/NoticesCard";
 import PrimeRole from "@/components/PrimeRole";
 import { RemoveMember, LeaveKutumbh } from "@/components/MemberControls";
@@ -138,6 +140,7 @@ export default async function FamilyPage() {
         .limit(5)
     : { data: null };
   const notices = (noticeRows ?? []) as Notice[];
+  const attention = await familyAttention(supabase, { userId: user!.id, kutumbhId, isPrime: isOwner, timeZone });
 
   const primeMember = members.find((m) => m.role === "owner") ?? null;
   const primeName = primeMember?.full_name ?? null;
@@ -213,14 +216,16 @@ export default async function FamilyPage() {
 
       <main className="flex-1 px-5 py-6 space-y-5">
 
-        {notices.length > 0 && <NoticesCard notices={notices} isPrime={isOwner} />}
+        <AttentionCard items={attention} />
 
-        <PrimeRole
+        <div id="notices">{notices.length > 0 && <NoticesCard notices={notices} isPrime={isOwner} />}</div>
+
+        <div id="key-member"><PrimeRole
           primeName={primeName}
           canClaim={role.canClaim}
           canReclaim={role.canReclaim}
           quietDays={role.primeQuietDays}
-        />
+        /></div>
 
         {/* The family together. The Key Member keeps it; everyone sees it. */}
         {kutumbhId && (familyPhoto || isOwner) && (

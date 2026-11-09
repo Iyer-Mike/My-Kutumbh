@@ -2,6 +2,7 @@
 
 import { markShoppingSeen, refreshAlerts } from "@/lib/alerts-refresh";
 import { writeSeen } from "@/lib/seen";
+import type { Attention } from "@/lib/family-alerts";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import StockCheck from "@/components/StockCheck";
@@ -104,10 +105,12 @@ function inShelfUnit(qty: number, from: Unit | null, to: Unit | null): number | 
 
 export default function PantryView({
   kutumbhId, userId, isPrime, initialItems, initialShopping, initialPurchases, menuDays, memberNames, today,
-  familySize, menuUse, timeZone, initialStep = null, startChecking = false,
+  familySize, menuUse, timeZone, initialStep = null, startChecking = false, attention = [],
 }: {
   initialStep?: null | "shelf" | "menu" | "shop";
   startChecking?: boolean;
+  /** Messages for the three cards (area shelf / menu / shop), same source as the Kutumbh "!" */
+  attention?: Attention[];
   kutumbhId: string; userId: string; isPrime: boolean; familySize: number; menuUse: MenuUse; timeZone: string;
   initialItems: PantryItem[]; initialShopping: ShoppingItem[]; initialPurchases: Purchase[];
   menuDays: { date: string; label: string; dishes: { name: string; ings: string[] }[] }[];
@@ -123,7 +126,8 @@ export default function PantryView({
   const [copied, setCopied] = useState(false);
   const [step, setStep] = useState<null | "shelf" | "menu" | "shop">(initialStep);
   // Looking at the shopping list is what clears the Kutumbh "!" for it
-  useEffect(() => { if (step === "shop") markShoppingSeen(); }, [step]);
+  const [dealt, setDealt] = useState<string[]>([]);
+  useEffect(() => { if (step === "shop") { void markShoppingSeen(); setDealt((d) => [...d, "shopping"]); } }, [step]);
   const [tab, setTab] = useState<"staple" | "veg" | "dairy" | "spice">("staple");
   const [purchases, setPurchases] = useState(initialPurchases);
   const [openId, setOpenId] = useState<string | null>(null);              // the shelf item opened for detail
@@ -1589,7 +1593,7 @@ export default function PantryView({
   if (checking) {
     return (
       <StockCheck items={items} est={est} today={today} kutumbhId={kutumbhId}
-        onClose={async (changed) => { if (changed) await reloadAll(); setChecking(false); setStep("shelf"); }} />
+        onClose={async (changed) => { if (changed) { await reloadAll(); setDealt((d) => [...d, "stock"]); } setChecking(false); setStep("shelf"); }} />
     );
   }
 
@@ -1598,7 +1602,8 @@ export default function PantryView({
     return (
       <div className="grid gap-3">
         {STEPS.map((s) => (
-          <button key={s.key} onClick={() => setStep(s.key)}
+          <div key={s.key} className="grid gap-1.5">
+          <button onClick={() => setStep(s.key)}
             className="w-full text-left rounded-2xl px-4 py-4 flex items-center gap-3"
             style={look(s.tone)} aria-label={`${s.title}: ${s.ask}`}>
             <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white"
@@ -1610,6 +1615,15 @@ export default function PantryView({
             </span>
             <Arrow dir="right" tone={s.tone} />
           </button>
+          {attention.filter((a) => a.area === s.key && !dealt.includes(a.key)).map((a, n) => (
+            <div key={a.key} className="rounded-xl px-3 py-2 flex items-center justify-between gap-3"
+              style={{ background: "#FFF1F0", border: "1.5px solid #E5484D" }}>
+              <span className="text-sm" style={{ color: B.ink }}><b style={{ color: "#B42318" }}>! {n + 1}.</b> {a.text}</span>
+              <button onClick={() => { if (a.key === "stock") { setChecking(true); setStep("shelf"); } else setStep(s.key); }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0 text-white" style={{ background: "#B42318" }}>{a.cta}</button>
+            </div>
+          ))}
+          </div>
         ))}
       </div>
     );

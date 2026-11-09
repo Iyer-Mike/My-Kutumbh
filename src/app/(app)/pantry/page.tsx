@@ -5,6 +5,7 @@ import LiveFamily from "@/components/LiveFamily";
 import { BRAND as B } from "@/lib/brand";
 import { dayLabel, daysAheadLocal, todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
+import { familyAttention } from "@/lib/family-alerts";
 import { ingredientNames } from "@/lib/ingredients";
 import { ITEM_COLS, checkPantry, type CheckedItem } from "@/lib/pantry-check";
 import type { MenuUse } from "@/lib/kitchen-library";
@@ -25,6 +26,7 @@ export default async function PantryPage({ searchParams }: { searchParams: Promi
   const isPrime = membership?.role === "owner";
   const { timeZone } = await familyOf(supabase, user!.id);
   const today = todayLocal(timeZone);
+  const attention = (await familyAttention(supabase, { userId: user!.id, kutumbhId, isPrime, timeZone })).filter((a) => a.area !== "family");
   const kutumbhName = (membership?.kutumbhs as unknown as { name: string } | null)?.name ?? "your Kutumbh";
 
   let items: PantryItem[] = [];
@@ -114,6 +116,7 @@ export default async function PantryPage({ searchParams }: { searchParams: Promi
           <>
           <LiveFamily kutumbhId={kutumbhId} tables="shopping_items,pantry_items,pantry_purchases" />
           <PantryView
+            attention={attention}
             kutumbhId={kutumbhId}
             userId={user!.id}
             isPrime={isPrime}

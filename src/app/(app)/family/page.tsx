@@ -216,7 +216,7 @@ export default async function FamilyPage() {
 
       <main className="flex-1 px-5 py-6 space-y-5">
 
-        <AttentionCard items={attention} />
+        <AttentionCard items={attention.filter((a) => a.area === "family")} />
 
         <div id="notices">{notices.length > 0 && <NoticesCard notices={notices} isPrime={isOwner} />}</div>
 
@@ -323,8 +323,8 @@ export default async function FamilyPage() {
                 </p>
               </div>
               <span className="flex items-center gap-2">
-                {toBuy > 0 && isOwner && (
-                  <span aria-label="Needs you" title="This is why the Kutumbh tab shows !"
+                {attention.some((a) => a.area !== "family") && (
+                  <span aria-label="Needs you" title="Open the Pantry: it says why"
                     className="w-5 h-5 rounded-full text-xs font-bold text-white flex items-center justify-center"
                     style={{ background: "#D2553C" }}>!</span>
                 )}

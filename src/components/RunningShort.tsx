@@ -2,21 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { readSeen, writeSeen } from "@/lib/seen";
 import { BRAND as B, FAMILY, look } from "@/lib/brand";
 
 export type ShortLine = { name: string; note: string };
 
-const SEEN_KEY = "mk-short-seen-items";
-
-function readSeen(): string[] {
-  try {
-    const v = JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]");
-    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
-  } catch { return []; }
-}
-function writeSeen(names: string[]) {
-  try { localStorage.setItem(SEEN_KEY, JSON.stringify(names)); } catch { /* fine */ }
-}
+const SEEN_KEY = "short_items";
 
 /**
  * Home: a line saying how much is on the shopping list, and a pop-up naming
@@ -26,21 +18,37 @@ function writeSeen(names: string[]) {
  */
 export default function RunningShort({ toBuy, short }: { toBuy: number; short: ShortLine[]; today?: string }) {
   const [fresh, setFresh] = useState<ShortLine[]>([]);
+  const [seenNames, setSeenNames] = useState<string[]>([]);
   const key = short.map((s) => s.name).sort().join("|");
 
   useEffect(() => {
-    const names = key ? key.split("|") : [];
-    const seen = readSeen();
-    // Items that are no longer short are forgotten, so they count as new if they run short again
-    const kept = seen.filter((n) => names.includes(n));
-    if (kept.length !== seen.length) writeSeen(kept);
-    setFresh(short.filter((s) => !kept.includes(s.name)));
+    let live = true;
+    (async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !live) return;
+      const names = key ? key.split("|") : [];
+      const raw = await readSeen<string[]>(supabase, user.id, SEEN_KEY);
+      const seen = Array.isArray(raw) ? raw.filter((x) => typeof x === "string") : [];
+      // Items no longer short are forgotten, so they count as new if they run short again
+      const kept = seen.filter((n) => names.includes(n));
+      if (kept.length !== seen.length) await writeSeen(supabase, user.id, SEEN_KEY, kept);
+      if (!live) return;
+      setSeenNames(kept);
+      setFresh(short.filter((s) => !kept.includes(s.name)));
+    })().catch(() => { /* quiet: no pop-up is better than an error */ });
+    return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  const later = () => {
-    writeSeen(Array.from(new Set([...readSeen(), ...short.map((s) => s.name)])));
+  const later = async () => {
+    const all = Array.from(new Set([...seenNames, ...short.map((s) => s.name)]));
     setFresh([]);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await writeSeen(supabase, user.id, SEEN_KEY, all);
+    } catch { /* fine */ }
   };
   const show = fresh.length > 0;
 

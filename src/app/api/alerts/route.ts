@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { SHOP_SEEN_COOKIE } from "@/lib/alerts-refresh";
 import { createClient } from "@/lib/supabase/server";
 import { familyOf } from "@/lib/family";
 import { hourLocal, todayLocal } from "@/lib/dates";
@@ -79,9 +77,10 @@ export async function GET() {
     // Kutumbh, Key Member: things on the shopping list (the pantry has run short)
     ask(async () => {
       if (!kutumbhId || !isPrime) return;
-      // Only lines added since this device last opened the shopping list.
+      // Only lines added since this person last opened the shopping list.
       // A list that has been looked at is not news, even while items remain.
-      const seen = decodeURIComponent((await cookies()).get(SHOP_SEEN_COOKIE)?.value ?? "");
+      const { data: row } = await supabase.from("user_seen").select("value").eq("user_id", user.id).eq("key", "shop_seen").maybeSingle();
+      const seen = typeof row?.value === "string" ? row.value : "";
       let q = supabase.from("shopping_items").select("id", { count: "exact", head: true })
         .eq("kutumbh_id", kutumbhId).eq("status", "open");
       if (seen && !Number.isNaN(Date.parse(seen))) q = q.gt("created_at", seen);

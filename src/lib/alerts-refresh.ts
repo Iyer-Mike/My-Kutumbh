@@ -1,20 +1,22 @@
 // The bottom-bar "!" badges are fetched by BottomNav. Anything that changes
-// what they should say calls refreshAlerts() so the badge follows at once,
-// instead of waiting for the next page change.
+// what they should say calls refreshAlerts() so the badge follows at once.
+import { createClient } from "@/lib/supabase/client";
+import { readSeen, writeSeen } from "@/lib/seen";
+
 export const ALERTS_EVENT = "mk-alerts-refresh";
-const SHOP_COOKIE = "mk-shop-seen";
 
 export function refreshAlerts() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(ALERTS_EVENT));
 }
 
-/** Remember (on this device) that the shopping list has been looked at now. */
-export function markShoppingSeen() {
-  if (typeof document === "undefined") return;
+/** Remember, on the account (so every device agrees), that the shopping list has been looked at now. */
+export async function markShoppingSeen() {
   try {
-    document.cookie = `${SHOP_COOKIE}=${encodeURIComponent(new Date().toISOString())}; path=/; max-age=31536000; samesite=lax`;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await writeSeen(supabase, user.id, "shop_seen", new Date().toISOString());
   } catch { /* a badge is never worth an error */ }
   refreshAlerts();
 }
 
-export const SHOP_SEEN_COOKIE = SHOP_COOKIE;
+export { readSeen };

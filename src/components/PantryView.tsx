@@ -1,6 +1,7 @@
 "use client";
 
 import { markShoppingSeen, refreshAlerts } from "@/lib/alerts-refresh";
+import { writeSeen } from "@/lib/seen";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import StockCheck from "@/components/StockCheck";
@@ -283,6 +284,8 @@ export default function PantryView({
     if (b.data) setShopping(b.data as ShoppingItem[]);
     if (c.data) setPurchases(c.data as Purchase[]);
     refreshAlerts();
+    // Stock has changed: Home must work the pantry check out afresh next time
+    void supabase.auth.getUser().then(({ data }) => { if (data.user) void writeSeen(supabase, data.user.id, "pantry_check", null); });
   }
 
   /** Bought: a dated purchase, stock goes up, the item is OK again and comes off the list. */

@@ -51,6 +51,9 @@ type MealPlanRow = {
   food_items: PlanFood | PlanFood[] | null;
 };
 
+// How long a pantry check on Home is reused before it is worked out again
+const PANTRY_CHECK_EVERY_MS = 5 * 60_000;
+
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string; fest?: string }> }) {
   const { date, fest } = await searchParams;
   // One day at a time: a month back to catch up, a week ahead to plan
@@ -84,35 +87,46 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const day = clampDay(date, 30, fest === "1" ? 400 : 6, timeZone);
   const today = todayLocal(timeZone);
 
-  // What the Key Member changed on the menu since this member last looked (never their own edits)
-  let menuChanges: MenuChange[] = [];
-  if (kutumbhId) {
+  // Two independent jobs, run together: the menu changes since this member last looked,
+  // and the pantry check. The check is the heavy one, so it is repeated only every few minutes
+  // (the result is kept on the account); anything that changes stock clears it at once.
+  const menuJob = async (): Promise<MenuChange[]> => {
+    if (!kutumbhId) return [];
     const { data: seen } = await supabase.from("menu_seen").select("seen_at").eq("user_id", user!.id).eq("kutumbh_id", kutumbhId).maybeSingle();
     const since = seen?.seen_at ?? new Date(Date.now() - 86400000).toISOString();
     const { data: mc } = await supabase.from("menu_changes").select("planned_date, lines, author_id")
       .eq("kutumbh_id", kutumbhId).gte("planned_date", today).gt("updated_at", since).neq("author_id", user!.id).order("planned_date").limit(5);
-    menuChanges = (mc ?? []).map((m) => ({ date: m.planned_date, label: longDateFor(m.planned_date), lines: m.lines ?? [] }));
-  }
-
-  // The pantry keeps itself: what has run short goes on the list, and Home says so once a day
-  let shortLines: ShortLine[] = [];
-  let toBuy = 0;
-  if (kutumbhId) {
+    return (mc ?? []).map((m) => ({ date: m.planned_date, label: longDateFor(m.planned_date), lines: m.lines ?? [] }));
+  };
+  const pantryJob = async (): Promise<{ shortLines: ShortLine[]; toBuy: number }> => {
+    if (!kutumbhId) return { shortLines: [], toBuy: 0 };
+    let shortLines: ShortLine[] = [];
+    let toBuy = 0;
     try {
-      const { data: shelf } = await supabase.from("pantry_items").select(ITEM_COLS).eq("kutumbh_id", kutumbhId);
-      if (shelf?.length) {
-        const check = await checkPantry(supabase, { kutumbhId, userId: user!.id, timeZone, today, items: shelf as CheckedItem[], sync: true });
-        const fmt = (q: number | null, u: string | null) => q == null ? "" : `${Math.round(q * 1000) / 1000} ${u ?? ""}`.trim();
-        shortLines = check.short.map((s) => ({
-          name: s.name,
-          note: s.reason === "out" ? "finished" : s.reason === "stale" ? "past its days" : `~${fmt(s.est, s.unit)} left`,
-        }));
+      const { data: cached } = await supabase.from("user_seen").select("value").eq("user_id", user!.id).eq("key", "pantry_check").maybeSingle();
+      const c = cached?.value as { at?: string; day?: string; short?: ShortLine[] } | null;
+      const fresh = c?.at && c.day === today && Array.isArray(c.short) && Date.now() - Date.parse(c.at) < PANTRY_CHECK_EVERY_MS;
+      if (fresh) {
+        shortLines = c!.short!;
+      } else {
+        const { data: shelf } = await supabase.from("pantry_items").select(ITEM_COLS).eq("kutumbh_id", kutumbhId);
+        if (shelf?.length) {
+          const check = await checkPantry(supabase, { kutumbhId, userId: user!.id, timeZone, today, items: shelf as CheckedItem[], sync: true });
+          const fmt = (q: number | null, u: string | null) => q == null ? "" : `${Math.round(q * 1000) / 1000} ${u ?? ""}`.trim();
+          shortLines = check.short.map((s) => ({
+            name: s.name,
+            note: s.reason === "out" ? "finished" : s.reason === "stale" ? "past its days" : `~${fmt(s.est, s.unit)} left`,
+          }));
+        }
+        await supabase.from("user_seen").upsert({ user_id: user!.id, key: "pantry_check", value: { at: new Date().toISOString(), day: today, short: shortLines }, updated_at: new Date().toISOString() });
       }
       const { count } = await supabase.from("shopping_items").select("id", { count: "exact", head: true })
         .eq("kutumbh_id", kutumbhId).eq("status", "open");
       toBuy = count ?? 0;
     } catch { /* Home opens even if the pantry can't be read */ }
-  }
+    return { shortLines, toBuy };
+  };
+  const [menuChanges, { shortLines, toBuy }] = await Promise.all([menuJob(), pantryJob()]);
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
   // Asked for on its own, so a page still opens where the photo store has

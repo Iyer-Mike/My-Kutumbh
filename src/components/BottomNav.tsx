@@ -49,7 +49,7 @@ export default function BottomNav() {
     // other family members while this screen stays open.
     window.addEventListener(ALERTS_EVENT, ask);
     window.addEventListener("pageshow", ask);
-    const timer = window.setInterval(() => { if (document.visibilityState === "visible") ask(); }, 60_000);
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") ask(); }, 120_000);
     return () => {
       live = false;
       document.removeEventListener("visibilitychange", onVisible);

@@ -202,14 +202,33 @@ export default function PantryView({
   const listedNames = open.map((s) => s.name);
   const ingState = (n: string): "have" | "listed" | "short" =>
     haveIt(n, shelfNames) ? "have" : haveIt(n, listedNames) ? "listed" : "short";
+  // Things a recipe lists that nobody buys: water, stock, a generic "mixed vegetables"
+  const NOT_BUYABLE = /^(\d+\s*)?(cups?\s+)?(hot\s+|warm\s+|cold\s+)?water\b|^cups?\b.*\b(water|stock)\b|^mixed vegetables?$/i;
   const needed = (() => {
     const m = new Map<string, { name: string }>();
     for (const d of menuDays) for (const dish of d.dishes) for (const ing of dish.ings) {
       const k = sameThing(ing);
-      if (k && !m.has(k) && ingState(ing) === "short") m.set(k, { name: ing.charAt(0).toUpperCase() + ing.slice(1) });
+      if (k && !NOT_BUYABLE.test(ing.trim()) && !m.has(k) && ingState(ing) === "short") m.set(k, { name: ing.charAt(0).toUpperCase() + ing.slice(1) });
     }
     return [...m.values()];
   })();
+
+  // Lines added from the Menu step stay only while a dish on the menu still needs them.
+  // Once the dish has left the menu (or its day has passed) the line goes by itself.
+  // Only lines older than a day, so a line just added is never swept away.
+  useEffect(() => {
+    const dayAgo = Date.now() - 86_400_000;
+    const wanted = menuDays.flatMap((d) => d.dishes.flatMap((x) => x.ings));
+    const stale = shopping.filter((s) => s.status === "open" && s.source === "menu" && !s.pantry_item_id
+      && Date.parse(s.created_at) < dayAgo
+      && (NOT_BUYABLE.test(s.name.trim()) || !wanted.some((ing) => haveIt(ing, [s.name]))));
+    if (!stale.length) return;
+    const ids = stale.map((s) => s.id);
+    supabase.from("shopping_items").delete().in("id", ids).then(({ error }) => {
+      if (!error) { setShopping((prev) => prev.filter((x) => !ids.includes(x.id))); refreshAlerts(); }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function fail(what: string, message: string) {
     alert(`Couldn't ${what}: ${message}`);

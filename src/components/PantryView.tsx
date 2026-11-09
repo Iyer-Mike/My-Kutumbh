@@ -1,6 +1,7 @@
 "use client";
 
 import { markShoppingSeen, refreshAlerts } from "@/lib/alerts-refresh";
+import Legend from "@/components/Legend";
 import { writeSeen } from "@/lib/seen";
 import type { Attention } from "@/lib/family-alerts";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -1017,6 +1018,20 @@ export default function PantryView({
           </span>
           <span className="text-lg" style={{ color: B.violet }}>›</span>
         </button>
+      )}
+      {items.length > 0 && (
+        <div className="grid gap-1.5">
+          <Legend title="Kind" entries={[
+            { colour: KIND_LOOK.staple.bg, edge: KIND_LOOK.staple.edge, label: "Staples" },
+            { colour: KIND_LOOK.fresh.bg, edge: KIND_LOOK.fresh.edge, label: "Fresh" },
+            { colour: KIND_LOOK.sundry.bg, edge: KIND_LOOK.sundry.edge, label: "Spices & sundries" },
+          ]} />
+          <Legend title="Stock" entries={[
+            { colour: STATUS_STYLE.ok.bg, edge: STATUS_STYLE.ok.fg, label: "OK" },
+            { colour: STATUS_STYLE.low.bg, edge: STATUS_STYLE.low.fg, label: "Low / already on the list" },
+            { colour: STATUS_STYLE.out.bg, edge: STATUS_STYLE.out.fg, label: "Out / needs listing" },
+          ]} />
+        </div>
       )}
       {items.length === 0 ? (
         <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={look(FAMILY.violet)}>

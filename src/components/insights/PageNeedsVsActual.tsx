@@ -1,5 +1,6 @@
 "use client";
 
+import Legend from "@/components/Legend";
 import { useState } from "react";
 import Link from "next/link";
 import type { LabFlag, IntakeSummary, Needs, Profile } from "@/lib/insights/types";
@@ -148,6 +149,9 @@ export default function PageNeedsVsActual({
                 const r = f.readings[0];
                 return r ? line(r.label, String(qty(r.value)), r.status === "low" ? "#1F4A78" : "#9A2C1B") : null;
               })}
+              <div className="mt-1.5"><Legend title="Readings" entries={[
+                { colour: "#DDE9F6", edge: "#1F4A78", label: "Below range" }, { colour: "#FBE2DC", edge: "#9A2C1B", label: "Above range" },
+              ]} /></div>
               <button onClick={onOpenReport} className="mt-1.5 font-semibold" style={{ fontSize: T.note, color: C.purple }}>
                 Full report ›
               </button>
@@ -193,6 +197,10 @@ export default function PageNeedsVsActual({
               <div style={{ width: `${protShare * 100}%`, background: C.leaf }} />
               {unaccounted > 0.02 && <div style={{ width: `${unaccounted * 100}%`, background: "#CFC7DD" }} />}
             </div>
+            <div className="mt-1.5"><Legend title="Bar" entries={[
+              { colour: "#C8832A", label: "Carbs" }, { colour: "#8B6BC9", label: "Fat" }, { colour: C.leaf, label: "Protein" },
+              ...(unaccounted > 0.02 ? [{ colour: "#CFC7DD", label: "Not counted" }] : []),
+            ]} /></div>
             <div className="flex justify-between mt-1" style={{ fontSize: T.label, color: C.ink3 }}>
               <span>Carbs {Math.round(carbShare * 100)}%</span>
               <span>Fat {Math.round(fatShare * 100)}%</span>

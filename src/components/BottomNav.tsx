@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ALERTS_EVENT } from "@/lib/alerts-refresh";
 
 // Drawn icons rather than text symbols: they look the same on every phone.
 const ICONS: Record<string, React.ReactNode> = {
@@ -43,7 +44,19 @@ export default function BottomNav() {
     ask();
     const onVisible = () => { if (document.visibilityState === "visible") ask(); };
     document.addEventListener("visibilitychange", onVisible);
-    return () => { live = false; document.removeEventListener("visibilitychange", onVisible); };
+    // Anything that changes the news (a notice read, a menu change accepted, a
+    // shopping list opened) says so; and a slow check catches changes made by
+    // other family members while this screen stays open.
+    window.addEventListener(ALERTS_EVENT, ask);
+    window.addEventListener("pageshow", ask);
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") ask(); }, 60_000);
+    return () => {
+      live = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener(ALERTS_EVENT, ask);
+      window.removeEventListener("pageshow", ask);
+      window.clearInterval(timer);
+    };
   }, [pathname]);
 
   return (

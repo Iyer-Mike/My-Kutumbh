@@ -1,5 +1,6 @@
 "use client";
 
+import { markShoppingSeen, refreshAlerts } from "@/lib/alerts-refresh";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import StockCheck from "@/components/StockCheck";
@@ -120,6 +121,8 @@ export default function PantryView({
   const [buyName, setBuyName] = useState("");
   const [copied, setCopied] = useState(false);
   const [step, setStep] = useState<null | "shelf" | "menu" | "shop">(initialStep);
+  // Looking at the shopping list is what clears the Kutumbh "!" for it
+  useEffect(() => { if (step === "shop") markShoppingSeen(); }, [step]);
   const [tab, setTab] = useState<"staple" | "veg" | "dairy" | "spice">("staple");
   const [purchases, setPurchases] = useState(initialPurchases);
   const [openId, setOpenId] = useState<string | null>(null);              // the shelf item opened for detail
@@ -279,6 +282,7 @@ export default function PantryView({
     if (a.data) setItems(a.data as PantryItem[]);
     if (b.data) setShopping(b.data as ShoppingItem[]);
     if (c.data) setPurchases(c.data as Purchase[]);
+    refreshAlerts();
   }
 
   /** Bought: a dated purchase, stock goes up, the item is OK again and comes off the list. */

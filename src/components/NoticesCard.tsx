@@ -1,4 +1,5 @@
 "use client";
+import { refreshAlerts } from "@/lib/alerts-refresh";
 
 import { useState, useTransition } from "react";
 import { markNoticeRead, replyToAdmin } from "@/app/(app)/admin/actions";
@@ -59,7 +60,7 @@ export default function NoticesCard({ notices, isPrime }: { notices: Notice[]; i
 
             <div className="flex gap-3 mt-2">
               {!n.read_at && (
-                <button onClick={() => start(async () => { await markNoticeRead(n.id); })}
+                <button onClick={() => start(async () => { await markNoticeRead(n.id); refreshAlerts(); })}
                   className="text-xs font-medium" style={{ color: "#6B46B8" }}>
                   Mark as read
                 </button>

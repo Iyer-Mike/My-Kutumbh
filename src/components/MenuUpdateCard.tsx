@@ -1,4 +1,5 @@
 "use client";
+import { refreshAlerts } from "@/lib/alerts-refresh";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -20,6 +21,7 @@ export default function MenuUpdateCard({ changes, userId, kutumbhId }: { changes
     await supabase.from("menu_seen").upsert({ user_id: userId, kutumbh_id: kutumbhId, seen_at: new Date().toISOString() });
     setGone(true);
     router.refresh();
+    refreshAlerts();
   });
 
   return (

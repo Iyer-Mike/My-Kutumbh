@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { SHOP_SEEN_COOKIE } from "@/lib/alerts-refresh";
 import { createClient } from "@/lib/supabase/server";
 import { familyOf } from "@/lib/family";
 import { hourLocal, todayLocal } from "@/lib/dates";
@@ -50,9 +52,11 @@ export async function GET() {
     // Kutumbh: a letter or notice nobody has opened yet
     ask(async () => {
       if (!kutumbhId) return;
-      const { count } = await supabase.from("notices").select("id", { count: "exact", head: true })
-        .eq("kutumbh_id", kutumbhId).in("kind", ["admin", "allowance", "member", "dishes"]).is("read_at", null);
-      if ((count ?? 0) > 0) out.family = true;
+      // Only the five the Kutumbh page actually shows: a hidden older one must not keep the "!" lit
+      const { data } = await supabase.from("notices").select("read_at")
+        .eq("kutumbh_id", kutumbhId).in("kind", ["admin", "allowance", "member", "dishes"])
+        .order("created_at", { ascending: false }).limit(5);
+      if ((data ?? []).some((n: { read_at: string | null }) => !n.read_at)) out.family = true;
     }),
     // Kutumbh: the Key Member has been away a week (a member may take over),
     // or the role was taken while this person was away (they may reclaim it)
@@ -75,8 +79,13 @@ export async function GET() {
     // Kutumbh, Key Member: things on the shopping list (the pantry has run short)
     ask(async () => {
       if (!kutumbhId || !isPrime) return;
-      const { count } = await supabase.from("shopping_items").select("id", { count: "exact", head: true })
+      // Only lines added since this device last opened the shopping list.
+      // A list that has been looked at is not news, even while items remain.
+      const seen = decodeURIComponent((await cookies()).get(SHOP_SEEN_COOKIE)?.value ?? "");
+      let q = supabase.from("shopping_items").select("id", { count: "exact", head: true })
         .eq("kutumbh_id", kutumbhId).eq("status", "open");
+      if (seen && !Number.isNaN(Date.parse(seen))) q = q.gt("created_at", seen);
+      const { count } = await q;
       if ((count ?? 0) > 0) out.family = true;
     }),
     // Profile, Admin only: somebody is waiting to be let in, a family has written

@@ -5,7 +5,9 @@ import { writeSeen } from "@/lib/seen";
 import type { Attention } from "@/lib/family-alerts";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import StockCheck from "@/components/StockCheck";
+import dynamic from "next/dynamic";
+// The monthly stock check is opened rarely: loaded only when it is
+const StockCheck = dynamic(() => import("@/components/StockCheck"), { loading: () => <p className="text-sm p-4">Opening the stock check…</p> });
 import { haveIt, sameThing } from "@/lib/ingredients";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";

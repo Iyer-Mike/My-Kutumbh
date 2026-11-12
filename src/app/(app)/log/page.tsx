@@ -113,6 +113,8 @@ export default function LogPage() {
 
   // Selection — everything ticked, with its own quantity
   const [picked, setPicked] = useState<Record<string, FoodItem>>({});
+  /** A dish on the plate that is being swapped for another one from the list */
+  const [swapKey, setSwapKey] = useState<string | null>(null);
   const [qtys, setQtys]     = useState<Record<string, number>>({});
 
   const [saving, setSaving]         = useState(false);
@@ -349,10 +351,26 @@ export default function LogPage() {
   function toggle(key: string, food: FoodItem) {
     if (picked[key]) {
       setPicked(prev => { const n = { ...prev }; delete n[key]; return n; });
+    } else if (swapKey && picked[swapKey]) {
+      // Replace the dish being changed: same place on the plate, same amount
+      const from = swapKey;
+      setPicked(prev => { const n = { ...prev }; delete n[from]; n[key] = food; return n; });
+      setQtys(prev => { const n = { ...prev }; const q = n[from]; delete n[from]; n[key] = q ?? defaultQty(food.serving_unit); return n; });
+      setSwapKey(null);
     } else {
       setPicked(prev => ({ ...prev, [key]: food }));
       setQtys(prev => ({ ...prev, [key]: prev[key] ?? defaultQty(food.serving_unit) }));
     }
+  }
+
+  function startSwap(key: string) {
+    setSwapKey(key);
+    setQuery("");
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>('input[aria-label="Search food"]');
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.focus();
+    }, 50);
   }
 
   /** From "Say or type your meal": put a matched dish on the plate (no save). */
@@ -410,14 +428,14 @@ export default function LogPage() {
   function openSlot(slot: Slot, kid: string | null = kutumbhId) {
     setActiveSlot(slot);
     setQuery(""); setFilter(f => ({ ...f, type: "", mealOnly: true })); setDishPicker(false);
-    setPicked({}); setQtys({});
+    setPicked({}); setQtys({}); setSwapKey(null);
     clearPhoto();
     loadPool(slot, kid);
   }
 
   function closePanel() {
     setActiveSlot(null);
-    setPicked({}); setQtys({});
+    setPicked({}); setQtys({}); setSwapKey(null);
   }
 
   // ── Save ──────────────────────────────────────────────────────
@@ -531,6 +549,11 @@ export default function LogPage() {
 
         {isOn && (
           <div className="px-3 pb-3 space-y-2">
+            <button onClick={() => startSwap(rowKey)}
+              className="inline-block text-xs font-semibold px-3 py-1.5 rounded-lg mr-2"
+              style={{ background: swapKey === rowKey ? "#6B46B8" : "#fff", color: swapKey === rowKey ? "#fff" : "#4B2E8A", border: "1.5px solid #6B46B8" }}>
+              ↔ Not this dish? Change it
+            </button>
             {food.recipe_id != null && (
               <a href={`/recipes/${food.recipe_id}`}
                 className="inline-block text-xs font-semibold px-3 py-1.5 rounded-lg"
@@ -809,6 +832,12 @@ export default function LogPage() {
                 {searchParams.get("add") === "1" && (
                   <p className="text-xs mb-2 rounded-xl px-3 py-2" style={{ background: "#FBEBCB", color: "#7A5A06" }}>
                     Adding a new dish: type its name below, then tap &ldquo;＋ Add as a family dish&rdquo;.
+                  </p>
+                )}
+                {swapKey && picked[swapKey] && (
+                  <p className="text-xs mb-2 rounded-xl px-3 py-2 flex items-center justify-between gap-2" style={{ background: "#EDE7F7", color: "#4B2E8A", border: "1.5px solid #6B46B8" }}>
+                    <span>Changing &ldquo;{picked[swapKey].name}&rdquo;: search and tap the right dish. The amount carries over.</span>
+                    <button onClick={() => setSwapKey(null)} className="underline shrink-0">Cancel</button>
                   </p>
                 )}
                 <input type="search" autoFocus={searchParams.get("add") === "1"} value={query} onChange={e => { setQuery(e.target.value); setDishPicker(false); }}

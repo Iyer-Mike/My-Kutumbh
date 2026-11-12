@@ -9,6 +9,7 @@ import GettingStarted from "@/components/GettingStarted";
 import HomeShortcuts from "@/components/HomeShortcuts";
 import KeyMemberTodo, { type TodoLine } from "@/components/KeyMemberTodo";
 import MenuBasis from "@/components/MenuBasis";
+import SuggestMenu from "@/components/SuggestMenu";
 import RunningShort, { type ShortLine } from "@/components/RunningShort";
 import { ITEM_COLS, checkPantry, type CheckedItem } from "@/lib/pantry-check";
 import { redirect } from "next/navigation";
@@ -378,6 +379,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         {kutumbhId && (
           <MenuBasis keyName={basis.keyName} isKey={basis.isKey} details={basis.details} profileDone={profile?.onboarding_complete === true} />
         )}
+        {kutumbhId && basis.isKey && <SuggestMenu kutumbhId={kutumbhId} userId={user!.id} timeZone={timeZone} />}
         {festivalMode && festivalName ? (
           <FestivalMenu
             day={day}

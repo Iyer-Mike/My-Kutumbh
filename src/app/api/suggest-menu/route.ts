@@ -139,8 +139,9 @@ export async function POST() {
     const client = new Anthropic({ apiKey });
     const response = await client.beta.messages.parse({
       model: MODEL,
-      max_tokens: 8000,
-      output_config: { format: betaZodOutputFormat(Proposal) },
+      max_tokens: 16000,
+      // Low effort: the reply was being cut off mid-answer when thinking used up the allowance
+      output_config: { format: betaZodOutputFormat(Proposal), effort: "low" },
       system: SYSTEM,
       messages: [{ role: "user", content: userMsg }],
     });

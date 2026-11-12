@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { VOICE_LANGS, MAX_MEAL_TEXT } from "@/lib/meal-parse";
+import { toJpegPayload } from "@/lib/photo";
 
 /** What the matcher returns for one phrase; `food` is the dish row from the family's list. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,6 +73,29 @@ export default function QuickLog({ onAdd }: { onAdd: (food: never, quantity: num
     }
   }
 
+  /** A photo of the plate: shrunk here, sent once, matched to the family's dishes and then dropped (never stored). */
+  const camera = useRef<HTMLInputElement>(null);
+  const gallery = useRef<HTMLInputElement>(null);
+  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || busy) return;
+    setBusy(true); setError(null);
+    try {
+      const { base64, mediaType } = await toJpegPayload(file, 1280);
+      const res = await fetch("/api/match-plate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageBase64: base64, mediaType }) });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Couldn't read that photo."); return; }
+      const items = (data.items ?? []) as Found[];
+      setFound(items);
+      for (const i of items) if (i.food) onAdd(i.food as never, i.quantity);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No connection. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function reset() { setText(""); setFound(null); setError(null); }
 
   if (!open) {
@@ -79,8 +103,8 @@ export default function QuickLog({ onAdd }: { onAdd: (food: never, quantity: num
       <button onClick={() => setOpen(true)} className="w-full rounded-2xl px-4 py-3 text-left flex items-center justify-between gap-3 min-h-11"
         style={{ background: "#EDE7F7", border: "1.5px solid #6B46B8" }}>
         <span>
-          <span className="block text-sm font-bold" style={{ color: "#4B2E8A" }}>Say or type your meal</span>
-          <span className="block text-xs" style={{ color: "#6A6180" }}>&ldquo;2 idli, sambar and a coffee&rdquo; · English, हिन्दी, தமிழ், తెలుగు, ಕನ್ನಡ</span>
+          <span className="block text-sm font-bold" style={{ color: "#4B2E8A" }}>Say, type or photograph your meal</span>
+          <span className="block text-xs" style={{ color: "#6A6180" }}>&ldquo;2 idli, sambar and a coffee&rdquo; · or a photo of the plate</span>
         </span>
         <span aria-hidden className="text-lg" style={{ color: "#6B46B8" }}>🎤</span>
       </button>
@@ -88,7 +112,7 @@ export default function QuickLog({ onAdd }: { onAdd: (food: never, quantity: num
   }
 
   return (
-    <section className="rounded-2xl px-4 py-3 grid gap-2.5" style={{ background: "#fff", border: "2px solid #6B46B8" }} aria-label="Say or type your meal">
+    <section className="rounded-2xl px-4 py-3 grid gap-2.5" style={{ background: "#fff", border: "2px solid #6B46B8" }} aria-label="Say, type or photograph your meal">
       <div className="flex items-center justify-between gap-2">
         <ol className="m-0 p-0 list-none flex items-center gap-1.5 text-[11px] font-semibold">
           {STEPS.map((s, i) => (
@@ -120,11 +144,17 @@ export default function QuickLog({ onAdd }: { onAdd: (food: never, quantity: num
                 </button>
               </>
             )}
+            <button onClick={() => camera.current?.click()} disabled={busy} className="rounded-lg px-3 py-2 text-sm font-semibold min-h-11 disabled:opacity-50"
+              style={{ background: "#EDE7F7", color: "#4B2E8A" }}>📷 Photo</button>
+            <button onClick={() => gallery.current?.click()} disabled={busy} className="rounded-lg px-3 py-2 text-sm min-h-11 disabled:opacity-50 underline"
+              style={{ color: "#6A6180" }}>From gallery</button>
+            <input ref={camera} type="file" accept="image/*" capture="environment" onChange={onPhoto} className="hidden" aria-label="Take a photo of the plate" />
+            <input ref={gallery} type="file" accept="image/*" onChange={onPhoto} className="hidden" aria-label="Choose a photo of the plate" />
             <button onClick={find} disabled={busy || !text.trim()} className="rounded-lg px-4 py-2 text-sm font-semibold text-white min-h-11 ml-auto disabled:opacity-50"
               style={{ background: "#6B46B8" }}>{busy ? "Finding…" : "Find dishes"}</button>
           </div>
           <p className="m-0 text-[11px]" style={{ color: "#6A6180" }}>
-            Your words are sent to the AI only to recognise dishes from your family's list. Nothing is saved until you tap Save below.
+            Your words or photo are sent to the AI only to recognise dishes from your family's list. A photo is discarded as soon as it is matched. Nothing is saved until you tap Save below.
           </p>
         </>
       ) : (

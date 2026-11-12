@@ -7,7 +7,7 @@ import { aiErrorMessage } from "@/lib/ai-error";
 import { checkBudget, recordSpend } from "@/lib/ai-budget";
 import { logFault } from "@/lib/faults";
 import { familyOf } from "@/lib/family";
-import { FOOD_COLS, MAX_MEAL_TEXT } from "@/lib/meal-parse";
+import { MAX_MEAL_TEXT, finishItems, loadCatalogue } from "@/lib/meal-parse";
 
 const MODEL = "claude-haiku-4-5-20251001";
 
@@ -44,12 +44,8 @@ export async function POST(req: NextRequest) {
   const text = body.text?.trim().slice(0, MAX_MEAL_TEXT);
   if (!text) return NextResponse.json({ error: "Say or type what you ate" }, { status: 400 });
 
-  // Only the dishes this person can already log (row-level security decides which)
-  const { data: dishes } = await supabase.from("food_items").select(FOOD_COLS).order("name").limit(700);
-  const list = dishes ?? [];
-  if (!list.length) return NextResponse.json({ items: [] });
-  const byId = new Map(list.map((d) => [String(d.id), d]));
-  const catalogue = list.map((d) => `${d.id} | ${d.name}${d.name_ta ? ` (${d.name_ta})` : ""} | unit: ${d.serving_unit}`).join("\n");
+  const cat = await loadCatalogue(supabase);
+  if (!cat.list.length) return NextResponse.json({ items: [] });
 
   const client = new Anthropic({ apiKey });
   try {
@@ -58,17 +54,13 @@ export async function POST(req: NextRequest) {
       max_tokens: 1200,
       output_config: { format: betaZodOutputFormat(Parsed) },
       system: SYSTEM,
-      messages: [{ role: "user", content: `Dish list (id | name | serving unit):\n${catalogue}\n\nWhat the person said:\n${text}` }],
+      messages: [{ role: "user", content: `Dish list (id | name | serving unit):\n${cat.text}\n\nWhat the person said:\n${text}` }],
     });
     await recordSpend(supabase, { userId: user.id, kutumbhId, feature: "parse-meal", model: MODEL, usage: response.usage });
     if (response.stop_reason === "refusal" || !response.parsed_output) {
       return NextResponse.json({ error: "Couldn't read that. Please try again." }, { status: 422 });
     }
-    const items = response.parsed_output.items.slice(0, 12).map((i) => {
-      const dish = i.dish_id ? byId.get(i.dish_id) : undefined;
-      const qty = Math.min(20, Math.max(0.5, Math.round(i.quantity * 2) / 2 || 1));
-      return { phrase: i.phrase.slice(0, 80), quantity: qty, food: dish ?? null };
-    });
+    const items = finishItems(response.parsed_output.items, cat.byId);
     return NextResponse.json({ items });
   } catch (error) {
     const { message, status } = aiErrorMessage(error, "The meal reader");

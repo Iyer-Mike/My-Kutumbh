@@ -612,6 +612,19 @@ export default function LogPage() {
 
       {/* Slot cards */}
       <main className="flex-1 px-4 py-5 space-y-3">
+        <details open className="rounded-2xl px-4 py-3" style={{ background: "#fff", border: "2px solid #6B46B8" }}>
+          <summary className="cursor-pointer text-sm font-bold" style={{ color: "#4B2E8A" }}>How to log your meals</summary>
+          <p className="m-0 mt-1.5 text-xs" style={{ color: "#6A6180" }}>Tap a meal below, then use any of these:</p>
+          <ol className="m-0 mt-1.5 p-0 list-none grid gap-1.5 text-sm" style={{ color: "#241C33" }}>
+            <li><b>🎤 Say or ⌨ type:</b> &ldquo;2 idli, sambar and a coffee&rdquo; · English, हिन्दी, தமிழ், తెలుగు, ಕನ್ನಡ</li>
+            <li><b>📷 Photograph the plate:</b> matched to your family&apos;s dishes; the photo is discarded after use</li>
+            <li><b>✓ From the plan:</b> tick what you ate, or use the one-tap &ldquo;same as&rdquo; on Home</li>
+            <li><b>📖 Recipe list:</b> search or pick any dish already in your list</li>
+            <li><b>＋ Add Dishes:</b> for a dish not in your list yet (the Key Member adds its details)</li>
+          </ol>
+          <p className="m-0 mt-2 text-xs" style={{ color: "#6A6180" }}>Whichever you use, check the plate, then tap Save. Nothing is logged before that.</p>
+        </details>
+
         {SLOTS.map(({ key, label, icon, time }) => {
           const slotLogs    = logsFor(key);
           const slotCal     = slotLogs.reduce((s, l) => s + (l.calories ?? 0), 0);

@@ -456,33 +456,58 @@ export default function WhatsForToday({
                   </div>
                 ))}
 
-                {canLog && ps.length === 0 && ls.length === 0 && sug && sug.items.length > 0 && (
-                  <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={look(FAMILY.violet)}>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold" style={{ color: "#6B46B8" }}>{whyText(sug)}</p>
-                      <p className="text-sm truncate" style={{ color: INK }}>{sug.items.map((i) => i.food_name).join(", ")}</p>
-                    </div>
-                    <button onClick={() => logSuggestion(key, sug)} disabled={busy}
-                      className="flex-shrink-0 px-4 rounded-full text-sm font-semibold text-white disabled:opacity-50"
-                      style={{ background: INK, minHeight: 44 }}>Log</button>
+                {canLog && ps.length === 0 && ls.length === 0 && (
+                  <div className="rounded-xl px-3 py-2.5 grid gap-2" style={look(FAMILY.violet)}>
+                    <Link href={`/log?slot=${key}&date=${day}&quick=1`}
+                      className="flex items-center justify-between gap-3 rounded-xl px-3 text-sm font-bold text-white"
+                      style={{ background: INK, minHeight: 44 }}>
+                      <span>Log your meal</span>
+                      <span className="text-xs font-semibold" style={{ opacity: 0.9 }}>🎤 Say · ⌨ Type · 📷 Photo</span>
+                    </Link>
+                    {sug && sug.items.length > 0 && (
+                      <div className="flex items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold" style={{ color: "#6B46B8" }}>{whyText(sug)}</p>
+                          <p className="text-sm truncate" style={{ color: INK }}>{sug.items.map((i) => i.food_name).join(", ")}</p>
+                        </div>
+                        <button onClick={() => logSuggestion(key, sug)} disabled={busy}
+                          className="flex-shrink-0 px-4 rounded-full text-sm font-semibold disabled:opacity-50"
+                          style={{ border: `1.5px solid ${INK}`, color: INK, background: "#fff", minHeight: 44 }}>One-tap Log</button>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {isPrime && (
-                    <button onClick={() => setEditing((e) => ({ ...e, [key]: !e[key] }))}
-                      className="px-4 rounded-full text-sm font-bold"
-                      style={{ minHeight: 44, border: `1.5px solid ${PLUM}`, color: PLUM, background: "#fff" }}>
-                      {editing[key] ? "Done" : (ps.length ? "Change menu" : "Add dishes")}
-                    </button>
-                  )}
                   {canLog && (
-                    <Link href={`/log?slot=${key}&date=${day}`} className="px-3 text-xs font-semibold underline flex items-center"
-                      style={{ minHeight: 44, color: "#6B46B8" }}>
-                      Log something else
+                    <Link href={`/log?slot=${key}&date=${day}&add=1`}
+                      title="Add a dish that isn't in your list yet"
+                      className="px-4 rounded-full text-sm font-bold flex items-center"
+                      style={{ minHeight: 44, border: `1.5px solid ${PLUM}`, color: PLUM, background: "#fff" }}>
+                      Add Dishes
                     </Link>
                   )}
+                  {canLog && (
+                    <Link href={`/log?slot=${key}&date=${day}`}
+                      title="Pick from the dishes already in your list"
+                      className="px-4 rounded-full text-sm font-bold flex items-center"
+                      style={{ minHeight: 44, border: `1.5px solid ${PLUM}`, color: PLUM, background: "#fff" }}>
+                      Log from Recipe List
+                    </Link>
+                  )}
+                  {isPrime && (
+                    <button onClick={() => setEditing((e) => ({ ...e, [key]: !e[key] }))}
+                      className="px-3 text-xs font-semibold underline"
+                      style={{ minHeight: 44, color: "#6B46B8" }}>
+                      {editing[key] ? "Done" : (ps.length ? "Change menu" : "Plan menu")}
+                    </button>
+                  )}
                 </div>
+                {canLog && (
+                  <p className="m-0 text-[11px]" style={{ color: MUTED }}>
+                    Add Dishes: a dish not in your list yet · Log from Recipe List: a dish already in it.
+                  </p>
+                )}
 
                 {isPrime && editing[key] && (
                   <PlanSlotCard key={`${key}-${version}`} slotKey={key} name={label} icon={icon} time={time}

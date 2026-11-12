@@ -645,7 +645,7 @@ export default function LogPage() {
             <li><b>📖 Recipe list:</b> search or pick any dish already in your list</li>
             <li><b>＋ Add Dishes:</b> for a dish not in your list yet (the Key Member adds its details)</li>
           </ol>
-          <p className="m-0 mt-2 text-xs" style={{ color: "#6A6180" }}>Whichever you use, check the plate, then tap Save. Nothing is logged before that.</p>
+          <p className="m-0 mt-2 text-xs" style={{ color: "#6A6180" }}>Whichever you use, check the plate: you can change the amount, remove a dish, or swap it for the right one from your list (a dish that isn&rsquo;t listed can be added as a family dish). Then tap Save. Nothing is logged before that.</p>
         </details>
 
         {SLOTS.map(({ key, label, icon, time }) => {
@@ -836,7 +836,7 @@ export default function LogPage() {
                 )}
                 {swapKey && picked[swapKey] && (
                   <p className="text-xs mb-2 rounded-xl px-3 py-2 flex items-center justify-between gap-2" style={{ background: "#EDE7F7", color: "#4B2E8A", border: "1.5px solid #6B46B8" }}>
-                    <span>Changing &ldquo;{picked[swapKey].name}&rdquo;: search and tap the right dish. The amount carries over.</span>
+                    <span>Changing &ldquo;{picked[swapKey].name}&rdquo;: search and tap the right dish. The amount carries over. Not in the list? Type its name and tap &ldquo;＋ Add as a family dish&rdquo;.</span>
                     <button onClick={() => setSwapKey(null)} className="underline shrink-0">Cancel</button>
                   </p>
                 )}

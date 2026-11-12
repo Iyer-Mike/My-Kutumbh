@@ -1,5 +1,6 @@
 "use client";
 
+import QuickLog from "@/components/QuickLog";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
@@ -352,6 +353,12 @@ export default function LogPage() {
       setPicked(prev => ({ ...prev, [key]: food }));
       setQtys(prev => ({ ...prev, [key]: prev[key] ?? defaultQty(food.serving_unit) }));
     }
+  }
+
+  /** From "Say or type your meal": put a matched dish on the plate (no save). */
+  function addParsed(food: FoodItem, qty: number) {
+    setPicked(prev => ({ ...prev, [food.id]: food }));
+    setQtys(prev => ({ ...prev, [food.id]: qty }));
   }
 
   function setQty(key: string, qty: number) {
@@ -747,6 +754,8 @@ export default function LogPage() {
 
             {/* Single scroll area */}
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-4">
+
+              <QuickLog onAdd={(food, qty) => addParsed(food as FoodItem, qty)} />
 
               {/* Family pool */}
               {poolRows.length > 0 && (

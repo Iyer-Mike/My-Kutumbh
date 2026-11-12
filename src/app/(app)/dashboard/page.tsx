@@ -8,6 +8,7 @@ import MenuAlertsToggle from "@/components/MenuAlertsToggle";
 import GettingStarted from "@/components/GettingStarted";
 import HomeShortcuts from "@/components/HomeShortcuts";
 import KeyMemberTodo, { type TodoLine } from "@/components/KeyMemberTodo";
+import MenuBasis from "@/components/MenuBasis";
 import RunningShort, { type ShortLine } from "@/components/RunningShort";
 import { ITEM_COLS, checkPantry, type CheckedItem } from "@/lib/pantry-check";
 import { redirect } from "next/navigation";
@@ -127,6 +128,21 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     return { shortLines, toBuy };
   };
   const [menuChanges, { shortLines, toBuy }] = await Promise.all([menuJob(), pantryJob()]);
+
+  // Whose profile the menu is planned around (shown in a short card; any failure just means plainer wording)
+  const basis: { keyName: string | null; isKey: boolean; details: string[] } = { keyName: null, isKey: false, details: [] };
+  if (kutumbhId) {
+    try {
+      const { data: owner } = await supabase.from("kutumbh_members").select("user_id").eq("kutumbh_id", kutumbhId).eq("role", "owner").limit(1).maybeSingle();
+      if (owner?.user_id) {
+        basis.isKey = owner.user_id === user!.id;
+        const { data: kp } = await supabase.from("profiles").select("full_name, primary_dosha, diet_type").eq("id", owner.user_id).maybeSingle();
+        basis.keyName = kp?.full_name?.split(" ")[0] ?? null;
+        const nice = (v: unknown) => (typeof v === "string" && v ? v.charAt(0).toUpperCase() + v.slice(1).replace(/_/g, " ") : null);
+        basis.details = [nice(kp?.primary_dosha), nice(kp?.diet_type)].filter((x): x is string => !!x);
+      }
+    } catch { /* plainer wording */ }
+  }
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] ?? "there";
   // Asked for on its own, so a page still opens where the photo store has
@@ -359,6 +375,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         {kutumbhId && <LiveFamily kutumbhId={kutumbhId} tables="meal_plans,meal_pools,menu_changes" />}
         {kutumbhId && menuChanges.length > 0 && <MenuUpdateCard changes={menuChanges} userId={user!.id} kutumbhId={kutumbhId} />}
         {kutumbhId && <RunningShort toBuy={toBuy} short={shortLines} today={today} />}
+        {kutumbhId && (
+          <MenuBasis keyName={basis.keyName} isKey={basis.isKey} details={basis.details} profileDone={profile?.onboarding_complete === true} />
+        )}
         {festivalMode && festivalName ? (
           <FestivalMenu
             day={day}

@@ -755,7 +755,7 @@ export default function LogPage() {
             {/* Single scroll area */}
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-4">
 
-              <QuickLog onAdd={(food, qty) => addParsed(food as FoodItem, qty)} />
+              <QuickLog startOpen={searchParams.get("quick") === "1"} onAdd={(food, qty) => addParsed(food as FoodItem, qty)} />
 
               {/* Family pool */}
               {poolRows.length > 0 && (
@@ -793,7 +793,12 @@ export default function LogPage() {
                     <div className="flex-1 h-px" style={{ background: "#E0D4F2" }} />
                   </div>
                 )}
-                <input type="search" value={query} onChange={e => { setQuery(e.target.value); setDishPicker(false); }}
+                {searchParams.get("add") === "1" && (
+                  <p className="text-xs mb-2 rounded-xl px-3 py-2" style={{ background: "#FBEBCB", color: "#7A5A06" }}>
+                    Adding a new dish: type its name below, then tap &ldquo;＋ Add as a family dish&rdquo;.
+                  </p>
+                )}
+                <input type="search" autoFocus={searchParams.get("add") === "1"} value={query} onChange={e => { setQuery(e.target.value); setDishPicker(false); }}
                   aria-label="Search food"
                   placeholder="Search food…"
                   className="w-full rounded-xl px-4 py-2.5 text-sm mb-2"

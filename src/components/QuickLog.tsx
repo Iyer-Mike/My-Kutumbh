@@ -24,8 +24,8 @@ const STEPS = ["Capture", "Review", "Confirm"] as const;
  * (the same ticked list as ever), where the person reviews and taps Save.
  * Nothing is saved from here.
  */
-export default function QuickLog({ onAdd }: { onAdd: (food: never, quantity: number) => void }) {
-  const [open, setOpen] = useState(false);
+export default function QuickLog({ onAdd, startOpen = false }: { onAdd: (food: never, quantity: number) => void; startOpen?: boolean }) {
+  const [open, setOpen] = useState(startOpen);
   const [text, setText] = useState("");
   const [lang, setLang] = useState<string>(VOICE_LANGS[0].code);
   const [listening, setListening] = useState(false);

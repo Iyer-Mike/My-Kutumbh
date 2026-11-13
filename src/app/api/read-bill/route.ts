@@ -15,12 +15,14 @@ const UNIT_KEYS = UNITS as unknown as [string, ...string[]];
 const Bill = z.object({
   shop: z.string().nullable(),
   bill_date: z.string().nullable(),
+  total: z.number().nullable(),
   items: z.array(z.object({
     name: z.string(),
     quantity: z.number().nullable(),
     unit: z.enum(UNIT_KEYS).nullable(),
     category: z.enum(CATEGORY_KEYS),
     is_food: z.boolean(),
+    price: z.number().nullable(),
   })),
 });
 
@@ -39,8 +41,9 @@ For each line give:
   Fresh things are vegetable, even when they flavour food: ginger, garlic, green chilli, curry leaves, coriander leaves, mint, lemon is fruit.
   spice is only for dry spices: powders, seeds and whole dry spices (haldi, jeera, mustard seeds, dry red chilli, cardamom).
 - is_food: false for soap, detergent, bags, and anything else that does not belong in a kitchen shelf
+- price: what was charged for that line in rupees (the line's amount, not the rate per kg), as printed. null when no amount is shown for it. Never work out or guess a price.
 
-Skip totals, taxes, discounts, and anything you cannot read with confidence. At most 40 items, in the order they appear. Give the shop's name and the bill date (YYYY-MM-DD) when they are printed; otherwise null.`;
+Skip taxes, discounts, and anything you cannot read with confidence. At most 40 items, in the order they appear. Give the shop's name and the bill date (YYYY-MM-DD) when they are printed; otherwise null. total is the final amount payable printed on the bill, in rupees; null if not shown.`;
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -106,6 +109,17 @@ export async function POST(req: NextRequest) {
     }
 
     const parsed = response.parsed_output;
+    const money = (n: number | null) => (n != null && Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null);
+    const clean = (i: (typeof parsed.items)[number]) => ({
+      name: i.name.trim().slice(0, 60),
+      quantity: i.quantity != null && i.quantity > 0 ? Math.round(i.quantity * 1000) / 1000 : null,
+      unit: i.unit,
+      category: i.category,
+      price: money(i.price),
+      is_food: i.is_food,
+    });
+    // Every line, for the spending record; the reader's output is only a first draft the Key Member checks
+    const lines = parsed.items.filter((i) => i.name.trim()).slice(0, 40).map(clean);
     const items = parsed.items
       .filter((i) => i.is_food && i.name.trim())
       .slice(0, 40)
@@ -116,7 +130,7 @@ export async function POST(req: NextRequest) {
         category: i.category,
       }));
 
-    return NextResponse.json({ shop: parsed.shop, bill_date: parsed.bill_date, items });
+    return NextResponse.json({ shop: parsed.shop, bill_date: parsed.bill_date, total: money(parsed.total), items, lines });
   } catch (error) {
     const { message, status } = aiErrorMessage(error, "The bill reader");
     await logFault(supabase, { where: "read-bill", error, status, kutumbhId, userId: user.id });

@@ -2,6 +2,7 @@
 
 import { markShoppingSeen, refreshAlerts } from "@/lib/alerts-refresh";
 import Legend from "@/components/Legend";
+import BillCheck, { parseDraftNumber, type BillDraft } from "@/components/BillCheck";
 import { writeSeen } from "@/lib/seen";
 import type { Attention } from "@/lib/family-alerts";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -158,6 +159,10 @@ export default function PantryView({
   const [reading, setReading] = useState(false);
   const [billNote, setBillNote] = useState<string | null>(null);
   const [bill, setBill] = useState<{ shop: string | null; lines: BillLine[] } | null>(null);
+  // The reader's first draft, being checked and corrected before anything is recorded
+  const [billDraft, setBillDraft] = useState<BillDraft | null>(null);
+  // The approved bill, kept for the spending record once the shelf step is done
+  const [billMeta, setBillMeta] = useState<{ date: string; total: number | null; lines: { name: string; quantity: number | null; unit: Unit | null; category: string; price: number | null; is_food: boolean }[] } | null>(null);
   const [askNew, setAskNew] = useState(false);          // the pop-up for bill items the library doesn't know
 
   // What is probably on the shelf now: last known stock less what the menu cooked since,
@@ -606,20 +611,22 @@ export default function PantryView({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setBillNote(data.error ?? "Couldn't read that bill."); return; }
 
-      const lines: BillLine[] = (data.items ?? []).map((i: Omit<BillLine, "take" | "matchId" | "libKey">) => {
-        const lib = matchLibrary(i.name);
-        const match = (lib && items.find((s) => s.library_key === lib.key)) || findMatch(i.name, items);
-        const libKey = !match && lib ? lib.key : null;
-        const category = libKey ? shelfPlace(lib!.group).category : i.category;
-        // On the shelf or in the library: recorded as read. Anything else waits to be confirmed.
-        return { ...i, category, take: !!(match || libKey), matchId: match?.id ?? null, libKey };
-      });
-      if (lines.length === 0) {
+      type Read = { name: string; quantity: number | null; unit: Unit | null; category: string; price?: number | null; is_food?: boolean };
+      const read: Read[] = data.lines ?? data.items ?? [];
+      if (read.length === 0) {
         setBillNote("No kitchen items found · Retake it straighter and brighter.");
         return;
       }
-      setBill({ shop: data.shop ?? null, lines });
-      if (lines.some((l) => !l.matchId && !l.libKey)) setAskNew(true);
+      setBillDraft({
+        shop: data.shop ?? "",
+        date: /^\d{4}-\d{2}-\d{2}$/.test(data.bill_date ?? "") ? data.bill_date : today,
+        total: data.total != null ? String(data.total) : "",
+        lines: read.map((i, n) => ({
+          key: `r${n}`, name: i.name, quantity: i.quantity != null ? String(i.quantity) : "", unit: i.unit ?? "",
+          category: i.is_food === false ? "household" : i.category, price: i.price != null ? String(i.price) : "",
+          is_food: i.is_food !== false,
+        })),
+      });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") setBillNote(null);
       else setBillNote(err instanceof Error ? err.message : "Couldn't read that bill.");
@@ -627,6 +634,44 @@ export default function PantryView({
       abortRef.current = null;
       setReading(false);
     }
+  }
+
+  /** The checked bill moves on: food lines to the shelf review, everything to the spending record. */
+  function confirmDraft() {
+    if (!billDraft) return;
+    const all = billDraft.lines
+      .filter((l) => l.name.trim())
+      .map((l) => ({
+        name: l.name.trim().slice(0, 60), quantity: parseDraftNumber(l.quantity), unit: (l.unit || null) as Unit | null,
+        category: l.category, price: parseDraftNumber(l.price), is_food: l.is_food,
+      }));
+    const lines: BillLine[] = all.filter((i) => i.is_food).map((i) => {
+      const lib = matchLibrary(i.name);
+      const match = (lib && items.find((s) => s.library_key === lib.key)) || findMatch(i.name, items);
+      const libKey = !match && lib ? lib.key : null;
+      const category = libKey ? shelfPlace(lib!.group).category : i.category;
+      // On the shelf or in the library: recorded as read. Anything else waits to be confirmed.
+      return { name: i.name, quantity: i.quantity, unit: i.unit, category, take: !!(match || libKey), matchId: match?.id ?? null, libKey };
+    });
+    setBillMeta({ date: billDraft.date || today, total: parseDraftNumber(billDraft.total), lines: all });
+    setBill({ shop: billDraft.shop.trim() || null, lines });
+    setBillDraft(null);
+    if (lines.some((l) => !l.matchId && !l.libKey)) setAskNew(true);
+  }
+
+  /** Keep the approved bill as a spending record. Never blocks the shelf: a failure is reported, not fatal. */
+  async function saveSpend(shop: string | null): Promise<string | null> {
+    if (!billMeta || billMeta.lines.length === 0) return null;
+    const { data: b, error } = await supabase.from("bills")
+      .insert({ kutumbh_id: kutumbhId, bill_date: billMeta.date, shop, total: billMeta.total, created_by: userId })
+      .select("id").single();
+    if (error || !b) return error?.message ?? "unknown";
+    const { error: e2 } = await supabase.from("bill_lines").insert(billMeta.lines.map((l) => ({
+      bill_id: b.id, kutumbh_id: kutumbhId, name: l.name, quantity: l.quantity, unit: l.unit,
+      category: l.is_food ? l.category : "household", price: l.price, is_food: l.is_food,
+    })));
+    if (e2) { await supabase.from("bills").delete().eq("id", b.id); return e2.message; }
+    return null;
   }
 
   function stopReading() {
@@ -639,8 +684,15 @@ export default function PantryView({
   async function applyBill() {
     if (!bill || busy) return;
     const take = bill.lines.filter((l) => l.take);
-    if (take.length === 0) { setBill(null); return; }
     setBusy(true);
+    const spendErr = await saveSpend(bill.shop);
+    const spendNote = spendErr ? ` The spending record couldn't be saved (${spendErr}).` : billMeta ? " Saved to your spending." : "";
+    if (take.length === 0) {
+      setBill(null); setBillMeta(null);
+      setBillNote(`Nothing was put on the shelf.${spendNote}`);
+      setBusy(false);
+      return;
+    }
 
     for (const line of take) {
       let shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
@@ -675,8 +727,8 @@ export default function PantryView({
         .in("id", done.map((s) => s.id));
     }
     await reloadAll();
-    setBill(null);
-    setBillNote(`${take.length} item${take.length > 1 ? "s" : ""} recorded on the shelf.`);
+    setBill(null); setBillMeta(null);
+    setBillNote(`${take.length} item${take.length > 1 ? "s" : ""} recorded on the shelf.${spendNote}`);
     setBusy(false);
   }
 
@@ -1118,12 +1170,14 @@ export default function PantryView({
           <input ref={billRef} type="file" accept="image/*,application/pdf"
             onChange={handleBillPhoto} className="hidden" />
 
-          {!bill && (
+          {billDraft && <BillCheck draft={billDraft} onChange={setBillDraft} onContinue={confirmDraft} onCancel={() => setBillDraft(null)} />}
+
+          {!bill && !billDraft && (
             <>
               <div>
                 <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Back from the shop?</h2>
                 <p className="text-xs" style={{ color: B.muted2 }}>
-                  Photo or PDF of the bill → shelf.
+                  Photo or PDF of the bill → check it → shelf and spending.
                 </p>
               </div>
               {reading ? (
@@ -1275,7 +1329,7 @@ export default function PantryView({
                     return [k ? `Record ${k}` : "", n ? `add ${n} new` : ""].filter(Boolean).join(" · ") || "Nothing ticked";
                   })()}
                 </button>
-                <button onClick={() => setBill(null)} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
+                <button onClick={() => { setBill(null); setBillMeta(null); }} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
                   Cancel
                 </button>
               </div>

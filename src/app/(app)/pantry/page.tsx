@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PageNav from "@/components/PageNav";
 import PantryView, { type PantryItem, type Purchase, type ShoppingItem } from "@/components/PantryView";
@@ -109,6 +110,12 @@ export default async function PantryPage({ searchParams }: { searchParams: Promi
         <p className="text-xs mt-1" style={{ color: B.gold }}>
           {isPrime ? "You keep the shelf · all can flag low items" : "Flag low items for the Key Member"}
         </p>
+        {isPrime && (
+          <Link href="/pantry/spend" className="inline-block mt-2 px-3 py-1.5 rounded-xl text-xs font-semibold"
+            style={{ background: "rgba(255,255,255,0.14)", color: "rgba(255,255,255,0.9)" }}>
+            💰 Spending by month
+          </Link>
+        )}
       </header>
 
       <main className="flex-1 px-4 py-5">

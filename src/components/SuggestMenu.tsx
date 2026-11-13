@@ -24,7 +24,7 @@ const TONE_WORD = { good: "On track", watch: "A little off", off: "Well off" } a
 
 /**
  * Key Member only: the planner proposes the next seven days, nothing reaches
- * the family until "Use this menu". Empty meals only; anything already planned stays.
+ * the family until a day is published. Empty meals only; anything already planned stays.
  */
 export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId: string; userId: string; timeZone: string }) {
   const router = useRouter();
@@ -32,11 +32,11 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [res, setRes] = useState<Result | null>(null);
-  const [done, setDone] = useState<string | null>(null);
-  const step = done ? 2 : res ? 1 : 0;
+  const [published, setPublished] = useState<string[]>([]);   // days already made live, one at a time
+  const step = published.length ? 2 : res ? 1 : 0;
 
   async function ask() {
-    setBusy(true); setError(null); setDone(null);
+    setBusy(true); setError(null); setPublished([]);
     try {
       const r = await fetch("/api/suggest-menu", { method: "POST" });
       const data = await r.json().catch(() => ({}));
@@ -47,35 +47,34 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
     } finally { setBusy(false); }
   }
 
-  async function use() {
+  /** One day at a time: that day goes live for the family; the other days stay in the proposal. */
+  async function publishDay(date: string) {
     if (!res || busy) return;
     setBusy(true); setError(null);
     try {
       const supabase = createClient();
       // Meals someone filled since the proposal stay as they are
       const { data: now } = await supabase.from("meal_plans").select("planned_date, meal_slot")
-        .eq("kutumbh_id", kutumbhId).gte("planned_date", res.window.from).lte("planned_date", res.window.to);
+        .eq("kutumbh_id", kutumbhId).eq("planned_date", date);
       const taken = new Set((now ?? []).map((p) => `${p.planned_date}|${p.meal_slot}`));
-      const fresh = res.slots.filter((s) => !taken.has(`${s.date}|${s.slot}`));
+      const fresh = res.slots.filter((s) => s.date === date && !taken.has(`${s.date}|${s.slot}`));
       const rows = fresh.flatMap((s) => s.dishes.map((d) => ({
         user_id: userId, kutumbh_id: kutumbhId, planned_date: s.date, meal_slot: s.slot,
         food_name: d.name, quantity_g: 1, quantity_unit: d.unit, food_item_id: d.id,
       })));
-      if (!rows.length) { setError("Those meals have all been planned in the meantime."); return; }
+      if (!rows.length) { setError("That day has already been planned in the meantime."); setPublished((p) => [...p, date]); return; }
       const { error: e } = await supabase.from("meal_plans").insert(rows);
-      if (e) { setError(`Couldn't save the menu: ${e.message}`); return; }
-      const byDate = new Map<string, string[]>();
-      for (const s of fresh) byDate.set(s.date, [...(byDate.get(s.date) ?? []), `${slotLabel(s.slot)}: added ${s.dishes.map((d) => d.name).join(", ")}`]);
-      for (const [date, lines] of byDate) announceMenu(kutumbhId, date, lines);
+      if (e) { setError(`Couldn't save that day: ${e.message}`); return; }
+      announceMenu(kutumbhId, date, fresh.map((s) => `${slotLabel(s.slot)}: added ${s.dishes.map((d) => d.name).join(", ")}`));
       // The menu drives the shopping list: make the next look at the shelf start fresh
       await writeSeen(supabase, userId, "pantry_check", null);
       refreshAlerts();
-      setDone(`Published ${fresh.length} meal${fresh.length === 1 ? "" : "s"}. The family can see the menu. Anything it needs that the shelf is short of will be on the shopping list.`);
+      setPublished((p) => [...p, date]);
       router.refresh();
     } finally { setBusy(false); }
   }
 
-  function close() { setOpen(false); setRes(null); setDone(null); setError(null); }
+  function close() { setOpen(false); setRes(null); setPublished([]); setError(null); }
 
   if (!open) {
     return (
@@ -105,10 +104,10 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
         <button onClick={close} className="text-xs underline" style={{ color: "#6A6180" }}>Close</button>
       </div>
 
-      {!res && !done && (
+      {!res && (
         <div className="grid gap-2">
           <p className="m-0 text-sm" style={{ color: "#241C33" }}>
-            One menu for the whole family, eating together. The planner balances the seven days against everyone&apos;s nutrition, follows the strictest diet in the family and keeps every member&apos;s allergies out. Once you use it, the shopping list fills in whatever the menu needs that the shelf is short of or doesn&apos;t have. Where a member has a medical report, their dietary needs are taken into account too. Meals already planned are left alone.
+            One menu for the whole family, eating together. The planner proposes the next seven days against everyone&apos;s nutrition, following the strictest diet in the family and keeping every member&apos;s allergies out. You publish it day by day. Each published day goes live, and the shopping list fills in whatever it needs that the shelf is short of or doesn&apos;t have. Where a member has a medical report, their dietary needs are taken into account too. Meals already planned are left alone.
           </p>
           <button onClick={ask} disabled={busy} className="rounded-xl px-4 py-2.5 text-sm font-bold text-white min-h-11 disabled:opacity-60" style={{ background: "#6B46B8" }}>
             {busy ? "Planning the week…" : "Plan the week"}
@@ -116,7 +115,7 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
         </div>
       )}
 
-      {res && !done && (
+      {res && (
         <>
           <p className="m-0 text-sm" style={{ color: "#241C33" }}>{res.summary}</p>
           <p className="m-0 text-xs" style={{ color: "#6A6180" }}>
@@ -145,13 +144,25 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
               { colour: FAMILY.gold.bg, edge: FAMILY.gold.edge, label: "15–30% away" },
               { colour: FAMILY.red.bg, edge: FAMILY.red.edge, label: "More than 30% away" },
             ]} />
-            <p className="m-0 text-[11px]" style={{ color: "#6A6180" }}>Counts one serving of every planned dish per person, over seven days{res.keptCount ? `, including the ${res.keptCount} meals already planned` : ""}. Real portions will differ.</p>
+            <p className="m-0 text-[11px]" style={{ color: "#6A6180" }}>Counts one serving of every dish per person over seven days, as if every proposed day is used{res.keptCount ? `, including the ${res.keptCount} meals already planned` : ""}. Real portions will differ.</p>
           </div>
 
           <div className="grid gap-2">
-            {days.map((date) => (
-              <div key={date} className="rounded-xl px-3 py-2" style={{ background: FAMILY.blue.bg, border: `2px solid ${FAMILY.blue.edge}` }}>
-                <p className="m-0 text-xs font-bold" style={{ color: FAMILY.blue.ink }}>{dayLabel(date, timeZone)}</p>
+            {days.map((date) => {
+              const live = published.includes(date);
+              return (
+              <div key={date} className="rounded-xl px-3 py-2" style={live ? { background: FAMILY.green.bg, border: `2px solid ${FAMILY.green.edge}` } : { background: FAMILY.blue.bg, border: `2px solid ${FAMILY.blue.edge}` }}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="m-0 text-xs font-bold" style={{ color: live ? FAMILY.green.ink : FAMILY.blue.ink }}>{dayLabel(date, timeZone)}</p>
+                  {live ? (
+                    <span className="text-xs font-bold" style={{ color: FAMILY.green.ink }}>✓ Live for the family</span>
+                  ) : (
+                    <button onClick={() => publishDay(date)} disabled={busy}
+                      className="rounded-lg px-3 py-1.5 text-xs font-bold text-white min-h-9 disabled:opacity-60" style={{ background: "#2E8B57" }}>
+                      {busy ? "Saving…" : "Publish this day"}
+                    </button>
+                  )}
+                </div>
                 <ul className="m-0 mt-1 p-0 list-none grid gap-1">
                   {res.slots.filter((s) => s.date === date).map((s) => (
                     <li key={s.slot} className="text-sm" style={{ color: "#241C33" }}>
@@ -161,32 +172,31 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
                   ))}
                 </ul>
               </div>
-            ))}
+              );
+            })}
+            <Legend title="Days" entries={[
+              { colour: FAMILY.blue.bg, edge: FAMILY.blue.edge, label: "Proposed: not yet visible to the family" },
+              { colour: FAMILY.green.bg, edge: FAMILY.green.edge, label: "Published: live for everyone" },
+            ]} />
           </div>
 
+          {published.length > 0 && (
+            <p className="m-0 text-sm font-semibold rounded-lg px-3 py-2" style={{ background: FAMILY.green.bg, border: `1.5px solid ${FAMILY.green.edge}`, color: FAMILY.green.ink }}>
+              {published.length} day{published.length === 1 ? "" : "s"} published. Anything {published.length === 1 ? "it needs" : "they need"} that the shelf is short of is on the shopping list.{" "}
+              <a href="/pantry?step=shop" className="underline">See the list</a>
+            </p>
+          )}
+
           <div className="flex flex-wrap gap-2">
-            <button onClick={use} disabled={busy} className="rounded-xl px-4 py-2.5 text-sm font-bold text-white min-h-11 disabled:opacity-60" style={{ background: "#2E8B57" }}>
-              {busy ? "Saving…" : "Use this menu"}
-            </button>
             <button onClick={ask} disabled={busy} className="rounded-xl px-4 py-2.5 text-sm font-semibold min-h-11 disabled:opacity-60" style={{ border: "2px solid #6B46B8", color: "#4B2E8A" }}>
-              Ask again
+              Plan again
             </button>
-            <button onClick={() => { setRes(null); setError(null); }} disabled={busy} className="rounded-xl px-4 py-2.5 text-sm min-h-11" style={{ color: "#6A6180" }}>
-              Discard
+            <button onClick={close} disabled={busy} className="rounded-xl px-4 py-2.5 text-sm min-h-11" style={{ color: "#6A6180" }}>
+              {published.length ? "Done for now" : "Discard"}
             </button>
           </div>
-          <p className="m-0 text-[11px]" style={{ color: "#6A6180" }}>Everyone in the family sees the menu once you use it. Each meal can still be changed from the Plan.</p>
+          <p className="m-0 text-[11px]" style={{ color: "#6A6180" }}>Each day is yours to approve. Days you don&apos;t publish stay private, and "Plan again" proposes only the meals still empty, seven days ahead from today.</p>
         </>
-      )}
-
-      {done && (
-        <div className="grid gap-2">
-          <p className="m-0 text-sm font-semibold" style={{ color: FAMILY.green.ink }}>{done}</p>
-          <div className="flex flex-wrap gap-2">
-            <a href="/pantry?step=shop" className="rounded-xl px-4 py-2.5 text-sm font-bold text-white min-h-11 flex items-center" style={{ background: "#2E8B57" }}>See the shopping list</a>
-            <button onClick={close} className="rounded-xl px-4 py-2.5 text-sm font-semibold min-h-11" style={{ border: "2px solid #6B46B8", color: "#4B2E8A" }}>Done</button>
-          </div>
-        </div>
       )}
 
       {error && <p role="alert" className="m-0 text-sm font-semibold" style={{ color: FAMILY.red.ink }}>{error}</p>}

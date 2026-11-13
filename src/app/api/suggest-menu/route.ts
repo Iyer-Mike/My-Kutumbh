@@ -13,7 +13,7 @@ import { computeNeeds } from "@/lib/insights/needs";
 import { evaluateLabs, latestLabValues } from "@/lib/insights/labs";
 import type { Profile } from "@/lib/insights/types";
 import {
-  SUGGEST_COLS, SUGGEST_SLOTS, cleanProposal, eligibleDishes, perServing, shelfHints, strictestDiet, weeklyAverages, windowDates,
+  SUGGEST_COLS, SUGGEST_SLOTS, cleanProposal, eligibleDishes, perServing, strictestDiet, weeklyAverages, windowDates,
   type SuggestDish,
 } from "@/lib/menu-suggest";
 
@@ -38,7 +38,7 @@ How to plan:
 - Vary the week. Do not repeat the same dish more than twice in the seven days.
 - Aim for each person's day to come near their kcal and protein figures; the app checks the averages afterwards, so favour balance over exactness.
 - Follow the Key Member's dosha and conditions where they are given, and the dietary needs listed, which come from family members' medical reports (favour what they say to favour, go easy on what they say to limit).
-- Use the shelf: favour dishes made from what is on the shelf, and cook the fresh things marked "use soon" early in the week. Do not build a meal around anything listed as running low or out.
+- One menu serves everyone eating together. Choose it on nutrition: the whole family's meals across the week should come near each person's kcal and protein figures. Do not plan around what is in the kitchen; the shopping list is worked out from the menu afterwards.
 - If a festival falls in the week, prefer a dish that fits it on that day.
 - Fill only the slots listed. Give one short plain reason per slot (under 20 words) that a family can read. Never mention a person's lab readings or conditions in a reason; speak of the food ("fibre-rich, light on sugar").
 - summary: two sentences on how the week is planned.`;
@@ -66,7 +66,7 @@ export async function POST() {
     const { data: mem } = await supabase.from("kutumbh_members").select("user_id").eq("kutumbh_id", kutumbhId);
     const ids = (mem ?? []).map((m) => m.user_id as string);
 
-    const [{ data: profs }, { data: records }, { data: planned }, { data: dishRows }, { data: shelfRows }] = await Promise.all([
+    const [{ data: profs }, { data: records }, { data: planned }, { data: dishRows }] = await Promise.all([
       supabase.from("profiles")
         .select("id, full_name, date_of_birth, gender, height_cm, weight_kg, activity_level, daily_kcal_goal, primary_dosha, diet_type, allergies, conditions, medications")
         .in("id", ids),
@@ -74,7 +74,6 @@ export async function POST() {
       supabase.from("meal_plans").select("planned_date, meal_slot, food_item_id")
         .eq("kutumbh_id", kutumbhId).gte("planned_date", window[0]).lte("planned_date", window[6]),
       supabase.from("food_items").select(SUGGEST_COLS).order("name").limit(700),
-      supabase.from("pantry_items").select("name, kind, status, bought_on, use_within_days").eq("kutumbh_id", kutumbhId).limit(300),
     ]);
 
     const profiles = (profs ?? []) as unknown as (ProfileRow & { id: string })[];
@@ -86,7 +85,6 @@ export async function POST() {
     // A dish must suit every member, so the strictest diet in the family decides
     const diets = profiles.map((p) => p.diet_type ?? null);
     const allowed = eligibleDishes(all, diets, allAllergies);
-    const shelf = shelfHints(shelfRows ?? [], today);
     if (allowed.length < 12) {
       return NextResponse.json({ error: "There aren't enough dishes yet that suit everyone's diet and allergies. Add a few family dishes, then try again." }, { status: 422 });
     }
@@ -133,14 +131,11 @@ export async function POST() {
         ? `Dietary needs from members' medical reports:\n${needs.map((n) => `- ${n.label}. Favour: ${n.favour.join("; ") || "-"}. Go easy on: ${n.limit.join("; ") || "-"}`).join("\n")}`
         : "No member has a medical report on file, so plan around the Key Member's profile.",
       festivals.length ? `Festivals this week: ${festivals.join("; ")}.` : "No festival this week.",
-      shelf.have.length
-        ? `On the shelf now: ${shelf.have.join(", ")}.\nUse soon (fresh, going off): ${shelf.useSoon.join(", ") || "none"}.\nRunning low or out: ${shelf.low.join(", ") || "none"}.`
-        : "The shelf has not been set up, so plan without it.",
       `Empty slots to fill (date slot):\n${open.join("\n")}`,
-      `Dishes you may use (id | name | meal hint | kcal per serving | protein g per serving | main ingredients):\n` +
+      `Dishes you may use (id | name | meal hint | kcal per serving | protein g per serving):\n` +
         prompt.map((d) => {
           const s = perServing(d);
-          return `${d.id} | ${d.name} | ${(d.meal_hint ?? []).join("/") || "any"} | ${Math.round(s.kcal)} | ${s.protein != null ? Math.round(s.protein) : "?"} | ${(d.ingredients ?? "").slice(0, 50)}`;
+          return `${d.id} | ${d.name} | ${(d.meal_hint ?? []).join("/") || "any"} | ${Math.round(s.kcal)} | ${s.protein != null ? Math.round(s.protein) : "?"}`;
         }).join("\n"),
     ].join("\n\n");
 
@@ -174,8 +169,6 @@ export async function POST() {
       window: { from: window[0], to: window[6] },
       keptCount: filled.size,
       diet: strictestDiet(diets),
-      shelfUsed: shelf.have.length > 0,
-      useSoon: shelf.useSoon,
       needs: needs.map((n) => n.label),
       slots: slots.map((s) => ({
         date: s.date, slot: s.slot, why: s.why,

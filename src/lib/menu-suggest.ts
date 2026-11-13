@@ -68,26 +68,6 @@ export function eligibleDishes(dishes: SuggestDish[], diets: (string | null)[], 
   return dishes.filter((d) => ok.has(d.diet ?? "veg") && !allergyHit(d, allergies));
 }
 
-export type ShelfItem = { name: string; kind: string; status: string; bought_on: string | null; use_within_days: number | null };
-
-/**
- * What the shelf says for the week: what is in, what fresh things should be cooked soon
- * (within two days of going off), and what is running low or out.
- */
-export function shelfHints(items: ShelfItem[], today: string) {
-  const day = (d: string) => Date.parse(`${d}T00:00:00Z`);
-  const have: string[] = [], useSoon: string[] = [], low: string[] = [];
-  for (const i of items) {
-    if (i.status !== "ok") { low.push(i.name); continue; }
-    have.push(i.name);
-    if (i.kind === "fresh" && i.bought_on && i.use_within_days) {
-      const left = Math.round((day(i.bought_on) + i.use_within_days * 86_400_000 - day(today)) / 86_400_000);
-      if (left >= -1 && left <= 2) useSoon.push(i.name);
-    }
-  }
-  return { have: have.slice(0, 70), useSoon: useSoon.slice(0, 15), low: low.slice(0, 30) };
-}
-
 export function windowDates(start: string, days = 7): string[] {
   const t = Date.parse(`${start}T00:00:00Z`);
   return Array.from({ length: days }, (_, i) => new Date(t + i * 86_400_000).toISOString().slice(0, 10));

@@ -8,12 +8,14 @@ import { announceMenu } from "@/lib/menu-notify";
 import { slotLabel } from "@/lib/meal-slots";
 import { dayLabel } from "@/lib/dates";
 import Legend from "@/components/Legend";
+import { writeSeen } from "@/lib/seen";
+import { refreshAlerts } from "@/lib/alerts-refresh";
 
 type Slot = { date: string; slot: string; why: string; dishes: { id: string; name: string; unit: string }[] };
 type Average = { id: string; name: string; kcal: number; kcalPct: number; protein: number; proteinPct: number; status: "good" | "watch" | "off" };
 type Result = {
   summary: string; window: { from: string; to: string }; keptCount: number; needs: string[]; slots: Slot[]; averages: Average[];
-  diet: string | null; shelfUsed: boolean; useSoon: string[];
+  diet: string | null;
 };
 
 const STEPS = ["Choose", "Review", "Publish"] as const;
@@ -65,7 +67,10 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
       const byDate = new Map<string, string[]>();
       for (const s of fresh) byDate.set(s.date, [...(byDate.get(s.date) ?? []), `${slotLabel(s.slot)}: added ${s.dishes.map((d) => d.name).join(", ")}`]);
       for (const [date, lines] of byDate) announceMenu(kutumbhId, date, lines);
-      setDone(`Published ${fresh.length} meal${fresh.length === 1 ? "" : "s"}. The family can see the menu now.`);
+      // The menu drives the shopping list: make the next look at the shelf start fresh
+      await writeSeen(supabase, userId, "pantry_check", null);
+      refreshAlerts();
+      setDone(`Published ${fresh.length} meal${fresh.length === 1 ? "" : "s"}. The family can see the menu. Anything it needs that the shelf is short of will be on the shopping list.`);
       router.refresh();
     } finally { setBusy(false); }
   }
@@ -103,7 +108,7 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
       {!res && !done && (
         <div className="grid gap-2">
           <p className="m-0 text-sm" style={{ color: "#241C33" }}>
-            The planner chooses dishes for the next seven days. It follows the strictest diet in the family, keeps every member&apos;s allergies out, and uses what is on your shelf, cooking fresh things that are going off first. Where a member has a medical report, their dietary needs are taken into account too. Meals already planned are left alone.
+            One menu for the whole family, eating together. The planner balances the seven days against everyone&apos;s nutrition, follows the strictest diet in the family and keeps every member&apos;s allergies out. Once you use it, the shopping list fills in whatever the menu needs that the shelf is short of or doesn&apos;t have. Where a member has a medical report, their dietary needs are taken into account too. Meals already planned are left alone.
           </p>
           <button onClick={ask} disabled={busy} className="rounded-xl px-4 py-2.5 text-sm font-bold text-white min-h-11 disabled:opacity-60" style={{ background: "#6B46B8" }}>
             {busy ? "Planning the week…" : "Plan the week"}
@@ -115,7 +120,7 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
         <>
           <p className="m-0 text-sm" style={{ color: "#241C33" }}>{res.summary}</p>
           <p className="m-0 text-xs" style={{ color: "#6A6180" }}>
-            Diet followed: {res.diet ?? "not set"}. {res.shelfUsed ? (res.useSoon.length ? `Use soon from the shelf: ${res.useSoon.join(", ")}.` : "Shelf stock considered.") : "Shelf not set up, so it was not used."}
+            Diet followed: {res.diet ?? "not set"} (the strictest in the family).
           </p>
           {res.needs.length > 0 && (
             <p className="m-0 text-xs rounded-lg px-3 py-2" style={{ background: FAMILY.gold.bg, border: `1.5px solid ${FAMILY.gold.edge}`, color: FAMILY.gold.ink }}>
@@ -177,7 +182,10 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
       {done && (
         <div className="grid gap-2">
           <p className="m-0 text-sm font-semibold" style={{ color: FAMILY.green.ink }}>{done}</p>
-          <button onClick={close} className="rounded-xl px-4 py-2.5 text-sm font-semibold min-h-11" style={{ border: "2px solid #6B46B8", color: "#4B2E8A" }}>Done</button>
+          <div className="flex flex-wrap gap-2">
+            <a href="/pantry?step=shop" className="rounded-xl px-4 py-2.5 text-sm font-bold text-white min-h-11 flex items-center" style={{ background: "#2E8B57" }}>See the shopping list</a>
+            <button onClick={close} className="rounded-xl px-4 py-2.5 text-sm font-semibold min-h-11" style={{ border: "2px solid #6B46B8", color: "#4B2E8A" }}>Done</button>
+          </div>
         </div>
       )}
 

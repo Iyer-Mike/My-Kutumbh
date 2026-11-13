@@ -13,7 +13,7 @@ import { computeNeeds } from "@/lib/insights/needs";
 import { evaluateLabs, latestLabValues } from "@/lib/insights/labs";
 import type { Profile } from "@/lib/insights/types";
 import {
-  SUGGEST_COLS, SUGGEST_SLOTS, cleanProposal, eligibleDishes, perServing, weeklyAverages, windowDates,
+  SUGGEST_COLS, SUGGEST_SLOTS, cleanProposal, eligibleDishes, perServing, strictestDiet, weeklyAverages, windowDates,
   type SuggestDish,
 } from "@/lib/menu-suggest";
 
@@ -38,6 +38,7 @@ How to plan:
 - Vary the week. Do not repeat the same dish more than twice in the seven days.
 - Aim for each person's day to come near their kcal and protein figures; the app checks the averages afterwards, so favour balance over exactness.
 - Follow the Key Member's dosha and conditions where they are given, and the dietary needs listed, which come from family members' medical reports (favour what they say to favour, go easy on what they say to limit).
+- One menu serves everyone eating together. Choose it on nutrition: the whole family's meals across the week should come near each person's kcal and protein figures. Do not plan around what is in the kitchen; the shopping list is worked out from the menu afterwards.
 - If a festival falls in the week, prefer a dish that fits it on that day.
 - Fill only the slots listed. Give one short plain reason per slot (under 20 words) that a family can read. Never mention a person's lab readings or conditions in a reason; speak of the food ("fibre-rich, light on sugar").
 - summary: two sentences on how the week is planned.`;
@@ -81,7 +82,9 @@ export async function POST() {
 
     // Hard limits first, in code
     const all = (dishRows ?? []) as SuggestDish[];
-    const allowed = eligibleDishes(all, key?.diet_type ?? null, allAllergies);
+    // A dish must suit every member, so the strictest diet in the family decides
+    const diets = profiles.map((p) => p.diet_type ?? null);
+    const allowed = eligibleDishes(all, diets, allAllergies);
     if (allowed.length < 12) {
       return NextResponse.json({ error: "There aren't enough dishes yet that suit everyone's diet and allergies. Add a few family dishes, then try again." }, { status: 422 });
     }
@@ -122,7 +125,7 @@ export async function POST() {
     const nice = (v: string | null | undefined) => v || "not set";
 
     const userMsg = [
-      `Key Member: diet ${nice(key?.diet_type)}, dosha ${nice(key?.primary_dosha)}, conditions ${(key?.conditions ?? []).join(", ") || "none listed"}.`,
+      `Menu follows the strictest diet in the family (${nice(strictestDiet(diets))}). Key Member: diet ${nice(key?.diet_type)}, dosha ${nice(key?.primary_dosha)}, conditions ${(key?.conditions ?? []).join(", ") || "none listed"}.`,
       `Each person's daily Good Range: ${targets.map((t) => `${t.name} ${t.kcal} kcal / ${t.protein} g protein`).join("; ")}.`,
       needs.length
         ? `Dietary needs from members' medical reports:\n${needs.map((n) => `- ${n.label}. Favour: ${n.favour.join("; ") || "-"}. Go easy on: ${n.limit.join("; ") || "-"}`).join("\n")}`
@@ -165,6 +168,7 @@ export async function POST() {
       summary: response.parsed_output.summary.slice(0, 400),
       window: { from: window[0], to: window[6] },
       keptCount: filled.size,
+      diet: strictestDiet(diets),
       needs: needs.map((n) => n.label),
       slots: slots.map((s) => ({
         date: s.date, slot: s.slot, why: s.why,

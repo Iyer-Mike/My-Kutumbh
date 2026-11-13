@@ -43,9 +43,28 @@ export function allergyHit(d: Pick<SuggestDish, "name" | "ingredients">, allergi
     .some((a) => text.includes(a));
 }
 
-/** Dishes the family menu may use: within the Key Member's diet, free of every member's allergens. */
-export function eligibleDishes(dishes: SuggestDish[], keyDiet: string | null, allergies: string[]): SuggestDish[] {
-  const ok = new Set<string>(dietsAllowed(keyDiet));
+/** The diets every member can eat: a dish must suit all of them, so the strictest one decides. */
+export function sharedDiets(diets: (string | null)[]): Set<string> {
+  const given = diets.filter((d): d is string => !!d);
+  if (!given.length) return new Set<string>(dietsAllowed(null));
+  let ok = new Set<string>(dietsAllowed(given[0]));
+  for (const d of given.slice(1)) {
+    const next = new Set<string>(dietsAllowed(d));
+    ok = new Set([...ok].filter((x) => next.has(x)));
+  }
+  return ok;
+}
+
+/** The member diet that allows the fewest dishes: the one the menu is following. */
+export function strictestDiet(diets: (string | null)[]): string | null {
+  const given = [...new Set(diets.filter((d): d is string => !!d))];
+  if (!given.length) return null;
+  return given.sort((a, b) => dietsAllowed(a).length - dietsAllowed(b).length)[0];
+}
+
+/** Dishes the family menu may use: within everyone's diet, free of every member's allergens. */
+export function eligibleDishes(dishes: SuggestDish[], diets: (string | null)[], allergies: string[]): SuggestDish[] {
+  const ok = sharedDiets(diets);
   return dishes.filter((d) => ok.has(d.diet ?? "veg") && !allergyHit(d, allergies));
 }
 

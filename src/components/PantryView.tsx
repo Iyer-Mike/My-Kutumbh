@@ -1037,6 +1037,7 @@ export default function PantryView({
   const lowCount = items.filter(isShort).length;
   const plannedDays = menuDays.filter((d) => d.dishes.length > 0).length;
 
+  const off = isPrime ? 1 : 0;      // the Key Member's first step is the bills
   const STEPS = [
     { key: "shelf", n: 1, title: "Shelf", ask: "What do we have?",
       line: items.length === 0 ? "Not started yet" : `${items.length} item${items.length === 1 ? "" : "s"}${lowCount ? ` · ${lowCount} low` : " · none low"}`,
@@ -1059,109 +1060,9 @@ export default function PantryView({
   // Step 1 · the shelf, four tabs
   const current = TABS.find((t) => t.key === tab)!;
   const tabRows = items.filter(current.match).sort((a, b) => a.name.localeCompare(b.name));
-  const shelfStep = (
-    <div className="grid gap-4">
-      {isPrime && items.some((i) => i.unit) && (
-        <button onClick={() => setChecking(true)}
-          className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left" style={look(FAMILY.violet)}>
-          <span>
-            <span className="block text-sm font-bold" style={{ color: B.violet }}>Stock check</span>
-            <span className="block text-xs" style={{ color: B.muted }}>Count what is on the shelf, once a month. The app's guesses start fresh.</span>
-          </span>
-          <span className="text-lg" style={{ color: B.violet }}>›</span>
-        </button>
-      )}
-      {items.length > 0 && (
-        <div className="grid gap-1.5">
-          <Legend title="Kind" entries={[
-            { colour: KIND_LOOK.staple.bg, edge: KIND_LOOK.staple.edge, label: "Staples" },
-            { colour: KIND_LOOK.fresh.bg, edge: KIND_LOOK.fresh.edge, label: "Fresh" },
-            { colour: KIND_LOOK.sundry.bg, edge: KIND_LOOK.sundry.edge, label: "Spices & sundries" },
-          ]} />
-          <Legend title="Stock" entries={[
-            { colour: STATUS_STYLE.ok.bg, edge: STATUS_STYLE.ok.fg, label: "OK" },
-            { colour: STATUS_STYLE.low.bg, edge: STATUS_STYLE.low.fg, label: "Low / already on the list" },
-            { colour: STATUS_STYLE.out.bg, edge: STATUS_STYLE.out.fg, label: "Out / needs listing" },
-          ]} />
-        </div>
-      )}
-      {items.length === 0 ? (
-        <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={look(FAMILY.violet)}>
-          <p className="text-sm" style={{ color: B.muted }}>
-            Shelf empty · {isPrime ? "Start with the usual list, then edit." : "The Key Member sets it up."}
-          </p>
-          {isPrime && (
-            <button onClick={fillStarter} disabled={busy}
-              className="mx-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-              style={{ background: B.button }}>
-              {busy ? "Setting up…" : "Start with 16 usual items"}
-            </button>
-          )}
-        </section>
-      ) : (
-        <>
-          <div role="tablist" className="grid grid-cols-4 gap-1.5">
-            {TABS.map((t) => {
-              const n = items.filter(t.match).length;
-              const low = items.filter((i) => t.match(i) && isShort(i)).length;
-              const on = t.key === tab;
-              return (
-                <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)}
-                  className="rounded-xl px-1 py-2 text-center leading-tight"
-                  style={{ background: on ? t.tone.edge : t.tone.bg, border: `2px solid ${t.tone.edge}`, color: on ? "#fff" : t.tone.ink }}>
-                  <span className="block text-xs font-bold">{t.label}</span>
-                  <span className="block text-xs opacity-90">{n}{low ? ` · ${low} low` : ""}</span>
-                </button>
-              );
-            })}
-          </div>
+  // Step 1 for the Key Member: the bills that came home today
+  const billStep = isPrime && (
 
-          <section className="rounded-2xl px-4 py-4 grid gap-2"
-            style={{ background: current.tone.bg, border: `2.5px solid ${current.tone.edge}` }}>
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: current.tone.ink }}>{current.label}</h2>
-              <p className="text-xs" style={{ color: B.muted2 }}>{current.hint}</p>
-            </div>
-            {tabRows.length === 0 ? (
-              <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
-            ) : current.key === "spice" && tabRows.every((i) => i.quantity == null) ? (
-              <div className="grid gap-2 pt-1">
-                <div className="flex flex-wrap gap-2">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
-                {isPrime && (
-                  <label className="text-xs grid gap-1" style={{ color: B.muted2 }}>
-                    Open one to correct it or move it to another tab
-                    <select value={tabRows.some((i) => i.id === openId) ? openId! : ""}
-                      onChange={(e) => { const it = tabRows.find((i) => i.id === e.target.value); if (it) openDetail(it); else setOpenId(null); }}
-                      className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
-                      <option value="">Choose a spice…</option>
-                      {tabRows.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
-                    </select>
-                  </label>
-                )}
-                {(() => { const it = tabRows.find((i) => i.id === openId); return it ? detailPanel(it) : null; })()}
-              </div>
-            ) : (
-              <div className="grid">
-                <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 pb-1 text-xs font-semibold uppercase tracking-wide"
-                  style={{ color: current.tone.ink }}>
-                  <span>Item</span><span className="text-center">Bought 1</span><span className="text-center">Bought 2</span>
-                  <span className="text-center">Current stock</span>
-                </div>
-                {tabRows.filter((i) => i.quantity != null || current.key !== "spice").map((i) => <Fragment key={i.id}>{RegisterRow({ item: i })}</Fragment>)}
-                {current.key === "spice" && tabRows.some((i) => i.quantity == null) && (
-                  <div className="flex flex-wrap gap-2 pt-2">{tabRows.filter((i) => i.quantity == null).map((i) => <SundryChip key={i.id} item={i} />)}</div>
-                )}
-                <p className="text-xs pt-2 m-0" style={{ color: B.muted2 }}>
-                  Current stock is worked out from the dishes cooked and the purchases made. Tap an item to say how much is really left or to record a purchase.
-                  Red = short · it goes on the shopping list by itself.
-                </p>
-              </div>
-            )}
-          </section>
-        </>
-      )}
-
-      {isPrime && (
         <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.violet)}>
           {/* The camera and the file chooser are two different doors, so a
               tap lands where the words promised */}
@@ -1175,7 +1076,8 @@ export default function PantryView({
           {!bill && !billDraft && (
             <>
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Back from the shop?</h2>
+                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>1 · Bills in</h2>
+                <p className="text-sm m-0" style={{ color: B.ink }}>Back from the shop?</p>
                 <p className="text-xs" style={{ color: B.muted2 }}>
                   Photo or PDF of the bill → check it → shelf and spending.
                 </p>
@@ -1217,6 +1119,12 @@ export default function PantryView({
           {billNote && (
             <p className="text-xs rounded-xl px-3 py-2"
               style={{ background: B.goldTint, color: B.goldInk }}>{billNote}</p>
+          )}
+
+          {!bill && !billDraft && !reading && (
+            <Link href="/pantry/spend" className="text-xs font-semibold" style={{ color: B.violetLink }}>
+              💰 See spending by month →
+            </Link>
           )}
 
           {bill && (
@@ -1336,6 +1244,108 @@ export default function PantryView({
             </>
           )}
         </section>
+  );
+
+  const shelfStep = (
+    <div className="grid gap-4">
+      {isPrime && items.some((i) => i.unit) && (
+        <button onClick={() => setChecking(true)}
+          className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left" style={look(FAMILY.violet)}>
+          <span>
+            <span className="block text-sm font-bold" style={{ color: B.violet }}>Stock check</span>
+            <span className="block text-xs" style={{ color: B.muted }}>Count what is on the shelf, once a month. The app's guesses start fresh.</span>
+          </span>
+          <span className="text-lg" style={{ color: B.violet }}>›</span>
+        </button>
+      )}
+      {items.length > 0 && (
+        <div className="grid gap-1.5">
+          <Legend title="Kind" entries={[
+            { colour: KIND_LOOK.staple.bg, edge: KIND_LOOK.staple.edge, label: "Staples" },
+            { colour: KIND_LOOK.fresh.bg, edge: KIND_LOOK.fresh.edge, label: "Fresh" },
+            { colour: KIND_LOOK.sundry.bg, edge: KIND_LOOK.sundry.edge, label: "Spices & sundries" },
+          ]} />
+          <Legend title="Stock" entries={[
+            { colour: STATUS_STYLE.ok.bg, edge: STATUS_STYLE.ok.fg, label: "OK" },
+            { colour: STATUS_STYLE.low.bg, edge: STATUS_STYLE.low.fg, label: "Low / already on the list" },
+            { colour: STATUS_STYLE.out.bg, edge: STATUS_STYLE.out.fg, label: "Out / needs listing" },
+          ]} />
+        </div>
+      )}
+      {items.length === 0 ? (
+        <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={look(FAMILY.violet)}>
+          <p className="text-sm" style={{ color: B.muted }}>
+            Shelf empty · {isPrime ? "Start with the usual list, then edit." : "The Key Member sets it up."}
+          </p>
+          {isPrime && (
+            <button onClick={fillStarter} disabled={busy}
+              className="mx-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: B.button }}>
+              {busy ? "Setting up…" : "Start with 16 usual items"}
+            </button>
+          )}
+        </section>
+      ) : (
+        <>
+          <div role="tablist" className="grid grid-cols-4 gap-1.5">
+            {TABS.map((t) => {
+              const n = items.filter(t.match).length;
+              const low = items.filter((i) => t.match(i) && isShort(i)).length;
+              const on = t.key === tab;
+              return (
+                <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)}
+                  className="rounded-xl px-1 py-2 text-center leading-tight"
+                  style={{ background: on ? t.tone.edge : t.tone.bg, border: `2px solid ${t.tone.edge}`, color: on ? "#fff" : t.tone.ink }}>
+                  <span className="block text-xs font-bold">{t.label}</span>
+                  <span className="block text-xs opacity-90">{n}{low ? ` · ${low} low` : ""}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <section className="rounded-2xl px-4 py-4 grid gap-2"
+            style={{ background: current.tone.bg, border: `2.5px solid ${current.tone.edge}` }}>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: current.tone.ink }}>{current.label}</h2>
+              <p className="text-xs" style={{ color: B.muted2 }}>{current.hint}</p>
+            </div>
+            {tabRows.length === 0 ? (
+              <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
+            ) : current.key === "spice" && tabRows.every((i) => i.quantity == null) ? (
+              <div className="grid gap-2 pt-1">
+                <div className="flex flex-wrap gap-2">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
+                {isPrime && (
+                  <label className="text-xs grid gap-1" style={{ color: B.muted2 }}>
+                    Open one to correct it or move it to another tab
+                    <select value={tabRows.some((i) => i.id === openId) ? openId! : ""}
+                      onChange={(e) => { const it = tabRows.find((i) => i.id === e.target.value); if (it) openDetail(it); else setOpenId(null); }}
+                      className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
+                      <option value="">Choose a spice…</option>
+                      {tabRows.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    </select>
+                  </label>
+                )}
+                {(() => { const it = tabRows.find((i) => i.id === openId); return it ? detailPanel(it) : null; })()}
+              </div>
+            ) : (
+              <div className="grid">
+                <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 pb-1 text-xs font-semibold uppercase tracking-wide"
+                  style={{ color: current.tone.ink }}>
+                  <span>Item</span><span className="text-center">Bought 1</span><span className="text-center">Bought 2</span>
+                  <span className="text-center">Current stock</span>
+                </div>
+                {tabRows.filter((i) => i.quantity != null || current.key !== "spice").map((i) => <Fragment key={i.id}>{RegisterRow({ item: i })}</Fragment>)}
+                {current.key === "spice" && tabRows.some((i) => i.quantity == null) && (
+                  <div className="flex flex-wrap gap-2 pt-2">{tabRows.filter((i) => i.quantity == null).map((i) => <SundryChip key={i.id} item={i} />)}</div>
+                )}
+                <p className="text-xs pt-2 m-0" style={{ color: B.muted2 }}>
+                  Current stock is worked out from the dishes cooked and the purchases made. Tap an item to say how much is really left or to record a purchase.
+                  Red = short · it goes on the shopping list by itself.
+                </p>
+              </div>
+            )}
+          </section>
+        </>
       )}
 
       {isPrime && (
@@ -1691,13 +1701,15 @@ export default function PantryView({
   if (step === null) {
     return (
       <div className="grid gap-3">
+        {billStep}
+        {newPopup}
         {STEPS.map((s) => (
           <div key={s.key} className="grid gap-1.5">
           <button onClick={() => setStep(s.key)}
             className="w-full text-left rounded-2xl px-4 py-4 flex items-center gap-3"
             style={look(s.tone)} aria-label={`${s.title}: ${s.ask}`}>
             <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white"
-              style={{ background: s.tone.edge }}>{s.n}</span>
+              style={{ background: s.tone.edge }}>{s.n + off}</span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold uppercase tracking-wider" style={{ color: s.tone.ink }}>{s.title}</span>
               <span className="block text-sm" style={{ color: B.ink }}>{s.ask}</span>
@@ -1730,7 +1742,7 @@ export default function PantryView({
           <span className="text-xs font-semibold" style={{ color: B.violetLink }}>All steps</span>
         </button>
         <p className="flex-1 text-right text-sm font-bold uppercase tracking-wider" style={{ color: cur.tone.ink }}>
-          {cur.n} · {cur.title}
+          {cur.n + off} · {cur.title}
         </p>
       </div>
 
@@ -1742,7 +1754,7 @@ export default function PantryView({
           className="w-full rounded-2xl px-4 py-3 flex items-center gap-3 text-left" style={look(next.tone)}>
           <span className="flex-1 min-w-0">
             <span className="block text-xs" style={{ color: B.muted2 }}>Next</span>
-            <span className="block text-sm font-bold" style={{ color: next.tone.ink }}>{next.n} · {next.title} — {next.ask}</span>
+            <span className="block text-sm font-bold" style={{ color: next.tone.ink }}>{next.n + off} · {next.title} — {next.ask}</span>
           </span>
           <Arrow dir="right" tone={next.tone} />
         </button>

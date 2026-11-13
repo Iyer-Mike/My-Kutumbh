@@ -13,6 +13,7 @@ const CATEGORY_KEYS = CATEGORIES.map((c) => c.key) as [string, ...string[]];
 const UNIT_KEYS = UNITS as unknown as [string, ...string[]];
 
 const Bill = z.object({
+  kind: z.enum(["grocery", "eating_out"]),
   shop: z.string().nullable(),
   bill_date: z.string().nullable(),
   total: z.number().nullable(),
@@ -26,7 +27,11 @@ const Bill = z.object({
   })),
 });
 
-const SYSTEM = `You read a grocery bill from an Indian shop and list what was bought, for a family's kitchen shelf.
+const SYSTEM = `You read a bill from an Indian shop and list what was bought, for a family's kitchen shelf and spending record.
+
+First decide kind. "grocery" is a shop bill for things taken home: groceries, vegetables, milk, household goods. "eating_out" is a bill for food eaten or ordered ready to eat: a restaurant, café, hotel, canteen, sweet shop counter, or a delivery app such as Swiggy or Zomato.
+
+For an eating_out bill: list each dish or drink as a line with its plain name, quantity as the number ordered with unit null, category other, is_food false, and the line's price. If taxes, service charge, packing or delivery are printed as amounts, add one line named "Taxes and charges" with their printed sum, is_food false. Never invent an amount.
 
 Bills are printed in shorthand: expand it into the plain name a family uses.
 "TOOR DAL 1KG" → Toor dal, 1 kg. "AMUL TAAZA 500ML" → Milk, 500 ml. "SF REFIND SUNFL OIL 1L" → Sunflower oil, 1 l. "HALDI PWD 100G" → Turmeric (haldi), 100 g. Drop brand names unless the brand is how people say it (Maggi, Amul butter).
@@ -116,12 +121,12 @@ export async function POST(req: NextRequest) {
       unit: i.unit,
       category: i.category,
       price: money(i.price),
-      is_food: i.is_food,
+      is_food: parsed.kind === "eating_out" ? false : i.is_food,   // a meal eaten out never goes on the shelf
     });
     // Every line, for the spending record; the reader's output is only a first draft the Key Member checks
     const lines = parsed.items.filter((i) => i.name.trim()).slice(0, 40).map(clean);
     const items = parsed.items
-      .filter((i) => i.is_food && i.name.trim())
+      .filter((i) => i.is_food && parsed.kind !== "eating_out" && i.name.trim())
       .slice(0, 40)
       .map((i) => ({
         name: i.name.trim().slice(0, 60),
@@ -130,7 +135,7 @@ export async function POST(req: NextRequest) {
         category: i.category,
       }));
 
-    return NextResponse.json({ shop: parsed.shop, bill_date: parsed.bill_date, total: money(parsed.total), items, lines });
+    return NextResponse.json({ kind: parsed.kind, shop: parsed.shop, bill_date: parsed.bill_date, total: money(parsed.total), items, lines });
   } catch (error) {
     const { message, status } = aiErrorMessage(error, "The bill reader");
     await logFault(supabase, { where: "read-bill", error, status, kutumbhId, userId: user.id });

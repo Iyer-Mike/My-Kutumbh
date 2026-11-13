@@ -2,7 +2,7 @@
  * From a checked bill to what gets recorded. One function, so the shelf and
  * the spending record are made from exactly the same approved lines.
  */
-import { HOUSEHOLD } from "./spend.ts";
+import { EATING_OUT, HOUSEHOLD } from "./spend.ts";
 
 export type DraftLineIn = {
   name: string; quantity: string; unit: string; category: string; price: string; is_food: boolean;
@@ -16,7 +16,7 @@ export function parseNumber(s: string): number | null {
   return s.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-/** Only lines with a name survive; household lines are filed as household and never go to the shelf. */
+/** Only lines with a name survive. Household and eating-out lines are spending only and never go to the shelf. */
 export function approveLines(lines: DraftLineIn[]): ApprovedLine[] {
   return lines
     .filter((l) => l.name.trim())
@@ -24,7 +24,7 @@ export function approveLines(lines: DraftLineIn[]): ApprovedLine[] {
       name: l.name.trim().slice(0, 60),
       quantity: parseNumber(l.quantity),
       unit: l.unit || null,
-      category: l.is_food ? l.category : HOUSEHOLD,
+      category: l.is_food ? l.category : l.category === EATING_OUT ? EATING_OUT : HOUSEHOLD,
       price: parseNumber(l.price),
       is_food: l.is_food,
     }));

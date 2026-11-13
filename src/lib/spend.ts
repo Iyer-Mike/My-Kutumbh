@@ -66,3 +66,7 @@ export function monthReport(bills: SpendBill[], lines: SpendLine[], month: strin
 
 /** Spending categories: the shelf's own, plus household things that are not food. */
 export const HOUSEHOLD = "household";
+/** A meal eaten out: a restaurant, café or delivery bill. Counted as spending, never put on the shelf. */
+export const EATING_OUT = "eating_out";
+
+export const SPEND_LABEL: Record<string, string> = { [HOUSEHOLD]: "Household (not food)", [EATING_OUT]: "Eating out" };

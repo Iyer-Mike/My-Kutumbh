@@ -2,7 +2,9 @@
 
 import { markShoppingSeen, refreshAlerts } from "@/lib/alerts-refresh";
 import Legend from "@/components/Legend";
-import BillCheck, { parseDraftNumber, type BillDraft } from "@/components/BillCheck";
+import BillCheck, { type BillDraft } from "@/components/BillCheck";
+import { approveLines, shelfLines } from "@/lib/bill-flow";
+import { EATING_OUT } from "@/lib/spend";
 import { writeSeen } from "@/lib/seen";
 import type { Attention } from "@/lib/family-alerts";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -612,6 +614,7 @@ export default function PantryView({
       if (!res.ok) { setBillNote(data.error ?? "Couldn't read that bill."); return; }
 
       type Read = { name: string; quantity: number | null; unit: Unit | null; category: string; price?: number | null; is_food?: boolean };
+      const eatingOut = data.kind === "eating_out";
       const read: Read[] = data.lines ?? data.items ?? [];
       if (read.length === 0) {
         setBillNote("No kitchen items found · Retake it straighter and brighter.");
@@ -623,8 +626,8 @@ export default function PantryView({
         total: data.total != null ? String(data.total) : "",
         lines: read.map((i, n) => ({
           key: `r${n}`, name: i.name, quantity: i.quantity != null ? String(i.quantity) : "", unit: i.unit ?? "",
-          category: i.is_food === false ? "household" : i.category, price: i.price != null ? String(i.price) : "",
-          is_food: i.is_food !== false,
+          category: eatingOut ? EATING_OUT : i.is_food === false ? "household" : i.category, price: i.price != null ? String(i.price) : "",
+          is_food: !eatingOut && i.is_food !== false,
         })),
       });
     } catch (err) {
@@ -639,36 +642,43 @@ export default function PantryView({
   /** The checked bill moves on: food lines to the shelf review, everything to the spending record. */
   function confirmDraft() {
     if (!billDraft) return;
-    const all = billDraft.lines
-      .filter((l) => l.name.trim())
-      .map((l) => ({
-        name: l.name.trim().slice(0, 60), quantity: parseDraftNumber(l.quantity), unit: (l.unit || null) as Unit | null,
-        category: l.category, price: parseDraftNumber(l.price), is_food: l.is_food,
-      }));
-    const lines: BillLine[] = all.filter((i) => i.is_food).map((i) => {
+    // One approved list feeds both the shelf and the spending record
+    const all = approveLines(billDraft.lines).map((l) => ({ ...l, unit: l.unit as Unit | null }));
+    const meta = { date: billDraft.date || today, total: (((v: string) => { const n = parseFloat(v); return v.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : null; }))(billDraft.total), lines: all };
+    const shop = billDraft.shop.trim() || null;
+    const lines: BillLine[] = shelfLines(all).map((i) => {
       const lib = matchLibrary(i.name);
       const match = (lib && items.find((s) => s.library_key === lib.key)) || findMatch(i.name, items);
       const libKey = !match && lib ? lib.key : null;
       const category = libKey ? shelfPlace(lib!.group).category : i.category;
       // On the shelf or in the library: recorded as read. Anything else waits to be confirmed.
-      return { name: i.name, quantity: i.quantity, unit: i.unit, category, take: !!(match || libKey), matchId: match?.id ?? null, libKey };
+      return { name: i.name, quantity: i.quantity, unit: i.unit as Unit | null, category, take: !!(match || libKey), matchId: match?.id ?? null, libKey };
     });
-    setBillMeta({ date: billDraft.date || today, total: parseDraftNumber(billDraft.total), lines: all });
-    setBill({ shop: billDraft.shop.trim() || null, lines });
     setBillDraft(null);
+    if (lines.length === 0) {
+      // Nothing for the shelf (a meal eaten out, household goods): record the spending and finish
+      setBusy(true);
+      void saveSpend(shop, meta).then((err) => {
+        setBillNote(err ? `The spending record couldn't be saved (${err}).` : "Saved to your spending. Nothing went on the shelf.");
+        setBusy(false);
+      });
+      return;
+    }
+    setBillMeta(meta);
+    setBill({ shop, lines });
     if (lines.some((l) => !l.matchId && !l.libKey)) setAskNew(true);
   }
 
   /** Keep the approved bill as a spending record. Never blocks the shelf: a failure is reported, not fatal. */
-  async function saveSpend(shop: string | null): Promise<string | null> {
-    if (!billMeta || billMeta.lines.length === 0) return null;
+  async function saveSpend(shop: string | null, meta: NonNullable<typeof billMeta> | null = billMeta): Promise<string | null> {
+    if (!meta || meta.lines.length === 0) return null;
     const { data: b, error } = await supabase.from("bills")
-      .insert({ kutumbh_id: kutumbhId, bill_date: billMeta.date, shop, total: billMeta.total, created_by: userId })
+      .insert({ kutumbh_id: kutumbhId, bill_date: meta.date, shop, total: meta.total, created_by: userId })
       .select("id").single();
     if (error || !b) return error?.message ?? "unknown";
-    const { error: e2 } = await supabase.from("bill_lines").insert(billMeta.lines.map((l) => ({
+    const { error: e2 } = await supabase.from("bill_lines").insert(meta.lines.map((l) => ({
       bill_id: b.id, kutumbh_id: kutumbhId, name: l.name, quantity: l.quantity, unit: l.unit,
-      category: l.is_food ? l.category : "household", price: l.price, is_food: l.is_food,
+      category: l.category, price: l.price, is_food: l.is_food,
     })));
     if (e2) { await supabase.from("bills").delete().eq("id", b.id); return e2.message; }
     return null;

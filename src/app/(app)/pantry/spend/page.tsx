@@ -7,10 +7,10 @@ import { BRAND as B, FAMILY, look } from "@/lib/brand";
 import { familyOf } from "@/lib/family";
 import { todayLocal, longDateFor } from "@/lib/dates";
 import { CATEGORIES } from "@/lib/pantry";
-import { HOUSEHOLD, addMonths, billAmount, daysInMonth, monthOf, monthReport, type SpendBill, type SpendLine } from "@/lib/spend";
+import { SPEND_LABEL, addMonths, billAmount, daysInMonth, monthOf, monthReport, type SpendBill, type SpendLine } from "@/lib/spend";
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
-const LABEL = new Map<string, string>([...CATEGORIES.map((c) => [c.key, c.label] as const), [HOUSEHOLD, "Household (not food)"]]);
+const LABEL = new Map<string, string>([...CATEGORIES.map((c) => [c.key, c.label] as const), ...Object.entries(SPEND_LABEL)]);
 const monthName = (m: string) => new Date(`${m}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
 
 export default async function SpendPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
@@ -124,7 +124,7 @@ export default async function SpendPage({ searchParams }: { searchParams: Promis
                     <ul className="m-0 mt-2 p-0 list-none grid gap-0.5">
                       {ls.map((l, i) => (
                         <li key={i} className="text-xs flex justify-between gap-2" style={{ color: B.muted }}>
-                          <span>{l.name}{!l.is_food ? " (household)" : ""}</span><span className="tabular-nums">{l.price != null ? inr(l.price) : "no price"}</span>
+                          <span>{l.name}{!l.is_food ? ` (${(LABEL.get(l.category) ?? "spending only").toLowerCase()})` : ""}</span><span className="tabular-nums">{l.price != null ? inr(l.price) : "no price"}</span>
                         </li>
                       ))}
                     </ul>

@@ -2,7 +2,7 @@
 
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
 import { CATEGORIES, UNITS, type Unit } from "@/lib/pantry";
-import { HOUSEHOLD, billCheck } from "@/lib/spend";
+import { EATING_OUT, HOUSEHOLD, billCheck } from "@/lib/spend";
 import Legend from "@/components/Legend";
 
 /** One line of a bill while it is being checked: text so it can be edited freely. */
@@ -83,12 +83,13 @@ export default function BillCheck({ draft, onChange, onContinue, onCancel }: {
               <input type="number" inputMode="decimal" min="0" step="any" value={l.price}
                 onChange={(e) => set(l.key, { price: e.target.value })} aria-label="Price" placeholder="Price"
                 className="w-20 rounded-lg px-2 py-1.5 text-sm" style={fieldLook(FAMILY.blue)} />
-              <select value={l.is_food ? l.category : HOUSEHOLD} aria-label="Kind"
-                onChange={(e) => e.target.value === HOUSEHOLD
-                  ? set(l.key, { is_food: false, category: HOUSEHOLD })
+              <select value={l.is_food ? l.category : l.category === EATING_OUT ? EATING_OUT : HOUSEHOLD} aria-label="Kind"
+                onChange={(e) => e.target.value === HOUSEHOLD || e.target.value === EATING_OUT
+                  ? set(l.key, { is_food: false, category: e.target.value })
                   : set(l.key, { is_food: true, category: e.target.value })}
                 className="rounded-lg px-1.5 py-1.5 text-xs min-w-0" style={fieldLook(FAMILY.blue)}>
                 {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                <option value={EATING_OUT}>Eating out (not for the shelf)</option>
                 <option value={HOUSEHOLD}>Household (not food)</option>
               </select>
             </div>
@@ -98,7 +99,7 @@ export default function BillCheck({ draft, onChange, onContinue, onCancel }: {
           className="text-sm font-semibold text-left" style={{ color: B.violetLink }}>＋ Add a line the reader missed</button>
         <Legend title="Lines" entries={[
           { colour: FAMILY.blue.bg, edge: FAMILY.blue.edge, label: "Food: can go on the shelf" },
-          { colour: FAMILY.amber.bg, edge: FAMILY.amber.edge, label: "Household: spending only" },
+          { colour: FAMILY.amber.bg, edge: FAMILY.amber.edge, label: "Eating out or household: spending only" },
         ]} />
       </div>
 

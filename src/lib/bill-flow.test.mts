@@ -25,6 +25,15 @@ describe("from a checked bill to what is recorded", () => {
     assert.deepEqual(shelfLines(a).map((l) => l.name), ["Toor dal", "Milk"]);
     assert.equal(a[1].category, "household");
   });
+  test("a meal eaten out is spending only", () => {
+    const a = approveLines([
+      { name: "Masala dosa", quantity: "2", unit: "", category: "eating_out", price: "160", is_food: false },
+      { name: "Taxes and charges", quantity: "", unit: "", category: "eating_out", price: "8", is_food: false },
+    ]);
+    assert.deepEqual(a.map((l) => l.category), ["eating_out", "eating_out"]);
+    assert.equal(shelfLines(a).length, 0);
+    assert.equal(billCheck(a.map((l) => l.price), 168).ok, true);
+  });
   test("the spending record and the shelf list come from the same lines", () => {
     const a = approveLines(draft);
     const onShelf = new Set(shelfLines(a).map((l) => l.name));

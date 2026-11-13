@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { allergyHit, cleanProposal, eligibleDishes, statusOf, weeklyAverages, windowDates, type SuggestDish } from "./menu-suggest.ts";
+import { allergyHit, cleanProposal, eligibleDishes, shelfHints, statusOf, strictestDiet, weeklyAverages, windowDates, type SuggestDish } from "./menu-suggest.ts";
 
 const dish = (o: Partial<SuggestDish> & { id: string }): SuggestDish => ({
   name: o.id, category: "main", diet: "veg", meal_hint: null, calories: 100, protein_g: 5,
@@ -10,13 +10,31 @@ const dish = (o: Partial<SuggestDish> & { id: string }): SuggestDish => ({
 describe("menu suggestions", () => {
   test("a vegetarian Key Member's menu has no egg or meat dishes", () => {
     const list = [dish({ id: "a" }), dish({ id: "b", diet: "egg" }), dish({ id: "c", diet: "nonveg" }), dish({ id: "d", diet: "vegan" })];
-    assert.deepEqual(eligibleDishes(list, "vegetarian", []).map((d) => d.id), ["a", "d"]);
+    assert.deepEqual(eligibleDishes(list, ["vegetarian"], []).map((d) => d.id), ["a", "d"]);
   });
   test("any member's allergy removes the dish", () => {
     assert.equal(allergyHit({ name: "Peanut chutney", ingredients: null }, ["Peanuts"]), true);
     assert.equal(allergyHit({ name: "Curd rice", ingredients: "curd, rice" }, ["peanuts"]), false);
     const list = [dish({ id: "a", ingredients: "cashew, rice" }), dish({ id: "b" })];
-    assert.deepEqual(eligibleDishes(list, "vegetarian", ["cashew"]).map((d) => d.id), ["b"]);
+    assert.deepEqual(eligibleDishes(list, ["vegetarian"], ["cashew"]).map((d) => d.id), ["b"]);
+  });
+  test("the strictest diet in the family decides", () => {
+    const list = [dish({ id: "a" }), dish({ id: "b", diet: "egg" }), dish({ id: "c", diet: "nonveg" }), dish({ id: "d", diet: "vegan" })];
+    assert.deepEqual(eligibleDishes(list, ["non-vegetarian", "vegetarian"], []).map((d) => d.id), ["a", "d"]);
+    assert.deepEqual(eligibleDishes(list, ["vegetarian", "vegan"], []).map((d) => d.id), ["d"]);
+    assert.equal(strictestDiet(["non-vegetarian", "vegan", null]), "vegan");
+    assert.equal(strictestDiet([null]), null);
+  });
+  test("shelf hints: in, use soon, low", () => {
+    const h = shelfHints([
+      { name: "Rice", kind: "staple", status: "ok", bought_on: null, use_within_days: null },
+      { name: "Spinach", kind: "fresh", status: "ok", bought_on: "2026-11-11", use_within_days: 5 },   // 3 days left
+      { name: "Tomato", kind: "fresh", status: "ok", bought_on: "2026-11-09", use_within_days: 5 },    // 1 day left
+      { name: "Curd", kind: "fresh", status: "ok", bought_on: "2026-11-01", use_within_days: 3 },      // long gone
+      { name: "Toor dal", kind: "staple", status: "low", bought_on: null, use_within_days: null },
+    ], "2026-11-13");
+    assert.deepEqual(h.useSoon, ["Tomato"]); assert.deepEqual(h.low, ["Toor dal"]);
+    assert.ok(h.have.includes("Rice") && h.have.includes("Spinach"));
   });
   test("seven days from the start", () => {
     assert.deepEqual(windowDates("2026-11-12", 3), ["2026-11-12", "2026-11-13", "2026-11-14"]);

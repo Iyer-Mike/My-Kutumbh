@@ -13,6 +13,7 @@ type Slot = { date: string; slot: string; why: string; dishes: { id: string; nam
 type Average = { id: string; name: string; kcal: number; kcalPct: number; protein: number; proteinPct: number; status: "good" | "watch" | "off" };
 type Result = {
   summary: string; window: { from: string; to: string }; keptCount: number; needs: string[]; slots: Slot[]; averages: Average[];
+  diet: string | null; shelfUsed: boolean; useSoon: string[];
 };
 
 const STEPS = ["Choose", "Review", "Publish"] as const;
@@ -102,7 +103,7 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
       {!res && !done && (
         <div className="grid gap-2">
           <p className="m-0 text-sm" style={{ color: "#241C33" }}>
-            The planner chooses dishes for the next seven days around your profile. Every member&apos;s allergies are kept out. Where a member has a medical report, their dietary needs are taken into account too. Meals already planned are left alone.
+            The planner chooses dishes for the next seven days. It follows the strictest diet in the family, keeps every member&apos;s allergies out, and uses what is on your shelf, cooking fresh things that are going off first. Where a member has a medical report, their dietary needs are taken into account too. Meals already planned are left alone.
           </p>
           <button onClick={ask} disabled={busy} className="rounded-xl px-4 py-2.5 text-sm font-bold text-white min-h-11 disabled:opacity-60" style={{ background: "#6B46B8" }}>
             {busy ? "Planning the week…" : "Plan the week"}
@@ -113,6 +114,9 @@ export default function SuggestMenu({ kutumbhId, userId, timeZone }: { kutumbhId
       {res && !done && (
         <>
           <p className="m-0 text-sm" style={{ color: "#241C33" }}>{res.summary}</p>
+          <p className="m-0 text-xs" style={{ color: "#6A6180" }}>
+            Diet followed: {res.diet ?? "not set"}. {res.shelfUsed ? (res.useSoon.length ? `Use soon from the shelf: ${res.useSoon.join(", ")}.` : "Shelf stock considered.") : "Shelf not set up, so it was not used."}
+          </p>
           {res.needs.length > 0 && (
             <p className="m-0 text-xs rounded-lg px-3 py-2" style={{ background: FAMILY.gold.bg, border: `1.5px solid ${FAMILY.gold.edge}`, color: FAMILY.gold.ink }}>
               Also planned around dietary needs on file: {res.needs.join(" · ")}. Medical readings are not shown here.

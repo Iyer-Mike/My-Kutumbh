@@ -10,7 +10,7 @@ export type DraftLine = {
   key: string; name: string; quantity: string; unit: Unit | "";
   category: string; price: string; is_food: boolean;
 };
-export type BillDraft = { shop: string; date: string; total: string; lines: DraftLine[] };
+export type BillDraft = { shop: string; date: string; total: string; lines: DraftLine[]; ateBy: string[] };
 
 const num = (s: string): number | null => {
   const n = parseFloat(s);
@@ -24,9 +24,10 @@ const inr = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigi
  * The reader's first draft, in the Key Member's hands. Every name, amount and
  * price can be corrected; only what is approved here is recorded.
  */
-export default function BillCheck({ draft, onChange, onContinue, onCancel }: {
-  draft: BillDraft; onChange: (d: BillDraft) => void; onContinue: () => void; onCancel: () => void;
+export default function BillCheck({ draft, members, onChange, onContinue, onCancel }: {
+  draft: BillDraft; members: { id: string; name: string }[]; onChange: (d: BillDraft) => void; onContinue: () => void; onCancel: () => void;
 }) {
+  const eatingOut = draft.lines.some((l) => l.category === EATING_OUT);
   const set = (key: string, c: Partial<DraftLine>) =>
     onChange({ ...draft, lines: draft.lines.map((l) => (l.key === key ? { ...l, ...c } : l)) });
   const chk = billCheck(draft.lines.map((l) => num(l.price)), num(draft.total));
@@ -57,6 +58,25 @@ export default function BillCheck({ draft, onChange, onContinue, onCancel }: {
             className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.violet)} />
         </label>
       </div>
+
+      {eatingOut && members.length > 0 && (
+        <div className="grid gap-1.5">
+          <p className="m-0 text-xs font-medium" style={{ color: B.muted }}>Who ate together? (optional)</p>
+          <div className="flex flex-wrap gap-1.5">
+            {members.map((m) => {
+              const on = draft.ateBy.includes(m.id);
+              return (
+                <button key={m.id} type="button" aria-pressed={on}
+                  onClick={() => onChange({ ...draft, ateBy: on ? draft.ateBy.filter((x) => x !== m.id) : [...draft.ateBy, m.id] })}
+                  className="px-3 py-1.5 rounded-full text-sm font-semibold min-h-9"
+                  style={on ? { background: B.violet, color: "#fff", border: `2px solid ${B.violet}` } : { background: "#fff", color: B.violet, border: `2px solid ${FAMILY.violet.edge}` }}>
+                  {on ? "✓ " : ""}{m.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-2">
         {draft.lines.map((l) => (

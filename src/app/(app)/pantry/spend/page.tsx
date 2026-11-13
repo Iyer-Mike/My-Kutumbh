@@ -27,11 +27,17 @@ export default async function SpendPage({ searchParams }: { searchParams: Promis
   const from = addMonths(month, -1);   // last month too, for the comparison
 
   const [{ data: billRows }, { count: people }] = await Promise.all([
-    supabase.from("bills").select("id, bill_date, shop, total").eq("kutumbh_id", kutumbhId)
+    supabase.from("bills").select("id, bill_date, shop, total, eaten_by").eq("kutumbh_id", kutumbhId)
       .gte("bill_date", `${from}-01`).lt("bill_date", `${addMonths(month, 1)}-01`).order("bill_date", { ascending: false }),
     supabase.from("kutumbh_members").select("user_id", { count: "exact", head: true }).eq("kutumbh_id", kutumbhId),
   ]);
   const bills = (billRows ?? []).map((b) => ({ ...b, total: b.total != null ? Number(b.total) : null })) as SpendBill[];
+  const eaten = new Map((billRows ?? []).map((b) => [b.id as string, (b.eaten_by ?? []) as string[]]));
+  const eaterIds = [...new Set([...eaten.values()].flat())];
+  const { data: eaterRows } = eaterIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", eaterIds)
+    : { data: [] as { id: string; full_name: string | null }[] };
+  const eaterName = new Map((eaterRows ?? []).map((p) => [p.id, (p.full_name ?? "Member").split(" ")[0]]));
   const ids = bills.map((b) => b.id);
   const { data: lineRows } = ids.length
     ? await supabase.from("bill_lines").select("bill_id, name, quantity, unit, category, price, is_food").in("bill_id", ids)
@@ -121,6 +127,9 @@ export default async function SpendPage({ searchParams }: { searchParams: Promis
                       <span>{longDateFor(b.bill_date)} · {b.shop ?? "Shop not named"}</span>
                       <span className="tabular-nums font-semibold">{inr(billAmount(b, lines))}</span>
                     </summary>
+                    {(eaten.get(b.id) ?? []).length > 0 && (
+                      <p className="m-0 mt-2 text-xs font-semibold" style={{ color: B.violet }}>Ate together: {(eaten.get(b.id) ?? []).map((id) => eaterName.get(id) ?? "Member").join(", ")}</p>
+                    )}
                     <ul className="m-0 mt-2 p-0 list-none grid gap-0.5">
                       {ls.map((l, i) => (
                         <li key={i} className="text-xs flex justify-between gap-2" style={{ color: B.muted }}>

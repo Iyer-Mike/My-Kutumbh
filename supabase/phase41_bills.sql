@@ -41,3 +41,6 @@ CREATE POLICY bill_lines_prime ON public.bill_lines FOR ALL TO authenticated
   WITH CHECK (kutumbh_id IN (SELECT public.my_prime_kutumbh_ids()));
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.bills, public.bill_lines TO authenticated;
+
+-- Eating-out bills: which family members ate together (optional)
+ALTER TABLE public.bills ADD COLUMN IF NOT EXISTS eaten_by uuid[] NOT NULL DEFAULT '{}'::uuid[];

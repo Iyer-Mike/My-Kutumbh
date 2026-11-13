@@ -164,7 +164,7 @@ export default function PantryView({
   // The reader's first draft, being checked and corrected before anything is recorded
   const [billDraft, setBillDraft] = useState<BillDraft | null>(null);
   // The approved bill, kept for the spending record once the shelf step is done
-  const [billMeta, setBillMeta] = useState<{ date: string; total: number | null; lines: { name: string; quantity: number | null; unit: Unit | null; category: string; price: number | null; is_food: boolean }[] } | null>(null);
+  const [billMeta, setBillMeta] = useState<{ date: string; total: number | null; ateBy: string[]; lines: { name: string; quantity: number | null; unit: Unit | null; category: string; price: number | null; is_food: boolean }[] } | null>(null);
   const [askNew, setAskNew] = useState(false);          // the pop-up for bill items the library doesn't know
 
   // What is probably on the shelf now: last known stock less what the menu cooked since,
@@ -624,6 +624,7 @@ export default function PantryView({
         shop: data.shop ?? "",
         date: /^\d{4}-\d{2}-\d{2}$/.test(data.bill_date ?? "") ? data.bill_date : today,
         total: data.total != null ? String(data.total) : "",
+        ateBy: [],
         lines: read.map((i, n) => ({
           key: `r${n}`, name: i.name, quantity: i.quantity != null ? String(i.quantity) : "", unit: i.unit ?? "",
           category: eatingOut ? EATING_OUT : i.is_food === false ? "household" : i.category, price: i.price != null ? String(i.price) : "",
@@ -644,7 +645,7 @@ export default function PantryView({
     if (!billDraft) return;
     // One approved list feeds both the shelf and the spending record
     const all = approveLines(billDraft.lines).map((l) => ({ ...l, unit: l.unit as Unit | null }));
-    const meta = { date: billDraft.date || today, total: (((v: string) => { const n = parseFloat(v); return v.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : null; }))(billDraft.total), lines: all };
+    const meta = { ateBy: all.some((l) => l.category === EATING_OUT) ? billDraft.ateBy : [], date: billDraft.date || today, total: (((v: string) => { const n = parseFloat(v); return v.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : null; }))(billDraft.total), lines: all };
     const shop = billDraft.shop.trim() || null;
     const lines: BillLine[] = shelfLines(all).map((i) => {
       const lib = matchLibrary(i.name);
@@ -673,7 +674,7 @@ export default function PantryView({
   async function saveSpend(shop: string | null, meta: NonNullable<typeof billMeta> | null = billMeta): Promise<string | null> {
     if (!meta || meta.lines.length === 0) return null;
     const { data: b, error } = await supabase.from("bills")
-      .insert({ kutumbh_id: kutumbhId, bill_date: meta.date, shop, total: meta.total, created_by: userId })
+      .insert({ kutumbh_id: kutumbhId, bill_date: meta.date, shop, total: meta.total, created_by: userId, eaten_by: meta.ateBy })
       .select("id").single();
     if (error || !b) return error?.message ?? "unknown";
     const { error: e2 } = await supabase.from("bill_lines").insert(meta.lines.map((l) => ({
@@ -1081,7 +1082,7 @@ export default function PantryView({
           <input ref={billRef} type="file" accept="image/*,application/pdf"
             onChange={handleBillPhoto} className="hidden" />
 
-          {billDraft && <BillCheck draft={billDraft} onChange={setBillDraft} onContinue={confirmDraft} onCancel={() => setBillDraft(null)} />}
+          {billDraft && <BillCheck draft={billDraft} members={Object.entries(memberNames).map(([id, name]) => ({ id, name }))} onChange={setBillDraft} onContinue={confirmDraft} onCancel={() => setBillDraft(null)} />}
 
           {!bill && !billDraft && (
             <>

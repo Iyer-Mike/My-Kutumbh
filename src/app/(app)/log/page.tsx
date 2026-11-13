@@ -2,7 +2,7 @@
 
 import QuickLog from "@/components/QuickLog";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import PageNav from "@/components/PageNav";
@@ -127,18 +127,6 @@ export default function LogPage() {
   const [editQty, setEditQty]     = useState("1");
   const [editUnit, setEditUnit]   = useState("serving");
 
-  // Photo capture + AI identification (outside food)
-  const [photoPreview, setPhotoPreview]   = useState<string | null>(null);
-  const [analyzing, setAnalyzing]         = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<string[] | null>(null);
-  const [aiChecked, setAiChecked]         = useState<Set<string>>(new Set());
-  const [aiEdits, setAiEdits]             = useState<Record<string, string>>({});
-  const [aiQtys, setAiQtys]               = useState<Record<string, number>>({});
-  const [aiUnits, setAiUnits]             = useState<Record<string, string>>({});
-  const [aiCals, setAiCals]               = useState<Record<string, string>>({});
-  const cameraRef  = useRef<HTMLInputElement>(null);
-  const galleryRef = useRef<HTMLInputElement>(null);
-
   const [openSlots, setOpenSlots] = useState<Set<Slot>>(new Set());
   function toggleSlotOpen(slot: Slot) {
     setOpenSlots(prev => {
@@ -146,97 +134,6 @@ export default function LogPage() {
       if (next.has(slot)) next.delete(slot); else next.add(slot);
       return next;
     });
-  }
-
-  // ── Photo / AI ────────────────────────────────────────────────
-  async function analyzePhoto(file: File) {
-    setAnalyzing(true);
-    setAiSuggestions(null);
-    try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const res = await fetch("/api/analyze-food", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mediaType: file.type || "image/jpeg" }),
-      });
-      if (res.ok) {
-        const { items } = await res.json();
-        if (Array.isArray(items) && items.length > 0) {
-          const edits: Record<string, string> = {};
-          const qs:    Record<string, number> = {};
-          const units: Record<string, string> = {};
-          const cals:  Record<string, string> = {};
-          const names: string[] = items.map((it: unknown) => {
-            if (typeof it === "string") {
-              edits[it] = it; qs[it] = 1; units[it] = "serving"; cals[it] = "";
-              return it;
-            }
-            const obj = it as { name?: unknown; quantity?: unknown; unit?: unknown; calories?: unknown };
-            const name = typeof obj.name === "string" && obj.name.trim() ? obj.name.trim() : "Unknown food";
-            edits[name] = name;
-            qs[name]    = typeof obj.quantity === "number" ? obj.quantity : 1;
-            units[name] = typeof obj.unit     === "string" ? obj.unit     : "serving";
-            cals[name]  = typeof obj.calories === "number" ? String(Math.round(obj.calories)) : "";
-            return name;
-          });
-          setAiSuggestions(names);
-          setAiChecked(new Set(names));
-          setAiEdits(edits); setAiQtys(qs); setAiUnits(units); setAiCals(cals);
-        }
-      }
-    } catch {
-      // silent — user can still search or add manually
-    } finally {
-      setAnalyzing(false);
-    }
-  }
-
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setPhotoPreview(reader.result as string);
-    reader.readAsDataURL(file);
-    analyzePhoto(file);
-  }
-
-  function clearPhoto() {
-    setPhotoPreview(null);
-    setAiSuggestions(null);
-    setAiChecked(new Set());
-    setAiEdits({}); setAiQtys({}); setAiUnits({}); setAiCals({});
-    setAnalyzing(false);
-    if (cameraRef.current)  cameraRef.current.value  = "";
-    if (galleryRef.current) galleryRef.current.value = "";
-  }
-
-  async function saveAiItems() {
-    if (!aiChecked.size || !userId || !activeSlot) return;
-    setSaving(true);
-    const rows = Array.from(aiChecked).map(name => {
-      const calStr   = aiCals[name];
-      const calories = calStr && calStr.trim() !== "" ? parseFloat(calStr) : null;
-      return {
-        user_id:       userId,
-        food_name:     (aiEdits[name] ?? name).trim() || name,
-        meal_slot:     activeSlot,
-        quantity_g:    aiQtys[name] ?? 1,
-        quantity_unit: aiUnits[name] ?? "serving",
-        calories:      calories != null && !isNaN(calories) ? Math.round(calories) : null,
-        nutrition_estimated: calories != null && !isNaN(calories),
-        logged_date:   today,
-      };
-    });
-    const { error } = await supabase.from("meal_logs").insert(rows);
-    setSaving(false);
-    if (error) { alert(`Not saved:  ${error.message}`); return; }
-    closePanel();
-    loadLogs();
   }
 
   // ── Data ──────────────────────────────────────────────────────
@@ -429,7 +326,6 @@ export default function LogPage() {
     setActiveSlot(slot);
     setQuery(""); setFilter(f => ({ ...f, type: "", mealOnly: true })); setDishPicker(false);
     setPicked({}); setQtys({}); setSwapKey(null);
-    clearPhoto();
     loadPool(slot, kid);
   }
 
@@ -883,113 +779,6 @@ export default function LogPage() {
                     ) : null
                   )}
                 </div>
-              </section>
-
-              {/* Ate outside? — photo */}
-              <section className="pb-2">
-                <input ref={cameraRef} type="file" accept="image/*"
-                  onChange={handlePhotoChange} className="hidden" />
-
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex-1 h-px" style={{ background: "#E0D4F2" }} />
-                  <span className="text-xs" style={{ color: "#6A6180" }}>Ate out?</span>
-                  <div className="flex-1 h-px" style={{ background: "#E0D4F2" }} />
-                </div>
-
-                {photoPreview && (
-                  <div className="mb-3">
-                    <div className="relative rounded-2xl overflow-hidden"
-                      style={{ background: "#241C33", minHeight: "160px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={photoPreview} alt="Food photo"
-                        style={{ width: "100%", maxHeight: "220px", objectFit: "contain", display: "block" }} />
-                      <button onClick={clearPhoto} aria-label="Remove photo"
-                        className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                        style={{ background: "rgba(0,0,0,0.65)", color: "#fff" }}>✕</button>
-                    </div>
-                  </div>
-                )}
-
-                {!photoPreview && !analyzing && !aiSuggestions && (
-                  <button onClick={() => cameraRef.current?.click()}
-                    className="w-full flex flex-col items-center gap-2 py-4 rounded-2xl"
-                    style={{ background: FAMILY.violet.bg, border: `2px dashed ${FAMILY.violet.edge}` }}>
-                    <span className="text-2xl">📷</span>
-                    <span className="text-xs font-medium" style={{ color: "#6B46B8" }}>Photo of the plate</span>
-                    <span className="text-xs" style={{ color: "#6A6180" }}>camera or gallery</span>
-                  </button>
-                )}
-
-                {analyzing && (
-                  <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
-                    style={{ background: "#E7DCF7", border: "1px solid #CBB4EE" }}>
-                    <span className="text-base animate-spin" style={{ display: "inline-block" }}>🔄</span>
-                    <span className="text-sm font-medium" style={{ color: "#6B46B8" }}>Identifying dishes…</span>
-                  </div>
-                )}
-
-                {aiSuggestions && aiSuggestions.length > 0 && !analyzing && (
-                  <div className="rounded-2xl overflow-hidden" style={{ border: "1.5px solid #CBB4EE", background: "#F5F0FD" }}>
-                    <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#6B46B8" }}>
-                        ✨ {aiSuggestions.length} identified
-                      </p>
-                      <p className="text-xs" style={{ color: "#6A6180" }}>untick to remove</p>
-                    </div>
-                    {aiSuggestions.map((item, i) => {
-                      const isOn = aiChecked.has(item);
-                      return (
-                        <div key={item} style={{ borderTop: i > 0 ? "1px solid #DDCCF6" : undefined }}>
-                          <div className="flex items-center gap-3 px-4 py-2.5" style={{ background: isOn ? "#E7DCF7" : "#fff" }}>
-                            <button
-                              onClick={() => { const n = new Set(aiChecked); if (isOn) n.delete(item); else n.add(item); setAiChecked(n); }}
-                              className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center"
-                              style={{ background: isOn ? "#6B46B8" : "#fff", border: `2px solid ${isOn ? "#6B46B8" : "#B0C4AE"}` }}>
-                              {isOn && <svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                            </button>
-                            <input id={`ai-${i}`} type="text" value={aiEdits[item] ?? item}
-                              onChange={e => setAiEdits(p => ({ ...p, [item]: e.target.value }))}
-                              className="flex-1 text-sm font-medium bg-transparent rounded-lg px-2 py-1"
-                              style={{ color: isOn ? "#241238" : "#6A6180", border: "1.5px solid #DDCCF6", outline: "none", minWidth: 0 }} />
-                          </div>
-                          <div className="flex items-center gap-2 px-4 pb-3" style={{ background: isOn ? "#E7DCF7" : "#fff" }}>
-                            <button onClick={() => setAiQtys(p => ({ ...p, [item]: Math.max(0.5, (p[item] ?? 1) - 0.5) }))}
-                              className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
-                              style={{ background: "#DDCCF6", color: "#241238" }}>−</button>
-                            <span className="text-sm font-semibold w-8 text-center" style={{ color: "#241238" }}>
-                              {aiQtys[item] ?? 1}
-                            </span>
-                            <button onClick={() => setAiQtys(p => ({ ...p, [item]: (p[item] ?? 1) + 0.5 }))}
-                              className="w-7 h-7 rounded-full flex items-center justify-center text-base font-bold"
-                              style={{ background: "#DDCCF6", color: "#241238" }}>+</button>
-                            <select value={aiUnits[item] ?? "serving"}
-                              onChange={e => setAiUnits(p => ({ ...p, [item]: e.target.value }))}
-                              className="rounded-lg px-2 py-1.5 text-xs"
-                              style={{ border: "1.5px solid #CBB4EE", background: "#FAF7FE", color: "#241238", outline: "none", width: "5.5rem" }}>
-                              {["serving", "piece", "bowl", "cup", "glass", "tbsp", "g"].map(u => <option key={u} value={u}>{u === "serving" ? "portion" : u}</option>)}
-                            </select>
-                            <div className="flex items-center gap-1 ml-auto">
-                              <input type="number" min="0" value={aiCals[item] ?? ""}
-                                onChange={e => setAiCals(p => ({ ...p, [item]: e.target.value }))}
-                                placeholder="kcal"
-                                className="w-14 rounded-lg px-2 py-1.5 text-xs text-center"
-                                style={{ border: "1.5px solid #CBB4EE", background: "#FAF7FE", color: "#241238", outline: "none" }} />
-                              <span className="text-xs" style={{ color: "#6A6180" }}>kcal</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div className="px-4 py-3" style={{ borderTop: "1px solid #DDCCF6" }}>
-                      <button onClick={saveAiItems} disabled={saving || aiChecked.size === 0}
-                        className="w-full py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-40"
-                        style={{ background: "#241238" }}>
-                        {saving ? "Saving…" : aiChecked.size === 0 ? "Tick at least one"
-                          : `Log ${aiChecked.size} outside item${aiChecked.size > 1 ? "s" : ""} ✓`}
-                      </button>
-                    </div>
-                  </div>
-                )}
               </section>
             </div>
 

@@ -2,6 +2,9 @@
 
 import { markShoppingSeen, refreshAlerts } from "@/lib/alerts-refresh";
 import Legend from "@/components/Legend";
+import BillCheck, { type BillDraft } from "@/components/BillCheck";
+import { approveLines, shelfLines } from "@/lib/bill-flow";
+import { EATING_OUT } from "@/lib/spend";
 import { writeSeen } from "@/lib/seen";
 import type { Attention } from "@/lib/family-alerts";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
@@ -158,6 +161,10 @@ export default function PantryView({
   const [reading, setReading] = useState(false);
   const [billNote, setBillNote] = useState<string | null>(null);
   const [bill, setBill] = useState<{ shop: string | null; lines: BillLine[] } | null>(null);
+  // The reader's first draft, being checked and corrected before anything is recorded
+  const [billDraft, setBillDraft] = useState<BillDraft | null>(null);
+  // The approved bill, kept for the spending record once the shelf step is done
+  const [billMeta, setBillMeta] = useState<{ date: string; total: number | null; ateBy: string[]; lines: { name: string; quantity: number | null; unit: Unit | null; category: string; price: number | null; is_food: boolean }[] } | null>(null);
   const [askNew, setAskNew] = useState(false);          // the pop-up for bill items the library doesn't know
 
   // What is probably on the shelf now: last known stock less what the menu cooked since,
@@ -606,20 +613,24 @@ export default function PantryView({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setBillNote(data.error ?? "Couldn't read that bill."); return; }
 
-      const lines: BillLine[] = (data.items ?? []).map((i: Omit<BillLine, "take" | "matchId" | "libKey">) => {
-        const lib = matchLibrary(i.name);
-        const match = (lib && items.find((s) => s.library_key === lib.key)) || findMatch(i.name, items);
-        const libKey = !match && lib ? lib.key : null;
-        const category = libKey ? shelfPlace(lib!.group).category : i.category;
-        // On the shelf or in the library: recorded as read. Anything else waits to be confirmed.
-        return { ...i, category, take: !!(match || libKey), matchId: match?.id ?? null, libKey };
-      });
-      if (lines.length === 0) {
+      type Read = { name: string; quantity: number | null; unit: Unit | null; category: string; price?: number | null; is_food?: boolean };
+      const eatingOut = data.kind === "eating_out";
+      const read: Read[] = data.lines ?? data.items ?? [];
+      if (read.length === 0) {
         setBillNote("No kitchen items found · Retake it straighter and brighter.");
         return;
       }
-      setBill({ shop: data.shop ?? null, lines });
-      if (lines.some((l) => !l.matchId && !l.libKey)) setAskNew(true);
+      setBillDraft({
+        shop: data.shop ?? "",
+        date: /^\d{4}-\d{2}-\d{2}$/.test(data.bill_date ?? "") ? data.bill_date : today,
+        total: data.total != null ? String(data.total) : "",
+        ateBy: [],
+        lines: read.map((i, n) => ({
+          key: `r${n}`, name: i.name, quantity: i.quantity != null ? String(i.quantity) : "", unit: i.unit ?? "",
+          category: eatingOut ? EATING_OUT : i.is_food === false ? "household" : i.category, price: i.price != null ? String(i.price) : "",
+          is_food: !eatingOut && i.is_food !== false,
+        })),
+      });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") setBillNote(null);
       else setBillNote(err instanceof Error ? err.message : "Couldn't read that bill.");
@@ -627,6 +638,51 @@ export default function PantryView({
       abortRef.current = null;
       setReading(false);
     }
+  }
+
+  /** The checked bill moves on: food lines to the shelf review, everything to the spending record. */
+  function confirmDraft() {
+    if (!billDraft) return;
+    // One approved list feeds both the shelf and the spending record
+    const all = approveLines(billDraft.lines).map((l) => ({ ...l, unit: l.unit as Unit | null }));
+    const meta = { ateBy: all.some((l) => l.category === EATING_OUT) ? billDraft.ateBy : [], date: billDraft.date || today, total: (((v: string) => { const n = parseFloat(v); return v.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : null; }))(billDraft.total), lines: all };
+    const shop = billDraft.shop.trim() || null;
+    const lines: BillLine[] = shelfLines(all).map((i) => {
+      const lib = matchLibrary(i.name);
+      const match = (lib && items.find((s) => s.library_key === lib.key)) || findMatch(i.name, items);
+      const libKey = !match && lib ? lib.key : null;
+      const category = libKey ? shelfPlace(lib!.group).category : i.category;
+      // On the shelf or in the library: recorded as read. Anything else waits to be confirmed.
+      return { name: i.name, quantity: i.quantity, unit: i.unit as Unit | null, category, take: !!(match || libKey), matchId: match?.id ?? null, libKey };
+    });
+    setBillDraft(null);
+    if (lines.length === 0) {
+      // Nothing for the shelf (a meal eaten out, household goods): record the spending and finish
+      setBusy(true);
+      void saveSpend(shop, meta).then((err) => {
+        setBillNote(err ? `The spending record couldn't be saved (${err}).` : "Saved to your spending. Nothing went on the shelf.");
+        setBusy(false);
+      });
+      return;
+    }
+    setBillMeta(meta);
+    setBill({ shop, lines });
+    if (lines.some((l) => !l.matchId && !l.libKey)) setAskNew(true);
+  }
+
+  /** Keep the approved bill as a spending record. Never blocks the shelf: a failure is reported, not fatal. */
+  async function saveSpend(shop: string | null, meta: NonNullable<typeof billMeta> | null = billMeta): Promise<string | null> {
+    if (!meta || meta.lines.length === 0) return null;
+    const { data: b, error } = await supabase.from("bills")
+      .insert({ kutumbh_id: kutumbhId, bill_date: meta.date, shop, total: meta.total, created_by: userId, eaten_by: meta.ateBy })
+      .select("id").single();
+    if (error || !b) return error?.message ?? "unknown";
+    const { error: e2 } = await supabase.from("bill_lines").insert(meta.lines.map((l) => ({
+      bill_id: b.id, kutumbh_id: kutumbhId, name: l.name, quantity: l.quantity, unit: l.unit,
+      category: l.category, price: l.price, is_food: l.is_food,
+    })));
+    if (e2) { await supabase.from("bills").delete().eq("id", b.id); return e2.message; }
+    return null;
   }
 
   function stopReading() {
@@ -639,8 +695,15 @@ export default function PantryView({
   async function applyBill() {
     if (!bill || busy) return;
     const take = bill.lines.filter((l) => l.take);
-    if (take.length === 0) { setBill(null); return; }
     setBusy(true);
+    const spendErr = await saveSpend(bill.shop);
+    const spendNote = spendErr ? ` The spending record couldn't be saved (${spendErr}).` : billMeta ? " Saved to your spending." : "";
+    if (take.length === 0) {
+      setBill(null); setBillMeta(null);
+      setBillNote(`Nothing was put on the shelf.${spendNote}`);
+      setBusy(false);
+      return;
+    }
 
     for (const line of take) {
       let shelf = line.matchId ? items.find((i) => i.id === line.matchId) : undefined;
@@ -675,8 +738,8 @@ export default function PantryView({
         .in("id", done.map((s) => s.id));
     }
     await reloadAll();
-    setBill(null);
-    setBillNote(`${take.length} item${take.length > 1 ? "s" : ""} recorded on the shelf.`);
+    setBill(null); setBillMeta(null);
+    setBillNote(`${take.length} item${take.length > 1 ? "s" : ""} recorded on the shelf.${spendNote}`);
     setBusy(false);
   }
 
@@ -985,6 +1048,7 @@ export default function PantryView({
   const lowCount = items.filter(isShort).length;
   const plannedDays = menuDays.filter((d) => d.dishes.length > 0).length;
 
+  const off = isPrime ? 1 : 0;      // the Key Member's first step is the bills
   const STEPS = [
     { key: "shelf", n: 1, title: "Shelf", ask: "What do we have?",
       line: items.length === 0 ? "Not started yet" : `${items.length} item${items.length === 1 ? "" : "s"}${lowCount ? ` · ${lowCount} low` : " · none low"}`,
@@ -1007,109 +1071,9 @@ export default function PantryView({
   // Step 1 · the shelf, four tabs
   const current = TABS.find((t) => t.key === tab)!;
   const tabRows = items.filter(current.match).sort((a, b) => a.name.localeCompare(b.name));
-  const shelfStep = (
-    <div className="grid gap-4">
-      {isPrime && items.some((i) => i.unit) && (
-        <button onClick={() => setChecking(true)}
-          className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left" style={look(FAMILY.violet)}>
-          <span>
-            <span className="block text-sm font-bold" style={{ color: B.violet }}>Stock check</span>
-            <span className="block text-xs" style={{ color: B.muted }}>Count what is on the shelf, once a month. The app's guesses start fresh.</span>
-          </span>
-          <span className="text-lg" style={{ color: B.violet }}>›</span>
-        </button>
-      )}
-      {items.length > 0 && (
-        <div className="grid gap-1.5">
-          <Legend title="Kind" entries={[
-            { colour: KIND_LOOK.staple.bg, edge: KIND_LOOK.staple.edge, label: "Staples" },
-            { colour: KIND_LOOK.fresh.bg, edge: KIND_LOOK.fresh.edge, label: "Fresh" },
-            { colour: KIND_LOOK.sundry.bg, edge: KIND_LOOK.sundry.edge, label: "Spices & sundries" },
-          ]} />
-          <Legend title="Stock" entries={[
-            { colour: STATUS_STYLE.ok.bg, edge: STATUS_STYLE.ok.fg, label: "OK" },
-            { colour: STATUS_STYLE.low.bg, edge: STATUS_STYLE.low.fg, label: "Low / already on the list" },
-            { colour: STATUS_STYLE.out.bg, edge: STATUS_STYLE.out.fg, label: "Out / needs listing" },
-          ]} />
-        </div>
-      )}
-      {items.length === 0 ? (
-        <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={look(FAMILY.violet)}>
-          <p className="text-sm" style={{ color: B.muted }}>
-            Shelf empty · {isPrime ? "Start with the usual list, then edit." : "The Key Member sets it up."}
-          </p>
-          {isPrime && (
-            <button onClick={fillStarter} disabled={busy}
-              className="mx-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-              style={{ background: B.button }}>
-              {busy ? "Setting up…" : "Start with 16 usual items"}
-            </button>
-          )}
-        </section>
-      ) : (
-        <>
-          <div role="tablist" className="grid grid-cols-4 gap-1.5">
-            {TABS.map((t) => {
-              const n = items.filter(t.match).length;
-              const low = items.filter((i) => t.match(i) && isShort(i)).length;
-              const on = t.key === tab;
-              return (
-                <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)}
-                  className="rounded-xl px-1 py-2 text-center leading-tight"
-                  style={{ background: on ? t.tone.edge : t.tone.bg, border: `2px solid ${t.tone.edge}`, color: on ? "#fff" : t.tone.ink }}>
-                  <span className="block text-xs font-bold">{t.label}</span>
-                  <span className="block text-xs opacity-90">{n}{low ? ` · ${low} low` : ""}</span>
-                </button>
-              );
-            })}
-          </div>
+  // Step 1 for the Key Member: the bills that came home today
+  const billStep = isPrime && (
 
-          <section className="rounded-2xl px-4 py-4 grid gap-2"
-            style={{ background: current.tone.bg, border: `2.5px solid ${current.tone.edge}` }}>
-            <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: current.tone.ink }}>{current.label}</h2>
-              <p className="text-xs" style={{ color: B.muted2 }}>{current.hint}</p>
-            </div>
-            {tabRows.length === 0 ? (
-              <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
-            ) : current.key === "spice" && tabRows.every((i) => i.quantity == null) ? (
-              <div className="grid gap-2 pt-1">
-                <div className="flex flex-wrap gap-2">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
-                {isPrime && (
-                  <label className="text-xs grid gap-1" style={{ color: B.muted2 }}>
-                    Open one to correct it or move it to another tab
-                    <select value={tabRows.some((i) => i.id === openId) ? openId! : ""}
-                      onChange={(e) => { const it = tabRows.find((i) => i.id === e.target.value); if (it) openDetail(it); else setOpenId(null); }}
-                      className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
-                      <option value="">Choose a spice…</option>
-                      {tabRows.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
-                    </select>
-                  </label>
-                )}
-                {(() => { const it = tabRows.find((i) => i.id === openId); return it ? detailPanel(it) : null; })()}
-              </div>
-            ) : (
-              <div className="grid">
-                <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 pb-1 text-xs font-semibold uppercase tracking-wide"
-                  style={{ color: current.tone.ink }}>
-                  <span>Item</span><span className="text-center">Bought 1</span><span className="text-center">Bought 2</span>
-                  <span className="text-center">Current stock</span>
-                </div>
-                {tabRows.filter((i) => i.quantity != null || current.key !== "spice").map((i) => <Fragment key={i.id}>{RegisterRow({ item: i })}</Fragment>)}
-                {current.key === "spice" && tabRows.some((i) => i.quantity == null) && (
-                  <div className="flex flex-wrap gap-2 pt-2">{tabRows.filter((i) => i.quantity == null).map((i) => <SundryChip key={i.id} item={i} />)}</div>
-                )}
-                <p className="text-xs pt-2 m-0" style={{ color: B.muted2 }}>
-                  Current stock is worked out from the dishes cooked and the purchases made. Tap an item to say how much is really left or to record a purchase.
-                  Red = short · it goes on the shopping list by itself.
-                </p>
-              </div>
-            )}
-          </section>
-        </>
-      )}
-
-      {isPrime && (
         <section className="rounded-2xl px-4 py-4 grid gap-3" style={look(FAMILY.violet)}>
           {/* The camera and the file chooser are two different doors, so a
               tap lands where the words promised */}
@@ -1118,12 +1082,15 @@ export default function PantryView({
           <input ref={billRef} type="file" accept="image/*,application/pdf"
             onChange={handleBillPhoto} className="hidden" />
 
-          {!bill && (
+          {billDraft && <BillCheck draft={billDraft} members={Object.entries(memberNames).map(([id, name]) => ({ id, name }))} onChange={setBillDraft} onContinue={confirmDraft} onCancel={() => setBillDraft(null)} />}
+
+          {!bill && !billDraft && (
             <>
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>Back from the shop?</h2>
+                <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: B.violet }}>1 · Bills in</h2>
+                <p className="text-sm m-0" style={{ color: B.ink }}>Back from the shop?</p>
                 <p className="text-xs" style={{ color: B.muted2 }}>
-                  Photo or PDF of the bill → shelf.
+                  Photo or PDF of the bill → check it → shelf and spending.
                 </p>
               </div>
               {reading ? (
@@ -1163,6 +1130,12 @@ export default function PantryView({
           {billNote && (
             <p className="text-xs rounded-xl px-3 py-2"
               style={{ background: B.goldTint, color: B.goldInk }}>{billNote}</p>
+          )}
+
+          {!bill && !billDraft && !reading && (
+            <Link href="/pantry/spend" className="text-xs font-semibold" style={{ color: B.violetLink }}>
+              💰 See spending by month →
+            </Link>
           )}
 
           {bill && (
@@ -1275,13 +1248,115 @@ export default function PantryView({
                     return [k ? `Record ${k}` : "", n ? `add ${n} new` : ""].filter(Boolean).join(" · ") || "Nothing ticked";
                   })()}
                 </button>
-                <button onClick={() => setBill(null)} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
+                <button onClick={() => { setBill(null); setBillMeta(null); }} className="px-4 text-sm font-semibold" style={{ color: B.muted }}>
                   Cancel
                 </button>
               </div>
             </>
           )}
         </section>
+  );
+
+  const shelfStep = (
+    <div className="grid gap-4">
+      {isPrime && items.some((i) => i.unit) && (
+        <button onClick={() => setChecking(true)}
+          className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left" style={look(FAMILY.violet)}>
+          <span>
+            <span className="block text-sm font-bold" style={{ color: B.violet }}>Stock check</span>
+            <span className="block text-xs" style={{ color: B.muted }}>Count what is on the shelf, once a month. The app's guesses start fresh.</span>
+          </span>
+          <span className="text-lg" style={{ color: B.violet }}>›</span>
+        </button>
+      )}
+      {items.length > 0 && (
+        <div className="grid gap-1.5">
+          <Legend title="Kind" entries={[
+            { colour: KIND_LOOK.staple.bg, edge: KIND_LOOK.staple.edge, label: "Staples" },
+            { colour: KIND_LOOK.fresh.bg, edge: KIND_LOOK.fresh.edge, label: "Fresh" },
+            { colour: KIND_LOOK.sundry.bg, edge: KIND_LOOK.sundry.edge, label: "Spices & sundries" },
+          ]} />
+          <Legend title="Stock" entries={[
+            { colour: STATUS_STYLE.ok.bg, edge: STATUS_STYLE.ok.fg, label: "OK" },
+            { colour: STATUS_STYLE.low.bg, edge: STATUS_STYLE.low.fg, label: "Low / already on the list" },
+            { colour: STATUS_STYLE.out.bg, edge: STATUS_STYLE.out.fg, label: "Out / needs listing" },
+          ]} />
+        </div>
+      )}
+      {items.length === 0 ? (
+        <section className="rounded-2xl px-4 py-5 grid gap-3 text-center" style={look(FAMILY.violet)}>
+          <p className="text-sm" style={{ color: B.muted }}>
+            Shelf empty · {isPrime ? "Start with the usual list, then edit." : "The Key Member sets it up."}
+          </p>
+          {isPrime && (
+            <button onClick={fillStarter} disabled={busy}
+              className="mx-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+              style={{ background: B.button }}>
+              {busy ? "Setting up…" : "Start with 16 usual items"}
+            </button>
+          )}
+        </section>
+      ) : (
+        <>
+          <div role="tablist" className="grid grid-cols-4 gap-1.5">
+            {TABS.map((t) => {
+              const n = items.filter(t.match).length;
+              const low = items.filter((i) => t.match(i) && isShort(i)).length;
+              const on = t.key === tab;
+              return (
+                <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)}
+                  className="rounded-xl px-1 py-2 text-center leading-tight"
+                  style={{ background: on ? t.tone.edge : t.tone.bg, border: `2px solid ${t.tone.edge}`, color: on ? "#fff" : t.tone.ink }}>
+                  <span className="block text-xs font-bold">{t.label}</span>
+                  <span className="block text-xs opacity-90">{n}{low ? ` · ${low} low` : ""}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <section className="rounded-2xl px-4 py-4 grid gap-2"
+            style={{ background: current.tone.bg, border: `2.5px solid ${current.tone.edge}` }}>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: current.tone.ink }}>{current.label}</h2>
+              <p className="text-xs" style={{ color: B.muted2 }}>{current.hint}</p>
+            </div>
+            {tabRows.length === 0 ? (
+              <p className="text-sm py-1" style={{ color: B.muted }}>Nothing here yet.</p>
+            ) : current.key === "spice" && tabRows.every((i) => i.quantity == null) ? (
+              <div className="grid gap-2 pt-1">
+                <div className="flex flex-wrap gap-2">{tabRows.map((i) => <SundryChip key={i.id} item={i} />)}</div>
+                {isPrime && (
+                  <label className="text-xs grid gap-1" style={{ color: B.muted2 }}>
+                    Open one to correct it or move it to another tab
+                    <select value={tabRows.some((i) => i.id === openId) ? openId! : ""}
+                      onChange={(e) => { const it = tabRows.find((i) => i.id === e.target.value); if (it) openDetail(it); else setOpenId(null); }}
+                      className="rounded-xl px-3 py-2 text-sm" style={fieldLook(FAMILY.amber)}>
+                      <option value="">Choose a spice…</option>
+                      {tabRows.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    </select>
+                  </label>
+                )}
+                {(() => { const it = tabRows.find((i) => i.id === openId); return it ? detailPanel(it) : null; })()}
+              </div>
+            ) : (
+              <div className="grid">
+                <div className="grid grid-cols-[minmax(0,1fr)_60px_60px_76px] gap-x-1.5 pb-1 text-xs font-semibold uppercase tracking-wide"
+                  style={{ color: current.tone.ink }}>
+                  <span>Item</span><span className="text-center">Bought 1</span><span className="text-center">Bought 2</span>
+                  <span className="text-center">Current stock</span>
+                </div>
+                {tabRows.filter((i) => i.quantity != null || current.key !== "spice").map((i) => <Fragment key={i.id}>{RegisterRow({ item: i })}</Fragment>)}
+                {current.key === "spice" && tabRows.some((i) => i.quantity == null) && (
+                  <div className="flex flex-wrap gap-2 pt-2">{tabRows.filter((i) => i.quantity == null).map((i) => <SundryChip key={i.id} item={i} />)}</div>
+                )}
+                <p className="text-xs pt-2 m-0" style={{ color: B.muted2 }}>
+                  Current stock is worked out from the dishes cooked and the purchases made. Tap an item to say how much is really left or to record a purchase.
+                  Red = short · it goes on the shopping list by itself.
+                </p>
+              </div>
+            )}
+          </section>
+        </>
       )}
 
       {isPrime && (
@@ -1637,13 +1712,15 @@ export default function PantryView({
   if (step === null) {
     return (
       <div className="grid gap-3">
+        {billStep}
+        {newPopup}
         {STEPS.map((s) => (
           <div key={s.key} className="grid gap-1.5">
           <button onClick={() => setStep(s.key)}
             className="w-full text-left rounded-2xl px-4 py-4 flex items-center gap-3"
             style={look(s.tone)} aria-label={`${s.title}: ${s.ask}`}>
             <span className="w-9 h-9 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white"
-              style={{ background: s.tone.edge }}>{s.n}</span>
+              style={{ background: s.tone.edge }}>{s.n + off}</span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold uppercase tracking-wider" style={{ color: s.tone.ink }}>{s.title}</span>
               <span className="block text-sm" style={{ color: B.ink }}>{s.ask}</span>
@@ -1676,7 +1753,7 @@ export default function PantryView({
           <span className="text-xs font-semibold" style={{ color: B.violetLink }}>All steps</span>
         </button>
         <p className="flex-1 text-right text-sm font-bold uppercase tracking-wider" style={{ color: cur.tone.ink }}>
-          {cur.n} · {cur.title}
+          {cur.n + off} · {cur.title}
         </p>
       </div>
 
@@ -1688,7 +1765,7 @@ export default function PantryView({
           className="w-full rounded-2xl px-4 py-3 flex items-center gap-3 text-left" style={look(next.tone)}>
           <span className="flex-1 min-w-0">
             <span className="block text-xs" style={{ color: B.muted2 }}>Next</span>
-            <span className="block text-sm font-bold" style={{ color: next.tone.ink }}>{next.n} · {next.title} — {next.ask}</span>
+            <span className="block text-sm font-bold" style={{ color: next.tone.ink }}>{next.n + off} · {next.title} — {next.ask}</span>
           </span>
           <Arrow dir="right" tone={next.tone} />
         </button>

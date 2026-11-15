@@ -7,7 +7,7 @@ import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
 import { BRAND as B, FAMILY, look, fieldLook } from "@/lib/brand";
 import { afterSignIn } from "@/lib/gate";
-import { authErrorText, isNetworkError, withOneRetry } from "@/lib/auth-error";
+import { authErrorText, checkEmail, withOneRetry } from "@/lib/auth-error";
 import { pendingInvite } from "@/lib/invite";
 import { getSnapshot, parseLastUser, subscribe, writeLastUser } from "@/lib/last-user";
 
@@ -44,22 +44,17 @@ function LoginForm() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    const checked = checkEmail(email);
+    if (checked.problem) { setError(checked.problem); return; }
+    if (!password) { setError("Please type your password."); return; }
     setLoading(true);
     setError(null);
 
     const supabase = createClient();
-    const { data, error } = await withOneRetry(() => supabase.auth.signInWithPassword({ email, password }));
+    const { data, error } = await withOneRetry(() => supabase.auth.signInWithPassword({ email: checked.email, password }));
 
     if (error) {
-      if (isNetworkError(error)) {
-        setError(authErrorText(error));
-      } else if (error.message.toLowerCase().includes("not confirmed")) {
-        setError("Please confirm your email first. Check your inbox for a confirmation link.");
-      } else if (error.message.toLowerCase().includes("invalid")) {
-        setError("Incorrect email or password. Please try again.");
-      } else {
-        setError(authErrorText(error));
-      }
+      setError(authErrorText(error));
       setLoading(false);
       return;
     }
@@ -68,7 +63,7 @@ function LoginForm() {
     if (data.user) {
       const { data: profile } = await supabase
         .from("profiles").select("full_name").eq("id", data.user.id).maybeSingle();
-      writeLastUser({ email, name: profile?.full_name?.split(" ")[0] ?? null });
+      writeLastUser({ email: checked.email, name: profile?.full_name?.split(" ")[0] ?? null });
     }
     router.push(afterSignIn(redirectTo, pendingInvite()));
   }
@@ -105,7 +100,7 @@ function LoginForm() {
         <AuthHeader subtitle="Family food & wellness, rooted in Ayurveda" />
       )}
 
-      <form onSubmit={handleLogin} className="space-y-4">
+      <form onSubmit={handleLogin} noValidate className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: B.muted }}>
             Email
@@ -114,6 +109,11 @@ function LoginForm() {
             <input
               id="email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               required
               value={email}
               onChange={(e) => setTypedEmail(e.target.value)}

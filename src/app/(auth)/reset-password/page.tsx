@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
         Choose a new password for your account.
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div>
           <label htmlFor="password" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
             New password

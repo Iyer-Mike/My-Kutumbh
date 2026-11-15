@@ -295,7 +295,7 @@ export default function OnboardingPage() {
           .insert({ name: kutumbhName, created_by: user.id, time_zone: deviceTimeZone() ?? DEFAULT_TIME_ZONE })
           .select()
           .single();
-        if (ke) { setError(ke.message); setSaving(false); return; }
+        if (ke) { setError(`We could not create your Kutumbh (${ke.message}). Please try again; if it keeps happening, write to the person who invited you.`); setSaving(false); return; }
 
         const { error: me } = await supabase.from("kutumbh_members").insert({
           kutumbh_id: kutumbh.id,

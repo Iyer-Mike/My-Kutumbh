@@ -1,35 +1,41 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { isNetworkError, authErrorText, withOneRetry, NETWORK_MESSAGE } from "./auth-error.ts";
+import { authErrorText, checkEmail, NETWORK_MESSAGE } from "./auth-error.ts";
 
-describe("a dropped connection is not a wrong password", () => {
-  test("the browser's own wording is recognised", () => {
-    assert.equal(isNetworkError({ message: "Failed to fetch" }), true);
-    assert.equal(isNetworkError({ message: "Load failed" }), true);
-    assert.equal(isNetworkError({ name: "AuthRetryableFetchError", message: "x" }), true);
+describe("checking an email address as typed", () => {
+  test("a good address is cleaned and passes", () => {
+    assert.deepEqual(checkEmail("  Asha.Rao@Gmail.com "), { email: "asha.rao@gmail.com", problem: null });
+    assert.equal(checkEmail("a.b+c@remedazo.co.in").problem, null);
   });
-  test("real answers from the server are left alone", () => {
-    assert.equal(isNetworkError({ message: "Invalid login credentials" }), false);
-    assert.equal(isNetworkError({ message: "User already registered" }), false);
-    assert.equal(isNetworkError(null), false);
+  test("each slip gets its own sentence", () => {
+    assert.match(checkEmail("").problem!, /type your email/);
+    assert.match(checkEmail("asha rao@gmail.com").problem!, /space/);
+    assert.match(checkEmail("asha.gmail.com").problem!, /needs an @/);
+    assert.match(checkEmail("asha@@gmail.com").problem!, /more than one @/);
+    assert.match(checkEmail("@gmail.com").problem!, /before the @/);
+    assert.match(checkEmail("asha@").problem!, /after the @/);
+    assert.match(checkEmail("asha@gmail").problem!, /not complete/);
+    assert.match(checkEmail("asha@gmail,com").problem!, /not complete|not allowed/);
   });
-  test("a network failure reads plainly; anything else keeps the server's words", () => {
-    assert.equal(authErrorText({ message: "Failed to fetch" }), NETWORK_MESSAGE);
-    assert.equal(authErrorText({ message: "Invalid login credentials" }), "Invalid login credentials");
+  test("a common typing slip is named with the fix", () => {
+    assert.match(checkEmail("asha@gmial.com").problem!, /asha@gmail\.com/);
+    assert.match(checkEmail("asha@gmail.con").problem!, /asha@gmail\.com/);
   });
 });
 
-describe("one more try, only for a failed connection", () => {
-  test("retries once after a network failure and returns the second answer", async () => {
-    let calls = 0;
-    const r = await withOneRetry(async () => ({ error: ++calls === 1 ? { message: "Failed to fetch" } : null }));
-    assert.equal(calls, 2);
-    assert.equal(r.error, null);
+describe("what a person is told when sign-in or sign-up fails", () => {
+  test("known causes get plain words", () => {
+    assert.match(authErrorText({ code: "email_address_invalid", message: 'Email address "x@y" is invalid' }), /not accepted/);
+    assert.match(authErrorText({ message: "User already registered" }), /already has an account/);
+    assert.match(authErrorText({ message: "Invalid login credentials" }), /Incorrect email or password/);
+    assert.match(authErrorText({ message: "Email not confirmed" }), /confirm your email/);
+    assert.match(authErrorText({ code: "over_email_send_rate_limit", message: "email rate limit exceeded" }), /wait a few minutes/);
+    assert.match(authErrorText({ status: 503, message: "upstream" }), /server had a problem/);
   });
-  test("never retries an answer such as a wrong password", async () => {
-    let calls = 0;
-    const r = await withOneRetry(async () => { calls++; return { error: { message: "Invalid login credentials" } }; });
-    assert.equal(calls, 1);
-    assert.equal(r.error?.message, "Invalid login credentials");
+  test("a dropped connection is not blamed on the account", () => {
+    assert.equal(authErrorText({ message: "Failed to fetch" }), NETWORK_MESSAGE);
+  });
+  test("an unknown cause still says what the server said", () => {
+    assert.match(authErrorText({ message: "Something odd" }), /Something odd/);
   });
 });

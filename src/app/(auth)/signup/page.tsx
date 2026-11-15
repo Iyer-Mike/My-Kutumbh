@@ -8,7 +8,7 @@ import AuthHeader from "@/components/AuthHeader";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { inviteFromPath, rememberInvite } from "@/lib/invite";
 import { emailReturnTo } from "@/lib/gate";
-import { authErrorText } from "@/lib/auth-error";
+import { authErrorText, checkEmail } from "@/lib/auth-error";
 import KutumbhLogo from "@/components/KutumbhLogo";
 import PasswordRules, { passwordOk } from "@/components/PasswordRules";
 
@@ -34,6 +34,11 @@ function SignupForm() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+    // Our own checks, in our own words: the browser's pop-up messages are vague and vary by phone
+    if (!name.trim()) { setError("Please type your name."); return; }
+    const checked = checkEmail(email);
+    if (checked.problem) { setError(checked.problem); return; }
+    if (!password) { setError("Please choose a password."); return; }
     if (!passwordOk(password)) {
       setError("Use at least 8 characters, with both letters and digits.");
       return;
@@ -45,11 +50,12 @@ function SignupForm() {
     const next = redirectTo ?? "/onboarding";
     const code = inviteFromPath(redirectTo);
     if (code) rememberInvite(code);            // survive the trip through email
+    setEmail(checked.email);
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: checked.email,
       password,
       options: {
-        data: { full_name: name },
+        data: { full_name: name.trim() },
         emailRedirectTo: emailReturnTo(window.location.origin, next),
       },
     });
@@ -116,7 +122,7 @@ function SignupForm() {
     <div className="w-full max-w-sm">
       <AuthHeader subtitle="Create your family account" />
 
-      <form onSubmit={handleSignup} className="space-y-4">
+      <form onSubmit={handleSignup} noValidate className="space-y-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
             Your name
@@ -140,6 +146,11 @@ function SignupForm() {
           <input
             id="email"
             type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -175,7 +186,7 @@ function SignupForm() {
         </div>
 
         {error && (
-          <div className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
+          <div role="alert" className="rounded-xl px-4 py-3 text-sm" style={{ ...look(FAMILY.red), color: FAMILY.red.ink }}>
             {error}
           </div>
         )}

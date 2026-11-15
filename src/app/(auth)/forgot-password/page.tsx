@@ -1,6 +1,6 @@
 "use client";
 
-import { authErrorText } from "@/lib/auth-error";
+import { authErrorText, checkEmail } from "@/lib/auth-error";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -24,12 +24,14 @@ function ForgotPasswordForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const checked = checkEmail(email);
+    if (checked.problem) { setError(checked.problem); return; }
     setLoading(true);
     setError(null);
 
     try { localStorage.setItem("mk-reset-pending", String(Date.now())); } catch { /* private window */ }
     const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    const { error } = await supabase.auth.resetPasswordForEmail(checked.email, {
       redirectTo: `${window.location.origin}/auth/reset`,
     });
 
@@ -68,7 +70,7 @@ function ForgotPasswordForm() {
             Enter your email and we&apos;ll send you a link to reset your password.
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: "#625A75" }}>
                 Email
@@ -76,6 +78,11 @@ function ForgotPasswordForm() {
               <input
                 id="email"
                 type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}

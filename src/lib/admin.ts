@@ -40,6 +40,12 @@ export type AdminNotice = {
   body: string | null; from_admin: boolean; created_at: string; read_at: string | null;
 };
 
+/** Someone the Admin welcomed in or declined in the last two weeks. */
+export type Decided = {
+  user_id: string; full_name: string | null; email: string | null;
+  status: "admitted" | "declined"; welcome: string | null; decided_at: string; has_family: boolean;
+};
+
 export type Desk = {
   isAdmin: boolean;
   households: Household[];
@@ -49,6 +55,7 @@ export type Desk = {
   notices: AdminNotice[];
   faults: Fault[];
   waiting: Waiting[];
+  recent: Decided[];
   appSpend: number;
 };
 
@@ -56,10 +63,10 @@ export type Desk = {
 export async function loadDesk(supabase: SupabaseClient<any, any, any>): Promise<Desk> {
   const { data: isAdmin } = await supabase.rpc("is_app_admin");
   if (!isAdmin) {
-    return { isAdmin: false, households: [], features: [], stranded: [], invites: [], notices: [], faults: [], waiting: [], appSpend: 0 };
+    return { isAdmin: false, households: [], features: [], stranded: [], invites: [], notices: [], faults: [], waiting: [], recent: [], appSpend: 0 };
   }
 
-  const [h, f, s, i, n, x, w, total] = await Promise.all([
+  const [h, f, s, i, n, x, w, total, d] = await Promise.all([
     supabase.rpc("admin_households"),
     supabase.rpc("admin_spend_by_feature"),
     supabase.rpc("admin_stranded_people"),
@@ -68,6 +75,7 @@ export async function loadDesk(supabase: SupabaseClient<any, any, any>): Promise
     supabase.rpc("admin_faults"),
     supabase.rpc("admin_waiting"),
     supabase.rpc("ai_spend_month_total"),
+    supabase.rpc("admin_recent_decisions"),
   ]);
 
   return {
@@ -79,6 +87,7 @@ export async function loadDesk(supabase: SupabaseClient<any, any, any>): Promise
     notices:    (n.data ?? []) as AdminNotice[],
     faults:     (x.data ?? []) as Fault[],
     waiting:    (w.data ?? []) as Waiting[],
+    recent:     (d.data ?? []) as Decided[],
     appSpend:   Number(total.data ?? 0),
   };
 }

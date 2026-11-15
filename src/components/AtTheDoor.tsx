@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { makePasscode, decideOn } from "@/app/(app)/admin/door-actions";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
+import { decisionLetter } from "@/lib/door-letter";
+import type { Decided } from "@/lib/admin";
 
 const C = { ink: "#241C33", ink2: "#4A4360", ink3: "#6A6180", rule: "#E0D4F2", leaf: "#2F6B34", warn: "#B0453A", purple: "#6B46B8" };
 
@@ -171,7 +173,7 @@ function NewPasscode({ signature, appUrl }: { signature: string | null; appUrl: 
 }
 
 /** One person waiting, and the two things that can be done about them. */
-function Knocking({ w }: { w: Waiting }) {
+function Knocking({ w, signature }: { w: Waiting; signature: string | null }) {
   const [note, setNote] = useState("");
   const [writing, setWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -180,7 +182,7 @@ function Knocking({ w }: { w: Waiting }) {
   const act = (admit: boolean) =>
     start(async () => {
       setError(null);
-      const r = await decideOn(w.user_id, admit, note);
+      const r = await decideOn(w.user_id, admit, note, { name: w.full_name, email: w.email, signature });
       if (!r.ok) setError(r.error ?? "It didn't work.");
     });
 
@@ -244,9 +246,43 @@ function Knocking({ w }: { w: Waiting }) {
   );
 }
 
+/** Someone already decided on: the letter, ready to send from the Admin's own email or WhatsApp. */
+function TellThem({ d, signature, appUrl }: { d: Decided; signature: string | null; appUrl: string }) {
+  const [copied, setCopied] = useState(false);
+  const admit = d.status === "admitted";
+  const letter = decisionLetter({ name: d.full_name, admit, note: d.welcome, appUrl, signature });
+  const mailto = `mailto:${encodeURIComponent(d.email ?? "")}?subject=${encodeURIComponent(letter.subject)}&body=${encodeURIComponent(letter.text)}`;
+  const whatsapp = `https://wa.me/?text=${encodeURIComponent(letter.text)}`;
+  const pill = "text-xs font-semibold px-3 py-2 rounded-full";
+
+  return (
+    <div className="py-3" style={{ borderTop: `1px solid ${C.rule}` }}>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="m-0 text-sm font-semibold" style={{ color: C.ink }}>{d.full_name ?? "No name given"}</p>
+        <span className="text-xs flex-shrink-0" style={{ color: admit ? C.leaf : C.warn }}>
+          {admit ? "Welcomed" : "Declined"} {waited(d.decided_at)}
+        </span>
+      </div>
+      <p className="m-0 mt-0.5 text-xs" style={{ color: C.ink3 }}>
+        {d.email}
+        {admit && (d.has_family ? " · has set up a Kutumbh" : " · has not come back yet")}
+      </p>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {d.email && <a href={mailto} className={pill} style={{ background: "#2D1B4E", color: "#fff", textDecoration: "none" }}>Email the letter</a>}
+        <a href={whatsapp} target="_blank" rel="noreferrer" className={pill} style={{ background: C.leaf, color: "#fff", textDecoration: "none" }}>WhatsApp</a>
+        <button
+          onClick={async () => { try { await navigator.clipboard.writeText(letter.text); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* clipboard blocked */ } }}
+          className={pill} style={{ background: "#E7DCF7", color: C.purple }}>
+          {copied ? "Copied ✓" : "Copy the letter"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AtTheDoor({
-  waiting, signature, appUrl, alertsOn,
-}: { waiting: Waiting[]; signature: string | null; appUrl: string; alertsOn: boolean }) {
+  waiting, recent, signature, appUrl, alertsOn,
+}: { waiting: Waiting[]; recent: Decided[]; signature: string | null; appUrl: string; alertsOn: boolean }) {
   return (
     <section
       className="rounded-2xl px-4 py-4"
@@ -268,7 +304,17 @@ export default function AtTheDoor({
         </p>
       ) : (
         <div className="mt-1">
-          {waiting.map((w) => <Knocking key={w.user_id} w={w} />)}
+          {waiting.map((w) => <Knocking key={w.user_id} w={w} signature={signature} />)}
+        </div>
+      )}
+
+      {recent.length > 0 && (
+        <div className="mt-4">
+          <p className="m-0 text-xs font-semibold uppercase tracking-widest" style={{ color: C.ink3 }}>Decided lately · tell them</p>
+          <p className="m-0 mt-1 text-xs" style={{ color: C.ink3, lineHeight: 1.5 }}>
+            The app does not write to a newcomer by itself. Send the letter from your own email or WhatsApp.
+          </p>
+          {recent.map((d) => <TellThem key={d.user_id} d={d} signature={signature} appUrl={appUrl} />)}
         </div>
       )}
 

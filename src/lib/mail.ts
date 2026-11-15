@@ -25,6 +25,16 @@ export function canSendMail(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
 
+/**
+ * Can the app write to anyone other than the Admin? Only once a sending domain
+ * has been verified and named in MY_KUTUMBH_MAIL_FROM. With the shared
+ * resend.dev sender, a letter to a newcomer would be refused or dropped.
+ */
+export function canMailOthers(): boolean {
+  const from = process.env.MY_KUTUMBH_MAIL_FROM ?? "";
+  return canSendMail() && from !== "" && !/resend\.dev/i.test(from);
+}
+
 export type Sent = { ok: boolean; why?: string };
 
 /**
@@ -127,4 +137,10 @@ export async function tellAdminSomebodyWaits(
 </div>`;
 
   return send(ADMIN_EMAIL, subject, lines.join("\n"), html);
+}
+
+/** The Admin has decided: tell the newcomer. Only called when canMailOthers() is true. */
+export async function tellNewcomer(to: string, subject: string, text: string): Promise<Sent> {
+  const html = `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:15px;line-height:1.6;color:#241C33;max-width:34rem;white-space:pre-wrap">${esc(text)}</div>`;
+  return send(to, subject, text, html);
 }

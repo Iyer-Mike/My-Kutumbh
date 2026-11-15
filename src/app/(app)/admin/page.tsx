@@ -94,6 +94,7 @@ export default async function AdminPage() {
         {/* ── Who is waiting to be let into My Kutumb Bhojan ── */}
         <AtTheDoor
           waiting={desk.waiting}
+          recent={desk.recent}
           signature={myName}
           appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "https://my-kutumbh.vercel.app"}
           alertsOn={canSendMail()}

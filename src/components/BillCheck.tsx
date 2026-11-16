@@ -127,6 +127,12 @@ export default function BillCheck({ draft, members, onChange, onContinue, onCanc
         <p className="m-0 font-semibold" style={{ color: tone.ink }}>
           Lines add up to {inr(chk.sum)}{num(draft.total) != null ? ` · bill total ${inr(num(draft.total)!)}` : " · no total entered"}
         </p>
+        {chk.diff != null && chk.ok && (
+          <p className="m-0 text-xs font-semibold" style={{ color: tone.ink }}>✓ This matches the bill total{Math.abs(chk.diff) > 0 ? " (a small rounding gap is fine)" : ""}.</p>
+        )}
+        {chk.diff == null && (
+          <p className="m-0 text-xs" style={{ color: tone.ink }}>Type the bill total above to check the lines against it.</p>
+        )}
         {chk.diff != null && !chk.ok && (
           <p className="m-0 text-xs" style={{ color: tone.ink }}>
             {inr(Math.abs(chk.diff))} {chk.diff > 0 ? "short of" : "over"} the total: a line may be misread, missing or have a wrong price. Check it against the bill.

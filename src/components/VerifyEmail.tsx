@@ -27,7 +27,8 @@ export default function VerifyEmail({ email, next, loginHref }: { email: string;
     return () => clearTimeout(t);
   }, [wait]);
 
-  const digits = code.replace(/\D/g, "").slice(0, 8);
+  // The code's length is a server setting (6 today, it has been 8): take whatever the email shows
+  const digits = code.replace(/\D/g, "").slice(0, 10);
   const ready = digits.length >= 6;
 
   async function verify() {
@@ -40,7 +41,7 @@ export default function VerifyEmail({ email, next, loginHref }: { email: string;
     if (e) {
       setBusy(false);
       setError(/expired|invalid/i.test(e.message ?? "")
-        ? "That code is wrong or has run out of time. Check the latest email, or ask for a new code below."
+        ? "That code was not accepted. Type every digit shown in the newest email. A code works for one hour and only the newest one counts. You can ask for a new code below."
         : authErrorText(e));
       return;
     }
@@ -74,7 +75,7 @@ export default function VerifyEmail({ email, next, loginHref }: { email: string;
       </div>
 
       <label htmlFor="verify-code" className="block text-sm font-semibold mb-2" style={{ color: "#241C33" }}>
-        Type the code from the email
+        Type the code from the email, every digit
       </label>
       <input
         id="verify-code"
@@ -84,7 +85,7 @@ export default function VerifyEmail({ email, next, loginHref }: { email: string;
         value={digits}
         onChange={(e) => setCode(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") verify(); }}
-        placeholder="000000"
+        placeholder="Code"
         className="w-full text-center rounded-xl py-3 text-2xl font-bold tabular-nums"
         style={{ ...fieldLook(FAMILY.amber), letterSpacing: "0.3em" }}
       />
@@ -102,7 +103,7 @@ export default function VerifyEmail({ email, next, loginHref }: { email: string;
       </button>
 
       <p className="text-xs mt-4 mb-0" style={{ color: "#6A6180", lineHeight: 1.6 }}>
-        The email can take a minute. Look in Spam or Promotions too. Tapping the link in the email works as well.
+        The email can take a minute. Look in Spam or Promotions too. The code works for one hour, and a new code replaces the old one. Tapping the link in the email works as well.
       </p>
       <p className="text-sm mt-3 mb-0" style={{ color: "#6A6180" }}>
         No email?{" "}

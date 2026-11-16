@@ -133,7 +133,7 @@ describe("what the letter says", () => {
     await tellAdminIfWaiting(client, user, URL_ + "/");
 
     const mail = posted[0]!.body;
-    assert.match(String(mail.subject), /At the door/);
+    assert.match(String(mail.subject), /New registration/);
     assert.match(String(mail.text), /someone@example\.com/);
     assert.match(String(mail.text), /my-kutumbh\.vercel\.app\/admin/);
     assert.doesNotMatch(String(mail.text), /\/\/admin/);      // no doubled slash
@@ -170,8 +170,8 @@ describe("what the letter says", () => {
 
     const mail = posted[0]!.body;
     assert.doesNotMatch(String(mail.text), PRONOUN);
-    assert.match(String(mail.subject), /Someone is at the door/);
-    assert.match(String(mail.text), /no name was given/);
+    assert.match(String(mail.subject), /A new registration/);
+    assert.match(String(mail.text), /No name was given/);
   });
 
   test("only the Admin is ever written to", async () => {

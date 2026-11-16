@@ -20,7 +20,7 @@
 // so that the reading can come first.
 
 const PUBLIC_PREFIXES = [
-  "/login", "/signup", "/forgot-password", "/reset-password", "/join/", "/auth/",
+  "/login", "/signup", "/verify", "/forgot-password", "/reset-password", "/join/", "/auth/",
   "/privacy", "/terms",
 ];
 

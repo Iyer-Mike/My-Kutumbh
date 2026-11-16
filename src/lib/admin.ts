@@ -54,6 +54,14 @@ export type Decided = {
   invited_by?: string | null;
 };
 
+/** Someone who registered in the last two weeks, and where they have got to. */
+export type Newcomer = {
+  user_id: string; full_name: string | null; email: string | null; status: string;
+  welcome: string | null; joined: string; family: string | null; invited_by: string | null;
+};
+/** A family's AI allowance as set by the Admin (null = the usual rule), and whether it is paused. */
+export type FamilyLimitRow = { kutumbh_id: string; ai_month_rupees: number | null; blocked: boolean };
+
 export type Desk = {
   isAdmin: boolean;
   households: Household[];
@@ -64,6 +72,8 @@ export type Desk = {
   faults: Fault[];
   waiting: Waiting[];
   recent: Decided[];
+  newcomers: Newcomer[];
+  limits: FamilyLimitRow[];
   appSpend: number;
 };
 
@@ -71,10 +81,10 @@ export type Desk = {
 export async function loadDesk(supabase: SupabaseClient<any, any, any>): Promise<Desk> {
   const { data: isAdmin } = await supabase.rpc("is_app_admin");
   if (!isAdmin) {
-    return { isAdmin: false, households: [], features: [], stranded: [], invites: [], notices: [], faults: [], waiting: [], recent: [], appSpend: 0 };
+    return { isAdmin: false, households: [], features: [], stranded: [], invites: [], notices: [], faults: [], waiting: [], recent: [], newcomers: [], limits: [], appSpend: 0 };
   }
 
-  const [h, f, s, i, n, x, w, total, d] = await Promise.all([
+  const [h, f, s, i, n, x, w, total, d, nc, lm] = await Promise.all([
     supabase.rpc("admin_households"),
     supabase.rpc("admin_spend_by_feature"),
     supabase.rpc("admin_stranded_people"),
@@ -84,6 +94,8 @@ export async function loadDesk(supabase: SupabaseClient<any, any, any>): Promise
     supabase.rpc("admin_waiting"),
     supabase.rpc("ai_spend_month_total"),
     supabase.rpc("admin_recent_decisions"),
+    supabase.rpc("admin_newcomers"),
+    supabase.rpc("admin_family_limits"),
   ]);
 
   return {
@@ -96,6 +108,8 @@ export async function loadDesk(supabase: SupabaseClient<any, any, any>): Promise
     faults:     (x.data ?? []) as Fault[],
     waiting:    (w.data ?? []) as Waiting[],
     recent:     (d.data ?? []) as Decided[],
+    newcomers:  (nc.data ?? []) as Newcomer[],
+    limits:     (lm.data ?? []) as FamilyLimitRow[],
     appSpend:   Number(total.data ?? 0),
   };
 }

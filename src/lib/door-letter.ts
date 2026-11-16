@@ -11,7 +11,7 @@ export function decisionLetter(o: {
     ? [
         `Dear ${o.name?.trim() || "friend"},`,
         "",
-        "Your registration with My Kutumb Bhojan has been approved. Welcome!",
+        "Welcome to My Kutumb Bhojan! Your account is ready.",
         "",
         note,
         note ? "" : null,
@@ -32,7 +32,7 @@ export function decisionLetter(o: {
         `— ${o.signature?.trim() || "My Kutumb Bhojan"}`,
       ];
   return {
-    subject: o.admit ? "Welcome to My Kutumb Bhojan: your registration is approved" : "About your My Kutumb Bhojan registration",
+    subject: o.admit ? "Welcome to My Kutumb Bhojan" : "About your My Kutumb Bhojan registration",
     text: lines.filter((l): l is string => l !== null).join("\n"),
   };
 }

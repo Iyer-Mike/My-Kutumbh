@@ -5,7 +5,8 @@ import { loadDesk, money, since, type Household } from "@/lib/admin";
 import WriteToKutumbh from "@/components/WriteToKutumbh";
 import WithdrawLetter from "@/components/WithdrawLetter";
 import AtTheDoor from "@/components/AtTheDoor";
-import { MONTH_APP_RUPEES, MONTH_FAMILY_RUPEES } from "@/lib/ai-budget";
+import { MONTH_APP_RUPEES, familyAllowance } from "@/lib/ai-budget";
+import FamilyLimitControls from "@/components/FamilyLimitControls";
 import { familyOf } from "@/lib/family";
 import { canSendMail } from "@/lib/mail";
 import { FAMILY, look } from "@/lib/brand";
@@ -94,7 +95,7 @@ export default async function AdminPage() {
         {/* ── Who is waiting to be let into My Kutumb Bhojan ── */}
         <AtTheDoor
           waiting={desk.waiting}
-          recent={desk.recent}
+          newcomers={desk.newcomers}
           signature={myName}
           appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "https://my-kutumbh.vercel.app"}
           alertsOn={canSendMail()}
@@ -139,12 +140,12 @@ export default async function AdminPage() {
             {desk.stranded.map((s, n) => {
               const next = s.invited_by
                 ? `Invited by ${s.invited_by}. They need that family's six-digit number. Nothing for you to do.`
-                : s.standing === "waiting"
-                ? "Waiting for your approval, above."
                 : s.standing === "declined"
-                ? "You declined this registration."
-                : s.standing === "admitted"
-                ? "Approved, but has not named a Kutumbh yet. Send the welcome letter, above, as a reminder."
+                ? "You turned this registration away."
+                : s.standing === "admitted" || s.standing === "waiting"
+                ? "In the app, but has not named a Kutumbh yet."
+                : !s.confirmed
+                ? "Registered, but has not confirmed the email address yet."
                 : "Registered but never opened the app again.";
               return (
                 <div key={n} className="py-2" style={{ borderTop: n ? "1px solid #EADFC2" : undefined }}>
@@ -170,7 +171,10 @@ export default async function AdminPage() {
           <div className="space-y-3">
             {desk.households.map((h) => {
               const p = pulse(h);
-              const share = Math.min(100, Math.round((h.spend_month / MONTH_FAMILY_RUPEES) * 100));
+              const lim = desk.limits.find((l) => l.kutumbh_id === h.kutumbh_id) ?? null;
+              const custom = lim?.ai_month_rupees != null;
+              const allowance = familyAllowance(h.created_at, lim?.ai_month_rupees ?? null);
+              const share = allowance > 0 ? Math.min(100, Math.round((h.spend_month / allowance) * 100)) : 100;
               return (
                 <div key={h.kutumbh_id} className="rounded-2xl px-4 py-3.5" style={look(FAMILY.blue)}>
                   <div className="flex items-baseline justify-between gap-3">
@@ -199,10 +203,14 @@ export default async function AdminPage() {
                     <span>{h.logs_7d} logged this week</span>
                     <span>{h.logs_total} in all</span>
                     <span>
-                      {money(h.spend_month)} of {money(MONTH_FAMILY_RUPEES)}
+                      AI: {money(h.spend_month)} of {money(allowance)} this month
+                      {custom ? " (set by you)" : allowance < 500 ? " (starter, first 30 days)" : ""}
                       {share >= 80 ? " ⚠" : ""}
                     </span>
                   </div>
+
+                  <FamilyLimitControls kutumbhId={h.kutumbh_id} name={h.name ?? "this Kutumbh"}
+                    allowance={allowance} custom={custom} blocked={lim?.blocked === true} />
 
                   {h.kutumbh_id !== myKutumbh && (
                     <WriteToKutumbh

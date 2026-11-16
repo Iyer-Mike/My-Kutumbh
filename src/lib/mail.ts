@@ -100,22 +100,20 @@ export async function tellAdminSomebodyWaits(
       ? `The passcode was written to ${who.invitedEmail}, and the registration came from ${email}.`
       : null;
 
-  const subject = name ? `At the door: ${name}` : "Someone is at the door";
+  const subject = name ? `New registration: ${name}` : "A new registration";
 
   const opening = name
-    ? `${name} has registered with My Kutumb Bhojan, using ${email}, and is waiting at the door.`
-    : `Someone has registered with My Kutumb Bhojan, using ${email}, and is waiting at the door — no name was given.`;
+    ? `${name} has registered with My Kutumb Bhojan, using ${email}, and has been let in.`
+    : `Someone has registered with My Kutumb Bhojan, using ${email}, and has been let in. No name was given.`;
 
-  const closing = name
-    ? `Welcome ${name} in, or decline, at the Admin Desk:`
-    : "Welcome this registration in, or decline, at the Admin Desk:";
+  const closing = "See every new registration, and pause a family if need be, at the Admin Desk:";
 
   const lines = [
     opening,
     "",
     odd,
     odd ? "" : null,
-    "Nothing can happen until you decide. A waiting account has no Kutumbh, no logging and no coach.",
+    "Nothing is needed from you. This is for your information: a new family starts with a small AI allowance.",
     "",
     closing,
     `    ${desk}`,
@@ -124,13 +122,13 @@ export async function tellAdminSomebodyWaits(
   ].filter((l): l is string => l !== null);
 
   const openHtml = name
-    ? `<strong>${esc(name)}</strong> has registered with My Kutumb Bhojan, using ${esc(email)}, and is waiting at the door.`
-    : `Someone has registered with My Kutumb Bhojan, using ${esc(email)}, and is waiting at the door — no name was given.`;
+    ? `<strong>${esc(name)}</strong> has registered with My Kutumb Bhojan, using ${esc(email)}, and has been let in.`
+    : `Someone has registered with My Kutumb Bhojan, using ${esc(email)}, and has been let in. No name was given.`;
 
   const html = `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:15px;line-height:1.6;color:#241C33;max-width:34rem">
   <p style="margin:0 0 1rem">${openHtml}</p>
   ${odd ? `<p style="margin:0 0 1rem;color:#8A5A06">${esc(odd)}</p>` : ""}
-  <p style="margin:0 0 1.5rem;color:#4A4360">Nothing can happen until you decide. A waiting account has no Kutumbh, no logging and no coach.</p>
+  <p style="margin:0 0 1.5rem;color:#4A4360">Nothing is needed from you. This is for your information: a new family starts with a small AI allowance.</p>
   <p style="margin:0 0 0.9rem"><a href="${esc(desk)}" style="background:#241238;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;display:inline-block;font-weight:600;font-size:14px">Open the Admin Desk</a></p>
   <p style="margin:0 0 1.5rem;color:#6A6180;font-size:13px">${esc(closing.replace(/:$/, "."))}</p>
   <p style="margin:0;color:#8A80A0;font-size:13px">— My Kutumb Bhojan</p>

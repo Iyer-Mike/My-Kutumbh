@@ -66,3 +66,17 @@ export async function decideOn(
   revalidatePath("/admin");
   return { ok: true, mailed };
 }
+
+/** Set one family's monthly AI allowance (null = the usual rule), and pause or resume it. */
+export async function setFamilyLimit(kutumbhId: string, rupees: number | null, blocked: boolean): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Please sign in again." };
+
+  const { error } = await supabase.rpc("admin_set_family_limit", { p_kutumbh: kutumbhId, p_rupees: rupees, p_blocked: blocked });
+  if (error) {
+    return { ok: false, error: /not_permitted/.test(error.message) ? "Only the Admin can do that." : "That didn't work. Please try again." };
+  }
+  revalidatePath("/admin");
+  return { ok: true };
+}

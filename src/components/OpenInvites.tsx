@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FAMILY, look } from "@/lib/brand";
 import { cancelInvite } from "@/app/(app)/family/planned-actions";
 
-export type OpenInvite = { id: string; code: string; number: string | null; email: string | null; expires_at: string };
+export type OpenInvite = { id: string; code: string; number: string | null; email: string | null; expires_at: string; name?: string | null };
 
 /** "today 5:30 pm", "Wed 5:30 pm": when an invitation runs out, in the reader's own time. */
 function until(iso: string): string {
@@ -30,7 +30,7 @@ export default function OpenInvites({ invites, baseUrl, kutumbhName, inviterName
   if (invites.length === 0) return null;
 
   const message = (i: OpenInvite) =>
-    `I've invited you to join ${kutumbhName ?? "our family"} on My Kutumb Bhojan, our family's food and health app.\n\n` +
+    `${i.name ? `Dear ${i.name},\n\n` : ""}I've invited you to join ${kutumbhName ?? "our family"} on My Kutumb Bhojan, our family's food and health app.\n\n` +
     `1. Open this link: ${baseUrl}/join/${i.code}\n` +
     `2. Create your account${i.email ? ` with ${i.email}` : ""}.\n` +
     `3. Type the 6-digit number I will tell you separately.\n\n` +
@@ -48,7 +48,8 @@ export default function OpenInvites({ invites, baseUrl, kutumbhName, inviterName
 
       {invites.map((i) => (
         <div key={i.id} className="mt-3 rounded-xl px-3 py-3" style={{ background: "#fff", border: `1.5px solid ${FAMILY.green.edge}` }}>
-          <p className="m-0 text-sm font-semibold break-all" style={{ color: "#241C33" }}>{i.email ?? "No email given"}</p>
+          <p className="m-0 text-sm font-semibold" style={{ color: "#241C33" }}>{i.name ?? "Name not on the Family List"}</p>
+          <p className="m-0 text-xs break-all" style={{ color: "#625A75" }}>{i.email ?? "No email given"}</p>
           <p className="m-0 mt-1 text-xs" style={{ color: "#625A75" }}>
             Number to tell them:{" "}
             <span className="font-bold tabular-nums" style={{ fontSize: "1.15rem", letterSpacing: "0.12em", color: "#241238" }}>{i.number ?? "—"}</span>

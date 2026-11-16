@@ -159,9 +159,13 @@ export default async function FamilyPage() {
     ? await supabase.from("kutumbh_invites").select("id, invite_code, join_code, invited_email, expires_at")
         .eq("kutumbh_id", kutumbhId).eq("is_active", true).gt("expires_at", new Date().toISOString()).order("expires_at")
     : { data: null };
+  // The person's name comes from the Family List, matched by the address the invitation went to
+  const nameFor = (email: string | null) =>
+    email ? plannedRows.find((p) => (p.email ?? "").trim().toLowerCase() === email.toLowerCase())?.name ?? null : null;
   const openInvites: OpenInvite[] = (inviteRaw ?? []).map((i) => ({
     id: i.id as string, code: i.invite_code as string, number: (i.join_code as string | null) ?? null,
     email: (i.invited_email as string | null) ?? null, expires_at: i.expires_at as string,
+    name: nameFor((i.invited_email as string | null) ?? null),
   }));
 
   // Being here counts as being here — silence is what moves the role

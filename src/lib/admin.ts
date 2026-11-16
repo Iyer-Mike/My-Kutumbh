@@ -32,7 +32,13 @@ export type Stranded = {
   /** The family that has an open invitation to this address, if any */
   invited_by?: string | null;
 };
-export type Invite = { kutumbh_name: string; made: string; expires: string; active: boolean; used: number };
+/** One invitation a family sent, and how it ended. */
+export type Invite = {
+  kutumbh_name: string; invited_name: string | null; invited_email: string | null;
+  made: string | null; expires: string;
+  state: "joined" | "open" | "expired" | "closed_tries" | "closed";
+  attempts: number; for_minor: boolean;
+};
 export type Waiting = {
   user_id: string; full_name: string | null; email: string | null;
   asked_at: string; invited_email: string | null;
@@ -88,7 +94,7 @@ export async function loadDesk(supabase: SupabaseClient<any, any, any>): Promise
     supabase.rpc("admin_households"),
     supabase.rpc("admin_spend_by_feature"),
     supabase.rpc("admin_stranded_people"),
-    supabase.rpc("admin_invites"),
+    supabase.rpc("admin_invite_log"),
     supabase.rpc("admin_notices"),
     supabase.rpc("admin_faults"),
     supabase.rpc("admin_waiting"),

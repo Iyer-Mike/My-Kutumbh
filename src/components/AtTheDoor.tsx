@@ -121,7 +121,7 @@ function NewPasscode({ signature, appUrl }: { signature: string | null; appUrl: 
         className="text-xs font-semibold px-4 py-2 rounded-full"
         style={{ background: "#E7DCF7", color: C.purple }}
       >
-        Write a passcode
+        Invite someone with a passcode (optional)
       </button>
     );
   }
@@ -255,6 +255,19 @@ function TellThem({ d, signature, appUrl }: { d: Decided; signature: string | nu
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(letter.text)}`;
   const pill = "text-xs font-semibold px-3 py-2 rounded-full";
 
+  // Invited by a family and not yet in: the founder's letter ("name your Kutumbh") would mislead
+  if (admit && !d.has_family && d.invited_by) {
+    return (
+      <div className="py-3" style={{ borderTop: `1px solid ${C.rule}` }}>
+        <p className="m-0 text-sm font-semibold" style={{ color: C.ink }}>{d.full_name ?? "No name given"}</p>
+        <p className="m-0 mt-0.5 text-xs" style={{ color: C.ink3 }}>{d.email}</p>
+        <p className="m-0 mt-2 text-xs rounded-lg px-3 py-2" style={{ background: "#FBF3DC", border: "1.5px solid #E2C15A", color: "#6B4A0A", lineHeight: 1.5 }}>
+          Invited by <strong>{d.invited_by}</strong>. No letter is needed from you. When this person signs in, the app takes them to that family&apos;s page, where they type the six-digit number the family gave them.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="py-3" style={{ borderTop: `1px solid ${C.rule}` }}>
       <div className="flex items-baseline justify-between gap-3">
@@ -265,7 +278,7 @@ function TellThem({ d, signature, appUrl }: { d: Decided; signature: string | nu
       </div>
       <p className="m-0 mt-0.5 text-xs" style={{ color: C.ink3 }}>
         {d.email}
-        {admit && (d.has_family ? " · has set up a Kutumbh" : " · has not come back yet")}
+        {admit && (d.has_family ? " · has set up a Kutumbh: nothing more to do" : " · has not come back yet: send the letter")}
       </p>
       <div className="flex flex-wrap gap-2 mt-2">
         {d.email && <a href={mailto} className={pill} style={{ background: "#2D1B4E", color: "#fff", textDecoration: "none" }}>Email the letter</a>}
@@ -294,13 +307,13 @@ export default function AtTheDoor({
     >
       <div className="flex items-baseline justify-between gap-3">
         <p className="m-0 text-xs font-semibold uppercase tracking-widest" style={{ color: waiting.length ? "#8A5A06" : C.ink3 }}>
-          At the door{waiting.length ? ` · ${waiting.length}` : ""}
+          Waiting for your approval{waiting.length ? ` · ${waiting.length}` : ""}
         </p>
       </div>
 
       {waiting.length === 0 ? (
         <p className="m-0 mt-2 text-xs" style={{ color: C.ink3, lineHeight: 1.55 }}>
-          Nobody waiting · Make a passcode and send it with the registration link; new registrants appear here.
+          Nobody is waiting. Anyone who registers to start a new family appears here for you to approve. People invited by a family do not come here: their family lets them in.
         </p>
       ) : (
         <div className="mt-1">
@@ -310,9 +323,9 @@ export default function AtTheDoor({
 
       {recent.length > 0 && (
         <div className="mt-4">
-          <p className="m-0 text-xs font-semibold uppercase tracking-widest" style={{ color: C.ink3 }}>Decided lately · tell them</p>
+          <p className="m-0 text-xs font-semibold uppercase tracking-widest" style={{ color: C.ink3 }}>Approved in the last 2 weeks · let them know</p>
           <p className="m-0 mt-1 text-xs" style={{ color: C.ink3, lineHeight: 1.5 }}>
-            The app does not write to a newcomer by itself. Send the letter from your own email or WhatsApp.
+            The app cannot email a newcomer by itself yet. Send each person the ready-made letter from your own email or WhatsApp. Once it says &ldquo;has set up a Kutumbh&rdquo;, nothing more is needed.
           </p>
           {recent.map((d) => <TellThem key={d.user_id} d={d} signature={signature} appUrl={appUrl} />)}
         </div>
@@ -325,7 +338,7 @@ export default function AtTheDoor({
       {/* Whether you will be told, or must remember to look */}
       <p className="m-0 mt-3 text-xs" style={{ color: alertsOn ? C.leaf : C.warn, lineHeight: 1.5 }}>
         {alertsOn
-          ? "You're emailed when someone registers."
+          ? "You get an email whenever someone registers and needs your approval."
           : "Email alerts off · Add RESEND_API_KEY to enable."}
       </p>
     </section>

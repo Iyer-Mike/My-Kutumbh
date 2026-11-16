@@ -6,6 +6,11 @@ import { BRAND as B, FAMILY, look } from "@/lib/brand";
 import RememberInvite from "@/components/RememberInvite";
 import SwitchPerson from "@/components/SwitchPerson";
 
+type Peek = {
+  state: "open" | "expired" | "closed" | "none";
+  kutumbh_id?: string; family?: string | null; key_member?: string | null; invited_email?: string | null;
+};
+
 interface Props {
   params: Promise<{ code: string }>;
 }
@@ -67,12 +72,8 @@ export default async function JoinPage({ params }: Props) {
 
     // Who the invitation was addressed to, so the sign-up form can be
     // filled in already and they never land outside it by mistyping.
-    const { data: addressed } = await supabase
-      .from("kutumbh_invites")
-      .select("invited_email")
-      .eq("invite_code", clean)
-      .maybeSingle();
-    const forEmail: string | null = addressed?.invited_email ?? null;
+    const { data: peekOut } = await supabase.rpc("peek_invite", { p_code: clean });
+    const forEmail: string | null = (peekOut as Peek | null)?.invited_email ?? null;
     return (
       <Shell eyebrow="An invitation" title="A place has been kept for you in a Kutumbh">
         <RememberInvite code={clean} />
@@ -120,12 +121,15 @@ export default async function JoinPage({ params }: Props) {
     );
   }
 
-  // Look up invite
-  const { data: invite } = await supabase
-    .from("kutumbh_invites")
-    .select("kutumbh_id, expires_at, is_active, invited_email, kutumbhs(name)")
-    .eq("invite_code", clean)
-    .maybeSingle();
+  // What the link says. Read through a narrow function: the invitations table
+  // itself is closed to everyone but the family's Key Member, and reading it
+  // directly here once told every invitee that a good link was "not valid".
+  const { data: peeked } = await supabase.rpc("peek_invite", { p_code: clean });
+  const peek = (peeked ?? { state: "none" }) as Peek;
+  const invite = peek.state === "none" ? null : {
+    kutumbh_id: peek.kutumbh_id as string,
+    invited_email: peek.invited_email ?? null,
+  };
 
   // Check if already a member of any kutumbh
   const { data: existingMember } = await supabase
@@ -146,21 +150,11 @@ export default async function JoinPage({ params }: Props) {
     aloneInOwn = (count ?? 0) === 0;
   }
 
-  const kutumbhName = (invite?.kutumbhs as unknown as { name: string } | null)?.name;
-
+  const kutumbhName = peek.family ?? null;
   // Who to ask for the number, by name rather than "whoever invited you"
-  let primeName: string | null = null;
-  if (invite?.kutumbh_id) {
-    const { data: prime } = await supabase
-      .from("family_roster")
-      .select("full_name")
-      .eq("kutumbh_id", invite.kutumbh_id)
-      .eq("role", "owner")
-      .maybeSingle();
-    primeName = prime?.full_name ?? null;
-  }
-  const expired = invite && new Date(invite.expires_at) < new Date();
-  const invalid = !invite || !invite.is_active || expired;
+  const primeName: string | null = peek.key_member ?? null;
+  const expired = peek.state === "expired";
+  const invalid = peek.state !== "open";
 
   // Already in this same kutumbh → go straight to family page
   if (existingMember && invite && existingMember.kutumbh_id === invite.kutumbh_id) {
@@ -198,13 +192,13 @@ export default async function JoinPage({ params }: Props) {
       <Shell eyebrow="An invitation" title="This invite is no longer open">
         <p className="m-0 text-sm text-center" style={{ color: B.muted }}>
           {!invite
-            ? "This invite link is not valid."
+            ? "We could not find this invitation. The link may have been cut short when it was copied."
             : expired
-            ? "This invite link has expired."
-            : "This invite link is no longer active."}
+            ? "This invitation has run out of time."
+            : "This invitation has been used already, or was replaced by a newer one."}
         </p>
         <p className="m-0 text-xs text-center" style={{ color: B.muted2 }}>
-          Ask the Key Member to send you a fresh link.
+          Ask {primeName ?? "the Key Member"} to send you a fresh invitation. If you were given a six-digit number, you can also type it on the next page.
         </p>
         <Link href="/dashboard" className="block text-center py-3.5 rounded-2xl text-sm font-semibold text-white"
           style={{ background: B.button }}>
@@ -250,7 +244,7 @@ export default async function JoinPage({ params }: Props) {
   }
 
   return (
-    <Shell eyebrow="An invitation" title={`A place has been kept for you at the ${kutumbhName}`}>
+    <Shell eyebrow="An invitation" title={`A place has been kept for you at ${kutumbhName ?? "the Kutumbh"}`}>
       <p className="m-0 text-sm text-center" style={{ color: B.muted, lineHeight: 1.6 }}>
         {primeName ? `${primeName} will have given you a six-digit number.` : "You will have been given a six-digit number."}{" "}
         Type it below and you are in.

@@ -66,3 +66,14 @@ export async function setPlannedKey(id: string | null): Promise<Result> {
   revalidatePath("/family");
   return { ok: true };
 }
+
+/** Close an invitation that is still open. Its link and number stop working at once. */
+export async function cancelInvite(id: string): Promise<Result> {
+  const who = await asKeyMember();
+  if ("error" in who) return { ok: false, error: who.error };
+  const { error } = await who.supabase.from("kutumbh_invites")
+    .update({ is_active: false }).eq("id", id).eq("kutumbh_id", who.kutumbhId);
+  if (error) return { ok: false, error: plainly(error.message) };
+  revalidatePath("/family");
+  return { ok: true };
+}

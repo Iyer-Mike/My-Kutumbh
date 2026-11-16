@@ -2,6 +2,7 @@
 
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 /**
  * Inviting someone by name.
@@ -14,6 +15,7 @@ import { useState } from "react";
  * continuous motion rather than three disconnected steps.
  */
 export default function InviteButton({ inviterName, kutumbhName, initialEmail }: { inviterName?: string | null; kutumbhName?: string | null; initialEmail?: string | null }) {
+  const router = useRouter();
   const [email,   setEmail]   = useState(initialEmail ?? "");
   const [minor,   setMinor]   = useState(false);
   const [code,    setCode]    = useState<string | null>(null);
@@ -43,6 +45,7 @@ export default function InviteButton({ inviterName, kutumbhName, initialEmail }:
       setCode(data.code);
       setNumber(data.joinCode ?? null);
       setSentTo(data.invitedEmail ?? null);
+      router.refresh();          // the open-invitations list picks it up, so the number can be found again
     } catch {
       setError("No connection — try again.");
     } finally {
@@ -56,7 +59,7 @@ export default function InviteButton({ inviterName, kutumbhName, initialEmail }:
     `Hi,\n\nI've invited you to join ${kutumbhName ?? "our family"} on My Kutumb Bhojan, our family's food and health app.\n\n` +
     `1. Open this link: ${baseUrl}/join/${code}\n` +
     `2. When asked, enter the 6-digit number I will tell you separately (by phone or message).\n\n` +
-    `The number works once and expires in 24 hours.\n\n${inviterName ? `– ${inviterName}` : "Thanks"}`;
+    `The number works once, for you only, and the invitation is open for 3 days.\n\n${inviterName ? `– ${inviterName}` : "Thanks"}`;
   const [copiedMail, setCopiedMail] = useState(false);
   async function copyMail() {
     try {
@@ -95,7 +98,7 @@ export default function InviteButton({ inviterName, kutumbhName, initialEmail }:
           style={fieldLook(FAMILY.amber)}
         />
         <p className="text-xs mt-0 mb-3" style={{ color: "#6A6180", lineHeight: 1.5 }}>
-          You get a link and a 6-digit number. Send the link; tell them the number.
+          You get a link and a 6-digit number. Send the link; tell them the number. They must register with this same email address.
         </p>
 
         {/* A child cannot agree to anything; whoever can, does it here */}
@@ -154,7 +157,7 @@ export default function InviteButton({ inviterName, kutumbhName, initialEmail }:
           {number}
         </p>
         <p className="text-xs m-0 mt-2" style={{ color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
-          Works once · valid 24 hours
+          Works once, for this person only · open 3 days
         </p>
       </div>
 
@@ -205,7 +208,7 @@ export default function InviteButton({ inviterName, kutumbhName, initialEmail }:
       </div>
 
       <p className="text-xs m-0" style={{ color: "#6A6180", lineHeight: 1.5 }}>
-        You&apos;re notified upon joining. 5 wrong attempts cancels the invite.
+        You&apos;re notified when they join. The number stays listed under &ldquo;Open invitations&rdquo; on this page until then. 5 wrong attempts cancels the invite.
       </p>
     </div>
   );

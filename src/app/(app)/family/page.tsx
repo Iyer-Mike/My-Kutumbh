@@ -13,6 +13,7 @@ import { RemoveMember, LeaveKutumbh } from "@/components/MemberControls";
 import { primeState, touchLastSeen } from "@/lib/prime";
 import InviteButton from "@/components/InviteButton";
 import PlannedMembers, { type PlannedRow } from "@/components/PlannedMembers";
+import OpenInvites, { type OpenInvite } from "@/components/OpenInvites";
 import Link from "next/link";
 import { todayLocal } from "@/lib/dates";
 import { familyOf } from "@/lib/family";
@@ -153,6 +154,16 @@ export default async function FamilyPage() {
     : { data: null };
   const plannedRows: PlannedRow[] = (plannedRaw ?? []).map((p) => ({ ...p, joined: joinedNames.has(norm(p.name)) }));
 
+  // Invitations still open, so the Key Member can find the number and the link again
+  const { data: inviteRaw } = kutumbhId && isOwner
+    ? await supabase.from("kutumbh_invites").select("id, invite_code, join_code, invited_email, expires_at")
+        .eq("kutumbh_id", kutumbhId).eq("is_active", true).gt("expires_at", new Date().toISOString()).order("expires_at")
+    : { data: null };
+  const openInvites: OpenInvite[] = (inviteRaw ?? []).map((i) => ({
+    id: i.id as string, code: i.invite_code as string, number: (i.join_code as string | null) ?? null,
+    email: (i.invited_email as string | null) ?? null, expires_at: i.expires_at as string,
+  }));
+
   // Being here counts as being here — silence is what moves the role
   const { data: mine } = await supabase
     .from("profiles").select("last_seen_at").eq("id", user!.id).maybeSingle();
@@ -265,6 +276,15 @@ export default async function FamilyPage() {
           </div>
         ) : (
           <>
+            {isOwner && (
+              <OpenInvites
+                invites={openInvites}
+                baseUrl={process.env.NEXT_PUBLIC_APP_URL ?? "https://my-kutumbh.vercel.app"}
+                kutumbhName={kutumbhName}
+                inviterName={primeName?.split(" ")[0] ?? null}
+              />
+            )}
+
             {/* ── Invite section (owner only) ── */}
             {isOwner && (
               <div

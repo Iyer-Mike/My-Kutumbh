@@ -28,6 +28,11 @@ export async function offerCode(code: string): Promise<{ ok: boolean; went?: "fa
     if (/too_many_tries/.test(error.message)) {
       return { ok: false, error: "Too many tries just now. Wait an hour, or ask for a fresh code." };
     }
+    if (/invite_other_email/.test(error.message)) {
+      await supabase.rpc("note_join_attempt");
+      return { ok: false, error: `That number belongs to an invitation sent to a different email address. You are signed in as ${user.email}. Sign in with the address the family invited, or ask them to invite this one.` };
+    }
+    if (/wrong_code/.test(error.message)) await supabase.rpc("note_join_attempt");
     if (/in_another_family/.test(error.message)) {
       return { ok: false, error: "You're already in a Kutumbh with other people." };
     }

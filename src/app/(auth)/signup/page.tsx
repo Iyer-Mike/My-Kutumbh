@@ -9,8 +9,8 @@ import { FAMILY, look, fieldLook } from "@/lib/brand";
 import { inviteFromPath, pendingInvite, rememberInvite } from "@/lib/invite";
 import { emailReturnTo } from "@/lib/gate";
 import { authErrorText, checkEmail } from "@/lib/auth-error";
-import KutumbhLogo from "@/components/KutumbhLogo";
 import PasswordRules, { passwordOk } from "@/components/PasswordRules";
+import VerifyEmail from "@/components/VerifyEmail";
 
 function SignupForm() {
   const searchParams = useSearchParams();
@@ -83,41 +83,19 @@ function SignupForm() {
       return;
     }
 
+    // With confirmation on, an address that already has an account comes back
+    // looking like a new one, but no email is sent: say so rather than leave them waiting.
+    if (data.user && (data.user.identities?.length ?? 1) === 0) {
+      setError("This email already has an account. Tap Sign in below, or use Forgot password if you don't remember it.");
+      setLoading(false);
+      return;
+    }
+
     setSent(true);
     setLoading(false);
   }
 
-  if (sent) {
-    return (
-      <div className="w-full max-w-sm text-center">
-        <div
-          className="rounded-3xl px-6 pt-10 pb-8 mb-6"
-          style={{ background: "linear-gradient(160deg, #241238 0%, #3A2260 60%, #4E3080 100%)" }}
-        >
-          <div className="flex justify-center mb-4">
-            <KutumbhLogo size={52} color="#ffffff" />
-          </div>
-          <h2 className="text-2xl text-white" style={{ fontFamily: "var(--font-dm-serif)" }}>
-            Check your inbox
-          </h2>
-          <p className="text-sm mt-3" style={{ color: "rgba(255,255,255,0.65)" }}>
-            We sent a confirmation link to
-          </p>
-          <p className="text-sm font-semibold mt-1" style={{ color: "#C9B8E4" }}>{email}</p>
-          <p className="text-sm mt-3" style={{ color: "rgba(255,255,255,0.55)" }}>
-            Click the link, then come back here to sign in.
-          </p>
-        </div>
-        <Link
-          href={loginHref}
-          className="block w-full py-3.5 rounded-xl font-semibold text-sm text-white text-center"
-          style={{ background: "#241238" }}
-        >
-          Go to Sign in
-        </Link>
-      </div>
-    );
-  }
+  if (sent) return <VerifyEmail email={email} next={redirectTo} loginHref={loginHref} />;
 
   return (
     <div className="w-full max-w-sm">
@@ -163,7 +141,7 @@ function SignupForm() {
 
         {!invitedToFamily && (
           <p className="m-0 text-xs rounded-xl px-3 py-2.5" style={{ background: "#F3EEFA", border: "2px solid #CBB4EE", color: "#4A4360", lineHeight: 1.55 }}>
-            Anyone can register. After you do, a person at My Kutumb Bhojan welcomes you in — usually within a day.
+            Three steps: register here, confirm your email with the code we send, then name your family. You can start straight away.
           </p>
         )}
 

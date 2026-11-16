@@ -1,5 +1,5 @@
 import { FAMILY, look } from "@/lib/brand";
-import { MONTH_FAMILY_RUPEES, DAY_PERSON_RUPEES } from "@/lib/ai-budget";
+import { MONTH_FAMILY_RUPEES, DAY_PERSON_RUPEES, STARTER_DAYS } from "@/lib/ai-budget";
 
 /** Whole rupees, always. Anything under one rupee is said in words. */
 const rupees = (amount: number) =>
@@ -9,9 +9,11 @@ const rupees = (amount: number) =>
  * What the family's thinking has cost this month, and what is left.
  * Shown plainly, before anyone is ever refused.
  */
-export default function AiSpendCard({ familyRupees, myRupees }: { familyRupees: number; myRupees: number }) {
-  const used = Math.min(100, Math.round((familyRupees / MONTH_FAMILY_RUPEES) * 100));
-  const spent = familyRupees >= MONTH_FAMILY_RUPEES;
+export default function AiSpendCard({ familyRupees, myRupees, allowance = MONTH_FAMILY_RUPEES, starter = false }: {
+  familyRupees: number; myRupees: number; allowance?: number; starter?: boolean;
+}) {
+  const used = allowance > 0 ? Math.min(100, Math.round((familyRupees / allowance) * 100)) : 100;
+  const spent = familyRupees >= allowance;
 
   return (
     <section className="rounded-2xl px-4 py-4" style={look(FAMILY.amber)}>
@@ -21,8 +23,13 @@ export default function AiSpendCard({ familyRupees, myRupees }: { familyRupees: 
 
       <p className="text-sm mt-2 mb-2" style={{ color: "#241C33" }}>
         <span className="font-semibold">{rupees(familyRupees)}</span>
-        <span style={{ color: "#6A6180" }}> of {rupees(MONTH_FAMILY_RUPEES)} · whole Kutumbh</span>
+        <span style={{ color: "#6A6180" }}> of {rupees(allowance)} · whole Kutumbh</span>
       </p>
+      {starter && (
+        <p className="text-xs mt-0 mb-2" style={{ color: "#6A6180", lineHeight: 1.5 }}>
+          A starter allowance for your first {STARTER_DAYS} days. It rises to {rupees(MONTH_FAMILY_RUPEES)} a month after that.
+        </p>
+      )}
 
       <div className="h-2 rounded-full overflow-hidden" style={{ background: "#E7DCF7" }}>
         <div

@@ -16,6 +16,45 @@ export const MONTH_FAMILY_RUPEES = 500; // a month, the whole Kutumbh
 export const DAY_PERSON_RUPEES   = 100; // a day, one person
 
 /**
+ * A new family starts small. Anyone may register without the Admin's
+ * approval, so a Kutumbh's first month has a starter allowance; after that
+ * it has the usual one. The Admin can set either figure for a family by hand.
+ */
+export const STARTER_RUPEES = 100;
+export const STARTER_DAYS   = 30;
+
+/** This family's AI allowance for the month, in rupees. */
+export function familyAllowance(createdAt: string | null | undefined, override: number | null | undefined, now = Date.now()): number {
+  if (override != null && Number.isFinite(Number(override)) && Number(override) >= 0) return Number(override);
+  const born = createdAt ? Date.parse(createdAt) : NaN;
+  if (Number.isFinite(born) && now - born < STARTER_DAYS * 86_400_000) return STARTER_RUPEES;
+  return MONTH_FAMILY_RUPEES;
+}
+
+export type FamilyLimit = { allowance: number; blocked: boolean; starter: boolean };
+
+/** What this family may spend, and whether the Admin has paused it. A limit we cannot read falls back to the usual one. */
+export async function familyLimit(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any, any, any>,
+  kutumbhId: string | null,
+): Promise<FamilyLimit> {
+  const usual: FamilyLimit = { allowance: MONTH_FAMILY_RUPEES, blocked: false, starter: false };
+  if (!kutumbhId) return usual;
+  try {
+    const [{ data: fam }, { data: lim }] = await Promise.all([
+      supabase.from("kutumbhs").select("created_at").eq("id", kutumbhId).maybeSingle(),
+      supabase.from("kutumbh_limits").select("ai_month_rupees, blocked").eq("kutumbh_id", kutumbhId).maybeSingle(),
+    ]);
+    const override = lim?.ai_month_rupees != null ? Number(lim.ai_month_rupees) : null;
+    const allowance = familyAllowance(fam?.created_at ?? null, override);
+    return { allowance, blocked: lim?.blocked === true, starter: override == null && allowance === STARTER_RUPEES };
+  } catch {
+    return usual;
+  }
+}
+
+/**
  * The ceiling above the ceilings. One card pays for every Kutumbh, so
  * the app as a whole has a limit of its own — otherwise ten families
  * with ₹500 each would be ₹5,000 on that card.
@@ -66,7 +105,7 @@ export function rupeesFor(model: string, usage: Usage): number {
 }
 
 export type BudgetVerdict =
-  | { ok: true; familyRupees: number; myRupees: number }
+  | { ok: true; familyRupees: number; myRupees: number; allowance: number; starter: boolean }
   | { ok: false; message: string; status: number };
 
 /**
@@ -79,14 +118,22 @@ export async function checkBudget(
   userId: string,
   kutumbhId: string | null,
 ): Promise<BudgetVerdict> {
-  // Anyone may register, but only someone the Admin has let in may spend
-  // money. Every AI route asks here, so a person still waiting cannot reach
-  // an AI feature by any route, whatever they send to the server.
+  // Only someone let in may spend money. Every AI route asks here, so a person
+  // who has been turned away cannot reach an AI feature by any route.
   if ((await standingOf(supabase, userId)) !== "admitted") {
     return {
       ok: false,
       status: 403,
       message: "The AI features open once you have been welcomed in to My Kutumb Bhojan.",
+    };
+  }
+
+  const limit = await familyLimit(supabase, kutumbhId);
+  if (limit.blocked) {
+    return {
+      ok: false,
+      status: 403,
+      message: "The AI features are paused for your Kutumbh. Please write to the person who looks after My Kutumb Bhojan.",
     };
   }
 
@@ -123,14 +170,16 @@ export async function checkBudget(
     };
   }
 
-  if (familyRupees >= MONTH_FAMILY_RUPEES) {
+  if (familyRupees >= limit.allowance) {
     return {
       ok: false,
       status: 429,
       message:
-        `Your Kutumbh has used its ₹${MONTH_FAMILY_RUPEES} of AI for this month. ` +
-        `Menus, logging, the shopping list and recipes all carry on as usual — ` +
-        `the photograph readers and the coach will be back next month.`,
+        `Your Kutumbh has used its ₹${limit.allowance} of AI for this month. ` +
+        `Menus, logging, the shopping list and recipes all carry on as usual. ` +
+        (limit.starter
+          ? `A new Kutumbh starts with a smaller allowance for its first ${STARTER_DAYS} days; it rises to ₹${MONTH_FAMILY_RUPEES} after that.`
+          : `The photograph readers and the coach will be back next month.`),
     };
   }
   if (myRupees >= DAY_PERSON_RUPEES) {
@@ -143,7 +192,7 @@ export async function checkBudget(
         `try this again tomorrow.`,
     };
   }
-  return { ok: true, familyRupees, myRupees };
+  return { ok: true, familyRupees, myRupees, allowance: limit.allowance, starter: limit.starter };
 }
 
 /**

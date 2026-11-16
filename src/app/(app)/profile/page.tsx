@@ -135,7 +135,7 @@ export default async function ProfilePage() {
           </section>
         )}
 
-        {spend.ok && <AiSpendCard familyRupees={spend.familyRupees} myRupees={spend.myRupees} />}
+        {spend.ok && <AiSpendCard familyRupees={spend.familyRupees} myRupees={spend.myRupees} allowance={spend.allowance} starter={spend.starter} />}
 
         {/* ── Health Basics ── */}
         <ProfileEditCard

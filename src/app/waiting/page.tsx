@@ -29,13 +29,16 @@ export default async function WaitingPage() {
 
   if (standing === "admitted") redirect("/onboarding");
 
-  // Registration is open to anyone: a person with an account and no entry
-  // yet is simply asked into the waiting room, and the Admin decides.
-  // (A declined person is left as declined; the function never reverses it.)
-  if (standing === "unknown") {
+  // Registration lets a person in at once: nobody waits for the Admin any more.
+  // (Someone the Admin turned away stays turned away; the function never reverses it.)
+  if (standing === "unknown" || standing === "waiting") {
     const { data: placed, error: placeError } = await supabase.rpc("request_admission");
     if (!placeError && placed === "waiting") standing = "waiting";
-    if (!placeError && placed === "admitted") redirect("/onboarding");
+    if (!placeError && placed === "admitted") {
+      // The Admin is told of each newcomer once, for information: nothing waits on him
+      await tellAdminIfWaiting(supabase, user, process.env.NEXT_PUBLIC_APP_URL ?? "https://my-kutumbh.vercel.app");
+      redirect("/onboarding");
+    }
   }
 
   const declined = standing === "declined";
@@ -75,7 +78,7 @@ export default async function WaitingPage() {
 
           <h1 className="mt-2 mb-0 text-2xl" style={{ fontFamily: "var(--font-dm-serif)", color: "#241C33" }}>
             {declined
-              ? "Your registration was not approved"
+              ? "This account has been closed"
               : neverKnocked
               ? "Almost there"
               : "Thank you — you're registered"}

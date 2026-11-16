@@ -5,7 +5,7 @@ import { decisionLetter } from "./door-letter.ts";
 describe("the letter to a newcomer", () => {
   test("a welcome names the person, carries the note and the sign-in link", () => {
     const l = decisionLetter({ name: "Asha", admit: true, note: " Glad you are here. ", appUrl: "https://x.app/", signature: "Mohan" });
-    assert.match(l.subject, /approved/);
+    assert.match(l.subject, /Welcome/);
     assert.match(l.text, /^Dear Asha,/);
     assert.match(l.text, /Glad you are here\./);
     assert.match(l.text, /https:\/\/x\.app\/login/);

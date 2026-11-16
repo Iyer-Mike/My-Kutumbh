@@ -54,6 +54,12 @@ function LoginForm() {
     const { data, error } = await withOneRetry(() => supabase.auth.signInWithPassword({ email: checked.email, password }));
 
     if (error) {
+      // Registered but never confirmed: take them to the code box and send a fresh code
+      if ((error as { code?: string }).code === "email_not_confirmed" || /not confirmed/i.test(error.message)) {
+        await supabase.auth.resend({ type: "signup", email: checked.email });
+        router.push(`/verify?email=${encodeURIComponent(checked.email)}`);
+        return;
+      }
       setError(authErrorText(error));
       setLoading(false);
       return;

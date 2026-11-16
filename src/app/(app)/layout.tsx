@@ -7,6 +7,7 @@ import { FamilyTimeProvider } from "@/lib/family-time";
 import { familyOf } from "@/lib/family";
 import { standingOf } from "@/lib/admission";
 import { pendingConsents } from "@/lib/consent";
+import { familyLimit } from "@/lib/ai-budget";
 
 export default async function AppLayout({
   children,
@@ -20,9 +21,9 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  // Two doors. This is the first: has the Admin let them into My
-  // Kutumbh at all? Someone still waiting sees the waiting room and
-  // nothing else — no family, no logging, no coach.
+  // Two doors. This is the first: are they in the app at all? Registering
+  // lets a person in at once; only someone the Admin has turned away is
+  // held at the waiting page.
   // The three questions do not depend on one another, so they are asked
   // together; the doors below still open in the same order.
   const [standing, consents, family] = await Promise.all([
@@ -49,6 +50,12 @@ export default async function AppLayout({
   }
 
   const { kutumbhId, timeZone } = family;
+
+  // A family the Admin has paused sees one page saying so, and nothing else.
+  // (The Admin's own desk stays open to the Admin whatever happens.)
+  if (kutumbhId && (await familyLimit(supabase, kutumbhId)).blocked) {
+    redirect("/paused");
+  }
 
   // Admitted, but belonging to no family. It should not be possible —
   // and one account in five was in exactly this state, left there by an

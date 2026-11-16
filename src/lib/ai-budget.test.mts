@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { rupeesFor, checkBudget, MONTH_FAMILY_RUPEES, DAY_PERSON_RUPEES, MONTH_APP_RUPEES } from "./ai-budget.ts";
+import { rupeesFor, checkBudget, familyAllowance, MONTH_FAMILY_RUPEES, DAY_PERSON_RUPEES, MONTH_APP_RUPEES, STARTER_RUPEES } from "./ai-budget.ts";
 
 // A stand-in for the database: it answers with whatever rows we hand it.
 // The gate asks two questions — the family's month, then the person's day.
@@ -139,5 +139,21 @@ describe("only someone the Admin has let in may spend", () => {
     const db = { ...ledger([0], [0]), from: (t: string) => (t === "app_admissions" ? admission(null, true) : ledger([0], [0]).from(t)) };
     const v = await checkBudget(db as never, "u1", "k1");
     assert.equal(v.ok, true);
+  });
+});
+
+describe("a family's monthly allowance", () => {
+  const now = Date.parse("2026-11-16T00:00:00Z");
+  test("a new Kutumbh starts small for its first thirty days", () => {
+    assert.equal(familyAllowance("2026-11-15T07:00:00Z", null, now), STARTER_RUPEES);
+    assert.equal(familyAllowance("2026-10-18T00:00:00Z", null, now), STARTER_RUPEES);
+  });
+  test("after that it has the usual allowance", () => {
+    assert.equal(familyAllowance("2026-10-16T00:00:00Z", null, now), MONTH_FAMILY_RUPEES);
+    assert.equal(familyAllowance(null, null, now), MONTH_FAMILY_RUPEES);
+  });
+  test("the Admin's figure wins, in either direction", () => {
+    assert.equal(familyAllowance("2026-11-15T07:00:00Z", 300, now), 300);
+    assert.equal(familyAllowance("2026-01-01T00:00:00Z", 0, now), 0);
   });
 });

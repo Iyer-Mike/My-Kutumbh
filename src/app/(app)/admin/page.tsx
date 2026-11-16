@@ -7,6 +7,7 @@ import WithdrawLetter from "@/components/WithdrawLetter";
 import AtTheDoor from "@/components/AtTheDoor";
 import { MONTH_APP_RUPEES, familyAllowance } from "@/lib/ai-budget";
 import FamilyLimitControls from "@/components/FamilyLimitControls";
+import Legend from "@/components/Legend";
 import { familyOf } from "@/lib/family";
 import { canSendMail } from "@/lib/mail";
 import { FAMILY, look } from "@/lib/brand";
@@ -252,25 +253,56 @@ export default async function AdminPage() {
           </section>
         )}
 
-        {/* ── Invitations ── */}
+        {/* ── Invitations: who was invited, and how each one ended ── */}
         {desk.invites.length > 0 && (
           <section className="rounded-2xl px-4 py-4" style={look(FAMILY.violet)}>
-            <p className="text-xs font-semibold uppercase tracking-widest m-0 mb-3" style={{ color: "#6A6180" }}>
-              Invitations
+            <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#6A6180" }}>
+              Family invitations · latest {desk.invites.length}
             </p>
-            {desk.invites.map((i, n) => (
-              <div key={n} className="flex items-baseline justify-between text-xs py-1">
-                <span style={{ color: "#241C33" }}>{i.kutumbh_name}</span>
-                <span style={{ color: "#6A6180" }}>
-                  {i.used} joined · {i.active ? "open" : "closed"}
-                </span>
-              </div>
-            ))}
+            <p className="text-xs mt-1 mb-1" style={{ color: "#6A6180", lineHeight: 1.5 }}>
+              {desk.invites.filter((i) => i.state === "joined").length} joined ·{" "}
+              {desk.invites.filter((i) => i.state === "open").length} open ·{" "}
+              {desk.invites.filter((i) => i.state !== "joined" && i.state !== "open").length} ended without joining
+            </p>
+            {desk.invites.map((i, n) => {
+              const day = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+              const tone = i.state === "joined" ? "#2F6B34" : i.state === "open" ? "#6B46B8" : "#8A5A06";
+              const what =
+                i.state === "joined" ? "Joined the family."
+                : i.state === "open" ? `Open until ${day(i.expires)}. Waiting for the person to type the number.`
+                : i.state === "expired" ? `Ran out of time on ${day(i.expires)}. Nobody joined.`
+                : i.state === "closed_tries" ? "Closed after 5 wrong numbers. Nobody joined."
+                : "Cancelled, or replaced by a newer invitation. Nobody joined.";
+              return (
+                <div key={n} className="py-2" style={{ borderTop: "1px solid #DDD0F3" }}>
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="font-semibold" style={{ color: "#241C33" }}>
+                      {i.invited_name ?? i.invited_email ?? "No name or email recorded"}
+                      {i.for_minor ? " (under 18)" : ""}
+                    </span>
+                    <span className="text-xs flex-shrink-0" style={{ color: "#6A6180" }}>{i.made ? `sent ${day(i.made)}` : "sent earlier"}</span>
+                  </div>
+                  <p className="m-0 text-xs" style={{ color: "#6A6180" }}>
+                    to {i.kutumbh_name}{i.invited_name && i.invited_email ? ` · ${i.invited_email}` : ""}
+                  </p>
+                  <p className="m-0 mt-0.5 text-xs font-medium" style={{ color: tone, lineHeight: 1.5 }}>
+                    {what}{i.attempts > 0 && i.state !== "closed_tries" ? ` ${i.attempts} wrong ${i.attempts === 1 ? "try" : "tries"}.` : ""}
+                  </p>
+                </div>
+              );
+            })}
+            <div className="mt-2">
+              <Legend title="Outcome" entries={[
+                { colour: "#2F6B34", label: "Joined" },
+                { colour: "#6B46B8", label: "Still open" },
+                { colour: "#8A5A06", label: "Ended without joining" },
+              ]} />
+            </div>
           </section>
         )}
 
         <p className="text-xs text-center pt-2 pb-4 m-0" style={{ color: "#8A80A0" }}>
-          Counts and timings only · No family&apos;s food, labs, photos or questions are visible.
+          Names, counts and timings only · No family&apos;s food, labs, photos or questions are visible.
         </p>
       </main>
     </div>

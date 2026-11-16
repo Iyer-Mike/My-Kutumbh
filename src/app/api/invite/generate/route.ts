@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkEmail } from "@/lib/auth-error";
 import { createClient } from "@/lib/supabase/server";
 import { DOCS, fingerprint } from "@/lib/legal";
 
@@ -45,10 +46,10 @@ export async function POST(req: NextRequest) {
     forMinor = body.forMinor === true;
     const raw = body.email?.trim().toLowerCase() ?? "";
     if (raw) {
-      if (!/^[^s@]+@[^s@]+.[^s@]{2,}$/.test(raw)) {
-        return NextResponse.json({ error: "That doesn't look like an email address." }, { status: 400 });
-      }
-      invitedEmail = raw;
+      // The shared check: it says exactly what is wrong with the address
+      const checked = checkEmail(raw);
+      if (checked.problem) return NextResponse.json({ error: checked.problem }, { status: 400 });
+      invitedEmail = checked.email;
     }
   } catch {
     // No body at all: an open link, as before. Older links behave this way.

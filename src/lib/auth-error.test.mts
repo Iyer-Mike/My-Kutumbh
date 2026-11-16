@@ -6,6 +6,9 @@ describe("checking an email address as typed", () => {
   test("a good address is cleaned and passes", () => {
     assert.deepEqual(checkEmail("  Asha.Rao@Gmail.com "), { email: "asha.rao@gmail.com", problem: null });
     assert.equal(checkEmail("a.b+c@remedazo.co.in").problem, null);
+    // Addresses with the letter "s" were once refused by a faulty pattern
+    assert.equal(checkEmail("isserjasveen@gmail.com").problem, null);
+    assert.equal(checkEmail("sss@sss.subs").problem, null);
   });
   test("each slip gets its own sentence", () => {
     assert.match(checkEmail("").problem!, /type your email/);

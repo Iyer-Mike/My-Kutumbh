@@ -7,6 +7,7 @@ import { DEFAULT_TIME_ZONE, deviceTimeZone } from "@/lib/dates";
 import { useRouter } from "next/navigation";
 import { bodyProblem } from "@/lib/body-check";
 import KutumbhLogo from "@/components/KutumbhLogo";
+import EnterAnyCode from "@/components/EnterAnyCode";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
 
 // ── Prakriti questions ────────────────────────────────────────────
@@ -198,6 +199,19 @@ export default function OnboardingPage() {
       const { data } = await supabase.from("kutumbh_members").select("kutumbh_id").eq("user_id", user.id).limit(1);
       if (data && data.length > 0) forgetInvite();
       else router.replace(`/join/${code}`);
+    });
+  }, [router]);
+
+  // A family has invited this address: they belong at that family's door, not
+  // here naming a second Kutumbh. (Checked on the server, so it works on any phone.)
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data: mine } = await supabase.from("kutumbh_members").select("kutumbh_id").eq("user_id", user.id).limit(1);
+      if (mine && mine.length > 0) return;
+      const { data: invited } = await supabase.rpc("my_open_invite");
+      if (typeof invited === "string" && invited) router.replace(`/join/${invited}`);
     });
   }, [router]);
 
@@ -440,6 +454,16 @@ export default function OnboardingPage() {
           Continue →
         </button>
       </form>
+
+      <details className="mt-5 rounded-xl px-3 py-2.5" style={look(FAMILY.gold)}>
+        <summary className="text-sm font-semibold cursor-pointer" style={{ color: FAMILY.gold.ink }}>
+          Invited by a family? Don&apos;t start a new one
+        </summary>
+        <p className="m-0 mt-2 text-xs" style={{ color: "#625A75", lineHeight: 1.5 }}>
+          If a family member invited you, join their Kutumbh with the six-digit number they gave you.
+        </p>
+        <EnterAnyCode />
+      </details>
     </Wrap>
   );
 

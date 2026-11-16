@@ -16,12 +16,17 @@ const REASONS: Record<string, { message: string; status: number }> = {
     status: 429,
   },
   invite_expired: {
-    message: "That invitation has expired — they last a day. Ask for a new one.",
+    message: "That invitation has run out of time (they last three days). Ask for a new one.",
     status: 410,
   },
   invite_closed_after_tries: {
     message: "That invitation was closed after too many wrong numbers. Ask for a fresh one.",
     status: 410,
+  },
+  invite_other_email: {
+    message:
+      "That number belongs to an invitation sent to a different email address. Sign in with the address the family invited, or ask them to invite the address you are using.",
+    status: 403,
   },
   in_another_family: {
     message:
@@ -55,6 +60,9 @@ export async function POST(req: NextRequest) {
     if (key === "wrong_code" && body.link) {
       await supabase.rpc("note_wrong_code", { p_link: body.link });
     }
+
+    // Counted here, in a call of its own: a row written inside the refused call is undone with it
+    if (key === "wrong_code" || key === "invite_other_email") await supabase.rpc("note_join_attempt");
 
     const known = key ? REASONS[key] : null;
     return NextResponse.json(

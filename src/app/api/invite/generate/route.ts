@@ -55,18 +55,21 @@ export async function POST(req: NextRequest) {
     // No body at all: an open link, as before. Older links behave this way.
   }
 
-  // Deactivate any previously active invites for this kutumbh
-  await supabase
+  // A fresh invitation replaces an older one to the SAME person only. Invitations
+  // to other family members stay open: inviting a second person used to cancel the first.
+  const older = supabase
     .from("kutumbh_invites")
     .update({ is_active: false })
     .eq("kutumbh_id", membership.kutumbh_id)
-    .eq("created_by", user.id);
+    .eq("created_by", user.id)
+    .eq("is_active", true);
+  await (invitedEmail ? older.eq("invited_email", invitedEmail) : older.is("invited_email", null));
 
-  // The link identifies the invitation; the number admits. A spoken
-  // number is used within minutes, so it lives a day rather than a week.
+  // The link identifies the invitation; the number admits, and only the invited
+  // address can use it. Three days: a day proved too short for a family to act on.
   const code = randomCode(8);
   const joinCode = spokenNumber();
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const expires = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
   // The guardian's four columns are added ONLY when the box was
   // ticked, so that an ordinary invitation is the same statement it
   // always was. Phase 27 may not have run yet on a given deployment,

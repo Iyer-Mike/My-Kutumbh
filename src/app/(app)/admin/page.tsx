@@ -127,24 +127,36 @@ export default async function AdminPage() {
           </section>
         )}
 
-        {/* ── Anyone who signed up and never got into a family ── */}
+        {/* ── Anyone who registered and is not in a family yet, with what happens next ── */}
         {desk.stranded.length > 0 && (
-          <section className="rounded-2xl px-4 py-4" style={look(FAMILY.red)}>
-            <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#B0453A" }}>
-              Signed up, no family · {desk.stranded.length}
+          <section className="rounded-2xl px-4 py-4" style={look(FAMILY.gold)}>
+            <p className="text-xs font-semibold uppercase tracking-widest m-0" style={{ color: "#8A5A06" }}>
+              Registered, not in a family yet · {desk.stranded.length}
             </p>
-            <p className="text-xs mt-1 mb-3" style={{ color: "#6A6180" }}>
-In the app, no family · Ask them to name one.
+            <p className="text-xs mt-1 mb-2" style={{ color: "#6A6180", lineHeight: 1.5 }}>
+              Each person, and what happens next.
             </p>
-            {desk.stranded.map((s, n) => (
-              <div key={n} className="flex items-baseline justify-between text-sm py-1">
-                <span style={{ color: "#241C33" }}>{s.full_name}</span>
-                <span className="text-xs" style={{ color: "#6A6180" }}>
-                  {s.email} · {since(s.joined).label}
-                  {!s.confirmed && " · never confirmed"}
-                </span>
-              </div>
-            ))}
+            {desk.stranded.map((s, n) => {
+              const next = s.invited_by
+                ? `Invited by ${s.invited_by}. They need that family's six-digit number. Nothing for you to do.`
+                : s.standing === "waiting"
+                ? "Waiting for your approval, above."
+                : s.standing === "declined"
+                ? "You declined this registration."
+                : s.standing === "admitted"
+                ? "Approved, but has not named a Kutumbh yet. Send the welcome letter, above, as a reminder."
+                : "Registered but never opened the app again.";
+              return (
+                <div key={n} className="py-2" style={{ borderTop: n ? "1px solid #EADFC2" : undefined }}>
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="font-semibold" style={{ color: "#241C33" }}>{s.full_name}</span>
+                    <span className="text-xs flex-shrink-0" style={{ color: "#6A6180" }}>{since(s.joined).label}</span>
+                  </div>
+                  {s.email && <p className="m-0 text-xs" style={{ color: "#6A6180" }}>{s.email}</p>}
+                  <p className="m-0 mt-0.5 text-xs" style={{ color: "#4A4360", lineHeight: 1.5 }}>{next}</p>
+                </div>
+              );
+            })}
           </section>
         )}
 

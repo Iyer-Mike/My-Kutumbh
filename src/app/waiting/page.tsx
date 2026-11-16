@@ -19,6 +19,14 @@ export default async function WaitingPage() {
   if (!user) redirect("/login");
 
   let standing = await standingOf(supabase, user.id);
+
+  // A family has invited this person: their place is the family's own door,
+  // where the six-digit number lets them in. The Admin has nothing to decide.
+  if (standing !== "declined") {
+    const { data: invited } = await supabase.rpc("my_open_invite");
+    if (typeof invited === "string" && invited) redirect(`/join/${invited}`);
+  }
+
   if (standing === "admitted") redirect("/onboarding");
 
   // Registration is open to anyone: a person with an account and no entry
@@ -112,12 +120,13 @@ export default async function WaitingPage() {
 
               {!neverKnocked && (
                 <p className="mt-5 mb-0 text-xs" style={{ color: "#6A6180", lineHeight: 1.6 }}>
-                  Nothing more is needed from you now. Open this page again later and it will have moved on,
-                  or the person who invited you will say so.
+                  Nothing more is needed from you now. Open this page again later and it will have moved on.
+                  Were you invited by a family? Then you don&apos;t need to wait: type the six-digit number they gave you below.
                 </p>
               )}
 
-              {neverKnocked && <EnterAnyCode />}
+              {/* Whoever holds a family's number can use it here, at any point of the wait */}
+              <EnterAnyCode />
             </>
           )}
 

@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
 import { FAMILY, look, fieldLook } from "@/lib/brand";
-import { inviteFromPath, rememberInvite } from "@/lib/invite";
+import { inviteFromPath, pendingInvite, rememberInvite } from "@/lib/invite";
 import { emailReturnTo } from "@/lib/gate";
 import { authErrorText, checkEmail } from "@/lib/auth-error";
 import KutumbhLogo from "@/components/KutumbhLogo";
@@ -16,7 +16,8 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const redirectTo   = searchParams.get("redirect") ?? null;
 
-  const [email, setEmail] = useState("");
+  // The invitation page passes on the address the family invited
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
   // Someone arriving on a family's invitation does not need a passcode
   // from the Admin: their Key Member is vouching for them, and the
   // six-digit number on the next page does the same work.
@@ -72,12 +73,12 @@ function SignupForm() {
         window.location.href = redirectTo!;
         return;
       }
+      // An invitation opened earlier on this phone, before they found their way here
+      const remembered = pendingInvite();
+      if (remembered) { window.location.href = `/join/${remembered}`; return; }
 
-      // Anyone may register. The Admin decides who is let in: ask for a
-      // place in the waiting room now (the waiting page asks again, so a
-      // failure here costs nothing).
-      await supabase.rpc("request_admission");
-
+      // Anyone may register. The waiting page sorts out where they belong:
+      // to a family that invited this address, or to the Admin's waiting room.
       window.location.href = "/waiting";
       return;
     }

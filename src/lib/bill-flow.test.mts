@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { approveLines, shelfLines, parseNumber } from "./bill-flow.ts";
+import { approveLines, lineAmount, shelfLines, parseNumber } from "./bill-flow.ts";
 import { billCheck, billAmount, monthReport } from "./spend.ts";
 
 const draft = [
@@ -50,5 +50,26 @@ describe("from a checked bill to what is recorded", () => {
     assert.equal(r.total, 275.5);
     assert.equal(r.byCategory.reduce((s, c) => s + c.amount, 0), 275.5);   // categories add up to the bill when every line is priced... here Milk is unpriced
     assert.equal(r.unpriced, 1);
+  });
+});
+
+describe("the amount on a bill line", () => {
+  test("a part of a pack is multiplied and rounded to the nearest 5 g", () => {
+    assert.deepEqual(lineAmount({ pack_size: 225, pack_unit: "g", count: 1.07, unit: null }), { quantity: 240, unit: "g" });
+    assert.deepEqual(lineAmount({ pack_size: 500, pack_unit: "g", count: 0.486, unit: null }), { quantity: 245, unit: "g" });
+    assert.deepEqual(lineAmount({ pack_size: 1, pack_unit: "kg", count: 1.07, unit: null }), { quantity: 1.07, unit: "kg" });
+  });
+  test("whole packs multiply exactly", () => {
+    assert.deepEqual(lineAmount({ pack_size: 225, pack_unit: "g", count: 2, unit: "packet" }), { quantity: 450, unit: "g" });
+    assert.deepEqual(lineAmount({ pack_size: 1, pack_unit: "l", count: 3, unit: null }), { quantity: 3, unit: "l" });
+    assert.deepEqual(lineAmount({ pack_size: 7, pack_unit: "g", count: 1, unit: null }), { quantity: 7, unit: "g" });
+  });
+  test("a pack size with no count is one pack", () => {
+    assert.deepEqual(lineAmount({ pack_size: 500, pack_unit: "ml", count: null, unit: null }), { quantity: 500, unit: "ml" });
+  });
+  test("no pack size: the count is the amount", () => {
+    assert.deepEqual(lineAmount({ pack_size: null, pack_unit: null, count: 1.07, unit: "kg" }), { quantity: 1.07, unit: "kg" });
+    assert.deepEqual(lineAmount({ pack_size: null, pack_unit: null, count: 2, unit: "packet" }), { quantity: 2, unit: "packet" });
+    assert.deepEqual(lineAmount({ pack_size: null, pack_unit: null, count: null, unit: null }), { quantity: null, unit: null });
   });
 });

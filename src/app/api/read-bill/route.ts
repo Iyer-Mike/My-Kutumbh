@@ -8,6 +8,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIES, UNITS } from "@/lib/pantry";
+import { lineAmount } from "@/lib/bill-flow";
 
 const CATEGORY_KEYS = CATEGORIES.map((c) => c.key) as [string, ...string[]];
 const UNIT_KEYS = UNITS as unknown as [string, ...string[]];
@@ -19,7 +20,9 @@ const Bill = z.object({
   total: z.number().nullable(),
   items: z.array(z.object({
     name: z.string(),
-    quantity: z.number().nullable(),
+    pack_size: z.number().nullable(),
+    pack_unit: z.enum(["g", "kg", "ml", "l"]).nullable(),
+    count: z.number().nullable(),
     unit: z.enum(UNIT_KEYS).nullable(),
     category: z.enum(CATEGORY_KEYS),
     is_food: z.boolean(),
@@ -31,17 +34,19 @@ const SYSTEM = `You read a bill from an Indian shop and list what was bought, fo
 
 First decide kind. "grocery" is a shop bill for things taken home: groceries, vegetables, milk, household goods. "eating_out" is a bill for food eaten or ordered ready to eat: a restaurant, café, hotel, canteen, sweet shop counter, or a delivery app such as Swiggy or Zomato.
 
-For an eating_out bill: list each dish or drink as a line with its plain name, quantity as the number ordered with unit null, category other, is_food false, and the line's price. If taxes, service charge, packing or delivery are printed as amounts, add one line named "Taxes and charges" with their printed sum, is_food false. Never invent an amount.
+For an eating_out bill: list each dish or drink as a line with its plain name, count as the number ordered with pack_size, pack_unit and unit null, category other, is_food false, and the line's price. If taxes, service charge, packing or delivery are printed as amounts, add one line named "Taxes and charges" with their printed sum, is_food false. Never invent an amount.
 
 Bills are printed in shorthand: expand it into the plain name a family uses.
 "TOOR DAL 1KG" → Toor dal, 1 kg. "AMUL TAAZA 500ML" → Milk, 500 ml. "SF REFIND SUNFL OIL 1L" → Sunflower oil, 1 l. "HALDI PWD 100G" → Turmeric (haldi), 100 g. Drop brand names unless the brand is how people say it (Maggi, Amul butter).
 
 For each line give:
 - name: the plain item name, title case, no brand or pack code
-- quantity and unit: the amount bought, in kg, g, l, ml, packet, piece, bunch or dozen. A line like "2 x 1KG" is 2 kg.
-  When the pack size is printed ("TOOR DAL 500G", "MILK 1L"), give that weight or volume, times the number of packs.
-  When only a count of packs is shown ("1 PKT", "2 NOS") with no size, give the count with unit packet — never guess a weight.
-  When the bill shows only a price and no amount, leave both null.
+- The amount, as three printed facts. Report what is printed; never multiply or work anything out, the app does that.
+  pack_size and pack_unit: the size printed in the item's own name or description ("TOOR DAL 500G" → 500, g; "MILK 1L" → 1, l; "BHINDI 225 G" → 225, g). null when the name carries no size.
+  count: the number in the bill's quantity column for that line, exactly as printed, decimals included ("1.07" → 1.07; "2" → 2; "2 x 1KG" → count 2 with pack_size 1, kg). null when no quantity is printed.
+  unit: what the count is counted in when the name carries no size: kg, g, l or ml for things sold loose by weight or volume ("TOMATO 1.070 KG" → count 1.07, unit kg), otherwise packet, piece, bunch or dozen ("1 PKT", "2 NOS" → packet). null when the name carries a size.
+  A decimal count beside a pack size ("BHINDI 225 G   1.07") means that many times the pack: report pack_size 225, pack_unit g, count 1.07. Do not turn it into grams yourself.
+  When the bill shows only a price and no amount, leave all four null. Never guess a weight.
 - category: grain, dal, flour, oil, spice, vegetable, fruit, dairy, dry_fruit, ready, or other
   Fresh things are vegetable, even when they flavour food: ginger, garlic, green chilli, curry leaves, coriander leaves, mint, lemon is fruit.
   spice is only for dry spices: powders, seeds and whole dry spices (haldi, jeera, mustard seeds, dry red chilli, cardamom).
@@ -115,10 +120,10 @@ export async function POST(req: NextRequest) {
 
     const parsed = response.parsed_output;
     const money = (n: number | null) => (n != null && Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null);
+    // The reader reports what is printed; the amount is worked out here
     const clean = (i: (typeof parsed.items)[number]) => ({
       name: i.name.trim().slice(0, 60),
-      quantity: i.quantity != null && i.quantity > 0 ? Math.round(i.quantity * 1000) / 1000 : null,
-      unit: i.unit,
+      ...lineAmount(i),
       category: i.category,
       price: money(i.price),
       is_food: parsed.kind === "eating_out" ? false : i.is_food,   // a meal eaten out never goes on the shelf
@@ -128,12 +133,7 @@ export async function POST(req: NextRequest) {
     const items = parsed.items
       .filter((i) => i.is_food && parsed.kind !== "eating_out" && i.name.trim())
       .slice(0, 40)
-      .map((i) => ({
-        name: i.name.trim().slice(0, 60),
-        quantity: i.quantity != null && i.quantity > 0 ? Math.round(i.quantity * 1000) / 1000 : null,
-        unit: i.unit,
-        category: i.category,
-      }));
+      .map((i) => ({ name: i.name.trim().slice(0, 60), ...lineAmount(i), category: i.category }));
 
     return NextResponse.json({ kind: parsed.kind, shop: parsed.shop, bill_date: parsed.bill_date, total: money(parsed.total), items, lines });
   } catch (error) {
